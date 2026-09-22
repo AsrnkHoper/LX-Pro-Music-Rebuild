@@ -591,30 +591,41 @@ const PAGES = {
   },
   stats: {
     en:'STATS', cn:'听歌统计',
-    /* ⚠️ 环绕多焦点布局（2026-09-22 按 docs/13 P0 改造）
-       6 种图表不再堆成一列，而是分置不同方位，转视角查看：
-         · 正面（az 0）：Hero 统计大数 + 24h 柱状图
-         · 右转（az +58）：六维雷达图（画像）
-         · 左转（az -58）：平台占比环形图
-         · 下转（el -42）：排行列表（歌手/歌曲）
-       手机竖屏横向视野仅 ±17°，故环绕面放 ±58°，需转动才能看到 —— 这正是空间化的意义。
-       参考 LX-Pro src/screens/Home/Views/Stats/ */
-    cam: { yawMax: 1.10, pitchMax: 0.70, sensX: 0.0075, sensY: 0.007 },
+    /* ⚠️ 环绕多焦点布局（2026-09-22，docs/13 的 P0）
+       对齐 LX-Pro 统计页的 12 个区块（src/screens/Home/Views/Stats/index.tsx），
+       按「主题」分 4 个方位，每方位纵向堆 2~3 块：
+         · 正面 az 0    ：总览（大数 / 24h 分布 / 本月报告）
+         · 右转 az +60  ：画像（六维雷达 / 听歌习惯）
+         · 左转 az -60  ：偏好（平台占比 / 长期偏好）
+         · 后转 az ±120 ：排行（歌手 / 歌曲 / 最近播放）
+       ⚠️ 手机竖屏横向视野仅 ±17°、纵向 ±34°，
+          故每个方位内纵向最多堆 3 块，跨方位必须转动才能看到。 */
+    cam: { yawMax: Math.PI, pitchMax: 0.90, sensX: 0.0075, sensY: 0.007 },
     radius: 6.2,
     widgets: [
-      /* ── 正面 ── */
+      /* ═══ 正面 az 0：总览 ═══ */
       { type:'stat', value:'12.5', unit:'小时', label:'本周听歌时长',
-        az:0, el:20, w:3.2, h:1.5, bare:true, float:0 },
+        az:0, el:24, w:3.2, h:1.6, bare:true, float:0 },
 
       { type:'chart_bar24', label:'活跃时间分布', topLabel:'峰值 22:00',
-        az:0, el:4, w:3.2, h:1.9, bare:true, float:0,
+        az:0, el:6, w:3.2, h:1.9, bare:true, float:0,
         bars:[0.05,0.03,0.02,0.02,0.03,0.06,0.12,0.20,0.26,0.30,0.28,0.32,
               0.36,0.30,0.28,0.34,0.42,0.52,0.62,0.74,0.86,0.98,0.92,0.55],
         top:21 },
 
-      /* ── 右转：六维雷达图（LX-Pro Stats/index.tsx:71-76 的六个维度）── */
-      { type:'chart_radar', label:'听歌画像',
-        az:58, el:6, w:2.9, h:2.6, bare:true, float:0,
+      /* LX-Pro「本月听歌报告」(index.tsx:667-691)：时长/次数/活跃天数/今年活跃 */
+      { type:'metrics', label:'本月听歌报告', sub:'本地统计',
+        az:0, el:-14, w:3.2, h:1.7, bare:true, float:0, items:[
+        { label:'听歌时长', value:'38.2 小时' },
+        { label:'播放次数', value:'642 次' },
+        { label:'活跃天数', value:'21 天' },
+        { label:'今年活跃', value:'184 天' }
+      ]},
+
+      /* ═══ 右转 az +60：画像 ═══ */
+      /* LX-Pro「听歌画像」(index.tsx:756-799)：六维雷达，维度见 index.tsx:71-76 */
+      { type:'chart_radar', label:'听歌画像', sub:'六维本地计算',
+        az:60, el:12, w:2.9, h:2.6, bare:true, float:0,
         items:[
           { label:'多样性', value:0.72 },
           { label:'深夜',   value:0.86 },
@@ -624,9 +635,19 @@ const PAGES = {
           { label:'探索',   value:0.41 }
         ]},
 
-      /* ── 左转：平台占比环形图（色板沿用 LX-Pro DonutChart.tsx:15）── */
+      /* LX-Pro「听歌习惯」(index.tsx:801-824)：常听时段/活跃日均/最长连续/本月活跃 */
+      { type:'metrics', label:'听歌习惯',
+        az:60, el:-16, w:3.2, h:1.7, bare:true, float:0, items:[
+        { label:'常听时段', value:'22:00' },
+        { label:'活跃日均', value:'96 分钟' },
+        { label:'最长连续', value:'23 天' },
+        { label:'本月活跃', value:'68%' }
+      ]},
+
+      /* ═══ 左转 az -60：偏好 ═══ */
+      /* LX-Pro「音乐平台占比」(index.tsx:855-869)：环形图，色板 DonutChart.tsx:15 */
       { type:'chart_donut', label:'音源占比', centerValue:'12.5', centerUnit:'小时',
-        az:-58, el:6, w:3.2, h:1.8, bare:true, float:0,
+        az:-60, el:12, w:3.2, h:1.8, bare:true, float:0,
         items:[
           { label:'Bilibili', value:5.4 },
           { label:'本地文件', value:4.1 },
@@ -634,20 +655,44 @@ const PAGES = {
           { label:'其他',     value:0.8 }
         ]},
 
-      /* ── 下转：排行列表 ── */
+      /* LX-Pro「长期偏好画像」(index.tsx:826-853)：常听歌手/专辑/音源 */
+      { type:'metrics', label:'长期偏好画像', sub:'按累计收听时长',
+        az:-60, el:-16, w:3.2, h:1.7, bare:true, float:0, items:[
+        { label:'常听歌手', value:'梁博' },
+        { label:'常听专辑', value:'出现又离开' },
+        { label:'常听音源', value:'Bilibili' }
+      ]},
+
+      /* ═══ 后转 az ±120：排行 ═══ */
+      /* LX-Pro「歌手排行」(index.tsx:921-931) */
       { type:'bars', label:'歌手排行',
-        az:0, el:-24, w:3.2, h:2.0, bare:true, float:0, items:[
+        az:120, el:14, w:3.2, h:2.2, bare:true, float:0, items:[
         { t:'梁博',      v:0.92, s:'38 次' },
         { t:'毛不易',    v:0.74, s:'31 次' },
         { t:'陈奕迅',    v:0.58, s:'24 次' },
-        { t:'Radiohead', v:0.41, s:'17 次' }
+        { t:'Radiohead', v:0.41, s:'17 次' },
+        { t:'五月天',    v:0.36, s:'15 次' },
+        { t:'朴树',      v:0.28, s:'12 次' }
       ]},
 
+      /* LX-Pro「播放次数排行」(index.tsx:870-893) */
       { type:'bars', label:'歌曲排行',
-        az:0, el:-48, w:3.2, h:1.5, bare:true, float:0, items:[
+        az:120, el:-18, w:3.2, h:2.2, bare:true, float:0, items:[
         { t:'黑夜中', v:0.88, s:'21 次' },
         { t:'消愁',   v:0.62, s:'15 次' },
-        { t:'后来',   v:0.44, s:'11 次' }
+        { t:'后来',   v:0.44, s:'11 次' },
+        { t:'起风了', v:0.38, s:'9 次' },
+        { t:'平凡之路',v:0.31, s:'8 次' }
+      ]},
+
+      /* LX-Pro「最近播放」(index.tsx:933-966) */
+      { type:'list', label:'最近播放',
+        az:-120, el:0, w:3.2, h:2.6, bare:true, float:0, items:[
+        { t:'夜里的风', s:'Drake · 02:12' },
+        { t:'黑夜中',   s:'梁博 · 05:18' },
+        { t:'后来',     s:'刘若英 · 04:52' },
+        { t:'消愁',     s:'毛不易 · 03:19' },
+        { t:'Ghost',    s:'Justin Bieber · 03:20' }
       ]}
     ]
   },
@@ -1159,7 +1204,13 @@ const DRAW = {
     const pad = 0.32*P;
     let y = 0;
     if(w.label){ label(g, w.label, pad, 0.48*P, P); y = 0.68*P; }
-    const rowH = 0.72*P;
+    /* ⚠️ 行高自适应（2026-09-22 修）：
+       原先固定 rowH = 0.72*P，行数多时内容超出面板高度，
+       最后几行被直接裁掉 —— 表现就是「排行划不动 / 看不到全部」。
+       现按可用高度反算行高，保证全部行都画得下（行数多则行变矮）。 */
+    const avail = H - y - 0.20*P;
+    const n = Math.max(1, (w.items || []).length);
+    const rowH = Math.min(0.72*P, avail / n);
 
     w.items.forEach((it, i) => {
       const ry = y + i*rowH;
@@ -1748,6 +1799,65 @@ const DRAW = {
       ly += rowH;
     });
     g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    return [];
+  },
+
+  /* 指标组（2026-09-22 新增）
+     用途：承载「标签 + 数值」型的成组信息，如 LX-Pro 统计页的
+       · 本月听歌报告：听歌时长 / 播放次数 / 活跃天数 / 今年活跃
+       · 本月最常听  ：最爱歌手 / 最爱歌曲 / 最爱专辑
+       · 听歌习惯    ：常听时段 / 活跃日均 / 最长连续 / 本月活跃
+       · 长期偏好画像：常听歌手 / 常听专辑 / 常听音源
+     这些区块在 LX-Pro 里是「标题 + 若干指标行」，不是图表。
+     参数：
+       w.items = [{ label:'听歌时长', value:'38.2 小时' }, ...]
+       w.cols  = 1 或 2（默认 1）—— 2 列时并排显示，省纵向空间 */
+  metrics(g, W, H, w, st, idx){
+    const P = W/5;
+    const pad = 0.30*P;
+    let y = 0;
+    if(w.label){ label(g, w.label, pad, 0.48*P, P); y = 0.76*P; }
+    if(w.sub){
+      g.fillStyle = 'rgba(150,160,176,0.78)';
+      g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
+      g.textAlign = 'right'; g.textBaseline = 'alphabetic';
+      g.fillText(w.sub, W - pad, 0.46*P);
+      g.textAlign = 'left';
+    }
+
+    const items = w.items || [];
+    const cols  = w.cols === 2 ? 2 : 1;
+    const avail = H - y - 0.18*P;
+    const rows  = Math.ceil(items.length / cols);
+    const rowH  = Math.min(0.86*P, avail / Math.max(1, rows));
+    const colW  = (W - 2*pad) / cols;
+
+    items.forEach((it, i) => {
+      const c = i % cols, r = Math.floor(i / cols);
+      const x = pad + c*colW;
+      const ry = y + r*rowH;
+
+      /* 标签（上，小、灰）*/
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+      g.fillStyle = 'rgba(158,170,186,0.88)';
+      g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
+      g.fillText(it.label || '', x, ry + rowH*0.38);
+
+      /* 数值（下，大、亮）*/
+      g.fillStyle = 'rgba(240,246,254,0.96)';
+      g.font = '600 ' + Math.round(0.30*P) + 'px ' + FONT;
+      const vw = g.measureText(it.value || '').width;
+      const maxVW = colW - 0.24*P;
+      if(vw > maxVW){
+        g.font = '600 ' + Math.round(0.30*P * maxVW / vw) + 'px ' + FONT;
+      }
+      g.fillText(it.value || '', x, ry + rowH*0.80);
+
+      /* 分隔线（非末行）*/
+      if(r < rows - 1 && cols === 1){
+        hairline(g, pad, ry + rowH - 0.02*P, W - pad, 0.05);
+      }
+    });
     return [];
   },
 

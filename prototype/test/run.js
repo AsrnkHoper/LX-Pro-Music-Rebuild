@@ -214,10 +214,48 @@ ok(radar && radar.userData.widget.items.length === 6, `雷达图 6 个维度（�
 const donut = statsWs.find(x=>x.userData.widget.type==='chart_donut');
 ok(donut && donut.userData.widget.items.length >= 2, `环形图有多个平台（实际 ${donut?donut.userData.widget.items.length:0}）`);
 
-/* 环绕布局：图表分布在不同方位（不是全堆在正面） */
+/* 环绕布局：区块分布在不同方位（不是全堆在正面） */
 const azs = statsWs.map(x=>x.userData.widget.az).filter(a=>a!==undefined);
 const uniq = [...new Set(azs)];
-ok(uniq.length >= 3, `图表分布在不同方位（${uniq.length} 个方位: ${uniq.join(',')}）`);
+ok(uniq.length >= 3, `区块分布在不同方位（${uniq.length} 个方位: ${uniq.join(',')}）`);
+
+/* metrics 控件（承载「标签+数值」型区块） */
+const metricsWs = statsWs.filter(x=>x.userData.widget.type==='metrics');
+ok(metricsWs.length >= 3, `stats 含 ${metricsWs.length} 个 metrics 区块`);
+const mm = metricsWs[0];
+if(mm){
+  const c = mm.userData.canvas;
+  let filled = 0, texts = 0;
+  const ctx = new Proxy({
+    canvas:{width:c.width, height:c.height},
+    measureText: s => ({width:String(s).length*8}),
+    createLinearGradient: () => ({addColorStop(){}}),
+    createRadialGradient: () => ({addColorStop(){}}),
+    fill(){ filled++; }, fillText(){ texts++; },
+    beginPath(){}, closePath(){}, clearRect(){}, save(){}, restore(){},
+    fillRect(){}, stroke(){}, moveTo(){}, lineTo(){}, arc(){}, clip(){}
+  }, { get(o,k){ return (k in o) ? o[k] : ()=>{}; }, set(o,k,v){ o[k]=v; return true; } });
+  c.getContext = () => ctx;
+  try{
+    T.DRAW.metrics(ctx, c.width, c.height, mm.userData.widget, mm.userData.state, 0);
+    const nItems = mm.userData.widget.items.length;
+    ok(texts >= nItems*2, `metrics 绘制了标签+数值（${texts} 次 fillText / ${nItems} 项）`);
+  }catch(e){ ok(false, 'metrics 绘制抛异常: '+e.message); }
+}
+
+/* bars 行高自适应（原 bug：内容超出面板被裁切） */
+const barsWs = statsWs.filter(x=>x.userData.widget.type==='bars');
+let barsOK = true;
+barsWs.forEach(m => {
+  const u = m.userData;
+  const c = u.canvas, P = c.width/5;
+  const y = u.widget.label ? 0.68*P : 0;
+  const n = u.widget.items.length;
+  const avail = c.height - y - 0.20*P;
+  const rowH = Math.min(0.72*P, avail/n);
+  if(y + n*rowH > c.height + 1) barsOK = false;
+});
+ok(barsOK, `bars 行高自适应，${barsWs.length} 个排行内容均不超出面板`);
 
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');
