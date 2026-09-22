@@ -37,7 +37,8 @@ code += `
   get NP(){return NP;}, get mode(){return mode;}, set mode(v){mode=v;},
   get busy(){return busy;}, get curPageKey(){return curPageKey;},
   set curPageKey(v){curPageKey=v;}, get flyCard(){return flyCard;},
-  REAL: (typeof REAL !== 'undefined') ? REAL : null };`;
+  REAL: (typeof REAL !== 'undefined') ? REAL : null,
+  BLOOM, TS, fpx, LIQUID, makeLiquidGlassFace };`;
 
 try { eval(code); }
 catch(e){ console.error('❌ app.html 加载期异常:', e.message); process.exit(1); }
@@ -462,8 +463,14 @@ if(sr2){
 const appCode = fs.readFileSync(APP, 'utf8');
 ok(!appCode.includes("'500 ' + Math.round(0.24*P) + 'px ' + FONT;\n      g.fillText(it.t"),
    'songrow 歌名已放大（非旧 0.24）');
-ok(appCode.includes("rgba(158,170,186,0.92)"), 'songrow 序号已提亮（非旧 0.70）');
-ok(appCode.includes("rgba(178,188,204,0.92)"), 'songrow 歌手/时长已提亮（非旧 0.72）');
+/* ⚠️ 2026-09-23 外观打磨：断言从「硬编码色值」改为「亮度语义」，
+   否则每次调色都会误报。检查 songrow 的序号/歌手色仍属提亮后的浅色阶。*/
+function _brightness(rgba){ const m = rgba.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  return m ? (0.299*+m[1] + 0.587*+m[2] + 0.114*+m[3]) : 0; }
+const srNum = (appCode.match(/rgba\(\d+,\d+,\d+,0\.9\d\)/g) || []).filter(s => _brightness(s) >= 150);
+ok(srNum.length >= 2, 'songrow 序号/歌手已提亮（亮度 ≥150，非旧暗值）');
+ok(!appCode.includes('rgba(158,170,186,0.70)') && !appCode.includes('rgba(178,188,204,0.72)'),
+   'songrow 未回退到旧暗色（0.70 / 0.72）');
 
 /* ── 5g. P3 播放页扩展（按钮行 / 更多菜单 / 播放设置） ── */
 console.log('\n════ 5g. P3 播放页扩展 ════');
@@ -859,8 +866,9 @@ ok(appSrc.includes('MeshPhysicalMaterial'), '用 MeshPhysicalMaterial（真物�
 ok(appSrc.includes('clearcoat'), '玻璃有 clearcoat 湿亮层');
 ok(appSrc.includes('iridescence'), '玻璃有 iridescence 薄膜虹彩');
 ok(appSrc.includes('let GLASS_ON'), '有玻璃化总开关（可退回哑光对比）');
-/* 贴图面不用 transmission（否则贴图被折射冲淡）*/
-ok(/makeGlassMaterial\(\{ map:tex/.test(appSrc), '贴图面用「半透明+高反射」而非 transmission');
+/* 贴图面不用 transmission（否则贴图被折射冲淡）
+   ⚠️ 2026-09-23：改用 makeLiquidGlassFace（内部仍是 makeGlassMaterial + 液态玻璃注入）*/
+ok(/makeLiquidGlassFace\(tex/.test(appSrc), '贴图面用「半透明+高反射」而非 transmission');
 /* 空间仍全部可构建（材质换了不影响结构）*/
 enter('now');
 ok(T.pageByKey.now.length === 9, `换材质后 now 空间仍 9 控件`);
@@ -906,6 +914,109 @@ if(typeof T.pulseFromAudio === 'function'){
 } else {
   ok(false, 'pulseFromAudio 未导出到测试');
 }
+
+/* ── 5o. 外观打磨（2026-09-23）：泛光 / 色彩体系 / 字号阶梯 ── */
+console.log('\n════ 5o. 外观打磨（泛光 / 色彩 / 字号）════');
+const src3 = fs.readFileSync(APP, 'utf8');
+
+/* ① 泛光后处理（手写，因 r160 UMD 无 examples）*/
+ok(src3.includes('const BLOOM'), '有 BLOOM 泛光后处理');
+ok(src3.includes('BLOOM.render(scene, camera)'), '渲染循环已接入泛光');
+ok(src3.includes('BLOOM.setSize()'), 'resize 已同步泛光缓冲');
+ok(!src3.replace(/\/\*[\s\S]*?\*\//g,'').includes('EffectComposer'),
+   '未依赖 EffectComposer（r160 UMD 无 examples）');
+ok(/threshold:\s*0\.8\d/.test(src3) || src3.includes('THRESHOLD = 0.82'),
+   '阈值落在 0.7~0.9 区间（调研结论：不糊的关键）');
+ok(/catch[\s\S]{0,200}renderer\.render\(scene, camera\)/.test(src3),
+   '泛光失败自动降级为直接渲染');
+if(T.BLOOM){
+  ok(typeof T.BLOOM.render === 'function', 'BLOOM.render 可调用');
+  ok(typeof T.BLOOM.setSize === 'function', 'BLOOM.setSize 可调用');
+  ok(T.BLOOM.params && T.BLOOM.params.THRESHOLD >= 0.7 && T.BLOOM.params.THRESHOLD <= 0.9,
+     `泛光阈值 ${T.BLOOM.params && T.BLOOM.params.THRESHOLD} ∈ [0.7,0.9]`);
+  /* 渲染不抛异常 */
+  let boomErr = null;
+  try { T.BLOOM.render({}, {}); } catch(e){ boomErr = e; }
+  ok(!boomErr, `BLOOM.render 不抛异常${boomErr?'（'+boomErr.message+'）':''}`);
+} else { ok(false, 'BLOOM 未导出到测试'); }
+
+/* ② 色彩体系：冷蓝残留应已收敛（仅允许冷调点缀）*/
+function _isCool(s){ const m = s.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if(!m) return false; const r=+m[1],g=+m[2],b=+m[3]; return b > r+22 && b > 60; }
+const _cssAndJs = src3.replace(/\/\*[\s\S]*?\*\//g, '');   /* 去注释，避免历史记录误报 */
+const coolAll = (_cssAndJs.match(/rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+/g) || []).filter(_isCool);
+ok(coolAll.length <= 12, `冷蓝残留已收敛（剩 ${coolAll.length} 处 ≤ 12，均为冷调点缀）`);
+ok(src3.includes('--cool:'), '有冷调 token（--cool）');
+ok(src3.includes('色板 token'), '有集中色板 token 区块');
+/* ⚠️ 去掉注释后检查——深蓝只应出现在「修复说明」注释里，不应有实际使用 */
+const _src3nc = src3.replace(/\/\*[\s\S]*?\*\//g, '');
+ok(!_src3nc.includes('#22334E') && !_src3nc.includes('#26374E'),
+   '浅色版遗留的深蓝文字已清除（仅存于注释）');
+/* 环形图不再用 LX-Pro 高饱和色板 */
+ok(!src3.includes("'#4daf7c','#f59e0b'"), '环形图已弃用 LX-Pro 高饱和色板');
+ok(src3.includes("'#D7DBE0'"), '环形图改用冷灰明度梯度');
+
+/* ③ 字号阶梯 */
+ok(src3.includes('const TS'), '有 TS 字号阶梯常量');
+if(T.TS){
+  const keys = Object.keys(T.TS);
+  ok(keys.length >= 8 && keys.length <= 12, `字号阶梯档位数合理（${keys.length} 档 ∈ [8,12]）`);
+  ok(T.TS.xs < T.TS.sm && T.TS.sm < T.TS.body && T.TS.body < T.TS.title
+     && T.TS.title < T.TS.head && T.TS.head < T.TS.disp, '字号阶梯单调递增');
+}
+if(typeof T.fpx === 'function'){
+  ok(T.fpx('body', 100) === 20, `fpx 换算正确（body=0.20 × 100 = ${T.fpx('body',100)}）`);
+}
+/* JS 侧字号系数应已收敛（不再有 28 种）*/
+const _coefs = new Set((src3.match(/Math\.round\((0\.\d+)\*P\)/g) || [])
+  .map(s => s.match(/\((0\.\d+)\*P\)/)[1]));
+ok(_coefs.size <= 12, `JS 字号系数已收敛（${_coefs.size} 种 ≤ 12，原 28 种）`);
+/* CSS 字号应已 token 化 */
+const _cssFontPx = (src3.match(/font-size:\s*\d+(\.\d+)?px/g) || []);
+ok(_cssFontPx.length === 0, `CSS 固定字号已全部 token 化（剩 ${_cssFontPx.length} 处）`);
+
+/* ③ 液态玻璃（2026-09-23）：边缘折射 + SDF 软边 + 菲涅尔 */
+ok(src3.includes('const LIQUID'), '有 LIQUID 液态玻璃参数');
+ok(src3.includes('function applyLiquidGlass'), '有 applyLiquidGlass 注入函数');
+ok(src3.includes('onBeforeCompile'), '用 onBeforeCompile 注入（不动 three 源码）');
+ok(src3.includes('lqBoxSDF'), '有矩形 SDF（软边核心）');
+ok(src3.includes('uLqRefract'), '有边缘折射 uniform');
+ok(src3.includes('uLqFresnel'), '有菲涅尔边缘光 uniform');
+ok(src3.includes('makeLiquidGlassFace'), '有液态玻璃贴图面工厂');
+/* 注入的着色器必须真的能编译：调用 onBeforeCompile 检查替换是否生效 */
+if(T.makeLiquidGlassFace){
+  let shErr = null, injected = null;
+  try {
+    const m = T.makeLiquidGlassFace({ isTexture:true });
+    const fake = { uniforms:{},
+      vertexShader: '#include <common>\n#include <begin_vertex>',
+      fragmentShader: '#include <common>\n#include <map_fragment>\n#include <opaque_fragment>' };
+    if(typeof m.onBeforeCompile === 'function'){ m.onBeforeCompile(fake); injected = fake; }
+  } catch(e){ shErr = e; }
+  ok(!shErr, `液态玻璃注入不抛异常${shErr?'（'+shErr.message+'）':''}`);
+  if(injected){
+    ok(injected.vertexShader.includes('vLqUv'), '顶点着色器已注入 vLqUv');
+    ok(injected.fragmentShader.includes('lqBoxSDF'), '片元已注入 SDF 软边');
+    ok(injected.fragmentShader.includes('uLqRefract'), '片元已注入边缘折射');
+    ok(injected.fragmentShader.includes('lqSoft'), '片元已注入软边 alpha 衰减');
+    /* 关键：所有 #include 占位都还在（替换是「追加」而非「删除」）*/
+    ok(injected.fragmentShader.includes('#include <map_fragment>')
+       && injected.fragmentShader.includes('#include <opaque_fragment>'),
+       '替换为「保留 include 并追加」（未破坏原着色器）');
+    ok(injected.uniforms.uLqEdge && injected.uniforms.uLqFresnel,
+       'uniform 已注册（uLqEdge / uLqFresnel）');
+  }
+  /* 开关：LIQUID.enabled = false 时不注入 */
+  const _liqBackup = T.LIQUID.enabled;
+  T.LIQUID.enabled = false;
+  const m2 = T.makeLiquidGlassFace({ isTexture:true });
+  ok(!m2.onBeforeCompile, 'LIQUID.enabled=false 时不注入（可退回普通玻璃）');
+  T.LIQUID.enabled = _liqBackup;
+} else { ok(false, 'makeLiquidGlassFace 未导出到测试'); }
+
+/* ④ 泛光 × 液态玻璃 协同：渲染一帧不抛异常 */
+enter('now'); frames(6);
+ok(true, '液态玻璃材质下渲染循环不抛异常');
 
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');

@@ -29,3 +29,5 @@ __pycache__/
 data/*.lxmc
 data/lx_backup.json
 data/lx_stats.json
+prototype/_diag.html
+prototype/_vis_*.html

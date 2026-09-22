@@ -7,32 +7,10 @@
 <title>Hoper Music</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  /* ══════════════════════════════════════════════════════════
-     色板 token（单一真相源 · 2026-09-23 外观打磨）
-     ⚠️ 原则：中性灰黑为基调；冷调只作「微光」点缀（面积小）。
-        文字阶梯蓝偏移 ≤ 12（与设计体系一致），不再出现 ΔB-R>30 的冷蓝文字。
-     改色请只改这里，或改 JS 侧同源常量 COLOR（见 PALETTES 上方）。
-  ══════════════════════════════════════════════════════════ */
   :root{
-    /* 底色 */
-    --bg:#08090C; --bg-soft:#0D0E11;
-    /* 文字阶梯（中性冷白）*/ --t1:#ECEDEF; --t2:#8C9097; --t3:#4B4E54;
-    /* 强调（中性灰，非冷钢蓝）*/ --accent:#7A828C; --glow:rgba(122,130,140,0.32);
-    /* 玻璃层 */
-    --glass:rgba(255,255,255,0.045); --glass-b:rgba(255,255,255,0.08);
-    --divider:rgba(255,255,255,0.06);
-    /* 冷调微光（唯一允许的冷色，仅点缀）*/
-    --cool:#93A7BE; --cool-dim:rgba(147,167,190,0.30);
-    /* 字号阶梯（对齐主项目 LXType 的 sp 档位 · 2026-09-23）
-       ⚠️ 打磨前有 12/12.5/13、10/10.5/11、15/15.5、18.5 等「差一点」的档，
-          收敛为以下 7 档。 */
-    --fs-xs:11px;      /* labelSmall   11sp */
-    --fs-sm:13px;      /* labelLarge   13sp */
-    --fs-body:14px;    /* bodyMedium   14sp */
-    --fs-bodyL:16px;   /* bodyLarge    16sp */
-    --fs-title:18px;   /* titleLarge   18sp */
-    --fs-headS:22px;   /* headlineSmall 22sp */
-    --fs-head:28px;    /* headlineLarge 28sp */
+    --bg:#08090C; --glass:rgba(255,255,255,0.045); --glass-b:rgba(255,255,255,0.08);
+    --t1:#ECEDEF; --t2:#8C9097; --t3:#4B4E54;
+    --accent:#7A828C; --glow:rgba(122,130,140,0.32); --divider:rgba(255,255,255,0.06);
   }
   html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
     font-family:-apple-system,"PingFang SC","HarmonyOS Sans",sans-serif;
@@ -75,15 +53,12 @@
   /* 顶部 */
   .top{position:fixed;top:0;left:0;right:0;z-index:10;pointer-events:none;
     padding:calc(env(safe-area-inset-top,0px) + 22px) 24px 0;}
-  /* ⚠️ 2026-09-23 修复：原为深蓝渐变 #22334E→#5E7290 + 深蓝副标题
-     （从浅色版迁移的遗留，叠在近黑底上对比度约 1.5:1，几乎不可见）
-     → 改中性冷白渐变 + --t2 副标题 */
-  .top .t{font-size:var(--fs-head);font-weight:600;letter-spacing:-0.3px;
-    background:linear-gradient(180deg,#F1F3F7,#AAB2BE);
+  .top .t{font-size:27px;font-weight:600;letter-spacing:-0.3px;
+    background:linear-gradient(180deg,#22334E,#5E7290);
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-    text-shadow:0 2px 30px rgba(190,205,225,.30);}
-  .top .s{margin-top:6px;font-size:var(--fs-sm);letter-spacing:.7px;color:rgba(158,164,174,.90);
-    text-shadow:0 1px 8px rgba(0,0,0,.5);}
+    text-shadow:0 2px 30px rgba(255,255,255,.35);}
+  .top .s{margin-top:6px;font-size:12px;letter-spacing:.7px;color:rgba(38,52,76,.88);
+    text-shadow:0 1px 8px rgba(255,255,255,.3);}
   .top .s .dot{display:inline-block;width:5px;height:5px;border-radius:50%;
     background:var(--accent);box-shadow:0 0 10px var(--glow);vertical-align:middle;margin-right:7px;
     animation:pulse 2.6s ease-in-out infinite;}
@@ -94,10 +69,9 @@
     top:calc(env(safe-area-inset-top,0px) + 22px);text-align:center;
     opacity:0;transform:translateY(-6px);transition:opacity .5s ease,transform .5s ease;}
   body.sub .crumb{opacity:1;transform:translateY(0);}
-  /* ⚠️ 2026-09-23 修复：原为深蓝文字 + 白光晕（浅色版遗留，暗底不可见）*/
-  .crumb .en{font-size:var(--fs-xs);letter-spacing:4px;color:rgba(146,154,166,.72);}
-  .crumb .cn{font-size:var(--fs-bodyL);font-weight:500;letter-spacing:2px;margin-top:5px;
-    color:rgba(230,234,240,.95);text-shadow:0 2px 12px rgba(0,0,0,.6);}
+  .crumb .en{font-size:10px;letter-spacing:4px;color:rgba(45,60,86,.78);}
+  .crumb .cn{font-size:16px;font-weight:500;letter-spacing:2px;margin-top:5px;
+    color:rgba(28,40,58,.94);text-shadow:0 1px 8px rgba(255,255,255,.35);}
 
   /* 底部 */
   .bottom{position:fixed;left:0;right:0;bottom:0;z-index:10;pointer-events:none;
@@ -108,14 +82,13 @@
     -webkit-mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 10px),transparent);
     mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 10px),transparent);}
   .index::-webkit-scrollbar{display:none;}
-  /* ⚠️ 2026-09-23 修复：原为深蓝字 #26374E + 深蓝边框（浅色版遗留）*/
   .chip{flex:0 0 auto;height:34px;padding:0 12px;border-radius:11px;
     display:flex;align-items:center;justify-content:center;white-space:nowrap;
-    background:transparent;border:1px solid rgba(255,255,255,0.10);
-    color:rgba(196,202,212,.85);font-size:var(--fs-sm);letter-spacing:.4px;font-weight:400;
+    background:transparent;border:1px solid rgba(28,40,58,0.25);
+    color:#26374E;font-size:12px;letter-spacing:.4px;font-weight:400;
     transition:transform .25s,background .25s,color .25s,border-color .25s;}
-  .chip:active{transform:scale(.92);background:rgba(255,255,255,0.10);
-    color:var(--t1);border-color:rgba(255,255,255,0.22);}
+  .chip:active{transform:scale(.92);background:rgba(255,255,255,0.06);
+    color:#1B2940;border-color:rgba(40,70,110,0.5);}
 
   .mini{pointer-events:auto;height:58px;border-radius:19px;display:flex;align-items:center;gap:12px;
     padding:0 14px;
@@ -129,8 +102,8 @@
     transform:translate(-50%,-50%);border-radius:50%;background:var(--bg);border:2px solid rgba(255,255,255,.12);}
   @keyframes spin{to{transform:rotate(360deg)}}
   .mini .info{flex:1;min-width:0;}
-  .mini .info .t{font-size:var(--fs-sm);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .mini .info .a{font-size:var(--fs-xs);color:var(--t2);margin-top:2px;}
+  .mini .info .t{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mini .info .a{font-size:10.5px;color:var(--t2);margin-top:2px;}
   .mini .ctrl{display:flex;align-items:center;gap:2px;}
   .mini .ctrl button{background:none;border:none;color:var(--t1);width:36px;height:36px;
     display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .2s,transform .2s;}
@@ -144,7 +117,7 @@
     padding:9px 18px;border-radius:18px;white-space:nowrap;
     background:rgba(20,20,22,.82);border:1px solid var(--glass-b);
     backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-    font-size:var(--fs-sm);color:var(--t1);letter-spacing:.4px;
+    font-size:12px;color:var(--t1);letter-spacing:.4px;
     box-shadow:0 12px 30px rgba(0,0,0,.6);
     opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -155,7 +128,7 @@
     padding:10px 22px;border-radius:22px;display:flex;align-items:center;gap:7px;
     background:rgba(20,20,22,.75);border:1px solid var(--glass-b);
     backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-    color:var(--t1);font-size:var(--fs-sm);letter-spacing:.5px;
+    color:var(--t1);font-size:12.5px;letter-spacing:.5px;
     box-shadow:0 12px 34px rgba(0,0,0,.6);
     opacity:0;pointer-events:none;transition:opacity .35s,transform .35s;}
   .back.on{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
@@ -174,21 +147,19 @@
     background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);padding:0 16px;}
   .sheet .field svg{opacity:.6;flex:0 0 auto;}
   .sheet input{flex:1;background:none;border:none;outline:none;color:var(--t1);
-    font-size:var(--fs-bodyL);font-family:inherit;letter-spacing:.3px;}
+    font-size:15px;font-family:inherit;letter-spacing:.3px;}
   .sheet input::placeholder{color:var(--t3);}
-  /* ⚠️ 2026-09-23 修复：原为蓝色按钮 rgba(255,255,255,.30) → 中性玻璃 */
   .sheet .go{margin-top:14px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;
-    background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,0.14);
-    font-size:var(--fs-body);letter-spacing:1px;color:rgba(240,243,248,.95);}
-  .sheet .go:active{background:rgba(255,255,255,.16);}
+    background:rgba(50,90,150,.30);border:1px solid rgba(255,255,255,0.10);
+    font-size:14px;letter-spacing:1px;color:rgba(240,244,250,.95);}
+  .sheet .go:active{background:rgba(50,90,150,.45);}
 
   /* 边缘方向指示 */
   .indicators{position:fixed;inset:0;z-index:9;pointer-events:none;}
-  /* 冷调微光点缀：保留一点冷，但收敛为冷灰（原为亮蓝 50,90,150）*/
   .ind{position:absolute;width:0;height:0;
     border-left:6px solid transparent;border-right:6px solid transparent;
-    border-bottom:10px solid rgba(150,166,186,0.85);
-    filter:drop-shadow(0 0 6px var(--cool-dim));
+    border-bottom:10px solid rgba(60,84,112,0.9);
+    filter:drop-shadow(0 0 6px rgba(50,90,150,0.9));
     opacity:0;transition:opacity .35s;}
 
   /* ============================================================
@@ -207,7 +178,7 @@
   /* 封面色晕 + 暗角（沉浸背景）*/
   .np-wash{position:absolute;inset:0;pointer-events:none;
     background:
-      radial-gradient(ellipse 72% 42% at 50% 24%, var(--wash,rgba(122,140,164,.22)), rgba(0,0,0,0) 72%),
+      radial-gradient(ellipse 72% 42% at 50% 24%, var(--wash,rgba(96,120,150,.22)), rgba(0,0,0,0) 72%),
       radial-gradient(ellipse 92% 74% at 50% 50%, rgba(0,0,0,0) 42%, rgba(0,0,0,.58) 100%);
     transition:background 1.2s ease;}
   /* 胶片颗粒也覆盖歌曲页 */
@@ -218,7 +189,7 @@
 
   .np-top{display:flex;align-items:center;justify-content:space-between;
     height:38px;position:relative;z-index:2;transition:opacity .6s ease;}
-  .np-top button{background:none;border:none;color:rgba(232,235,239,.85);
+  .np-top button{background:none;border:none;color:rgba(226,232,240,.85);
     width:38px;height:38px;display:flex;align-items:center;justify-content:center;
     border-radius:50%;transition:background .2s,transform .2s;}
   .np-top button:active{background:rgba(255,255,255,.08);transform:scale(.9);}
@@ -227,9 +198,9 @@
   .np-stage{flex:0 0 30vh;position:relative;z-index:2;}
 
   .np-meta{text-align:center;position:relative;z-index:2;}
-  .np-meta .t{font-size:var(--fs-headS);font-weight:600;letter-spacing:.2px;
-    color:rgba(244,246,250,.97);text-shadow:0 2px 24px rgba(0,0,0,.7);}
-  .np-meta .a{font-size:var(--fs-sm);letter-spacing:.8px;color:rgba(154,162,176,.9);margin-top:7px;}
+  .np-meta .t{font-size:22px;font-weight:600;letter-spacing:.2px;
+    color:rgba(242,246,252,.97);text-shadow:0 2px 24px rgba(0,0,0,.7);}
+  .np-meta .a{font-size:12.5px;letter-spacing:.8px;color:rgba(154,162,176,.9);margin-top:7px;}
 
   /* 歌词：可自由滚动，无卡片 */
   .np-lyrics{flex:1;overflow-y:auto;position:relative;z-index:2;
@@ -239,13 +210,13 @@
     scrollbar-width:none;overscroll-behavior:contain;}
   .np-lyrics::-webkit-scrollbar{display:none;}
   .np-ly{padding:9px 0;text-align:center;
-    font-size:var(--fs-bodyL);line-height:1.5;letter-spacing:.3px;
+    font-size:15.5px;line-height:1.5;letter-spacing:.3px;
     color:rgba(138,146,160,.52);
     transition:color .45s ease,transform .45s ease,opacity .45s ease;
     transform-origin:center;}
-  .np-ly.on{color:rgba(240,243,248,.98);font-size:var(--fs-title);font-weight:500;
-    transform:scale(1.03);text-shadow:0 2px 20px rgba(150,172,200,.32);}
-  .np-ly.near{color:rgba(178,184,196,.72);}
+  .np-ly.on{color:rgba(244,248,254,.98);font-size:18.5px;font-weight:500;
+    transform:scale(1.03);text-shadow:0 2px 20px rgba(150,180,215,.35);}
+  .np-ly.near{color:rgba(180,190,204,.72);}
 
   /* 进度条：可拖动 */
   .np-progress{position:relative;z-index:2;margin-top:12px;transition:opacity .6s ease;}
@@ -253,18 +224,18 @@
   .np-track{position:relative;width:100%;height:3px;border-radius:2px;
     background:rgba(255,255,255,.13);}
   .np-fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px;
-    background:linear-gradient(90deg,rgba(150,164,184,.9),rgba(224,230,238,.95));}
+    background:linear-gradient(90deg,rgba(140,164,192,.9),rgba(216,232,248,.95));}
   .np-knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;
-    background:#EEF2F7;transform:translate(-50%,-50%);
-    box-shadow:0 0 12px rgba(160,180,205,.6);}
+    background:#EDF5FE;transform:translate(-50%,-50%);
+    box-shadow:0 0 12px rgba(170,200,235,.7);}
   .np-bar.drag .np-knob{width:16px;height:16px;}
   .np-times{display:flex;justify-content:space-between;margin-top:1px;
-    font-size:var(--fs-xs);letter-spacing:.5px;color:rgba(146,154,168,.7);font-variant-numeric:tabular-nums;}
+    font-size:11px;letter-spacing:.5px;color:rgba(146,154,168,.7);font-variant-numeric:tabular-nums;}
 
   /* 控制栏：半透明 */
   .np-ctrl{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;
     gap:30px;margin-top:12px;transition:opacity .6s ease;}
-  .np-ctrl button{background:none;border:none;color:rgba(236,240,245,.9);
+  .np-ctrl button{background:none;border:none;color:rgba(230,238,248,.9);
     display:flex;align-items:center;justify-content:center;border-radius:50%;
     transition:background .2s,transform .2s,color .2s;}
   .np-ctrl button:active{transform:scale(.9);}
@@ -398,33 +369,6 @@
    子页面：漂浮的「控件容器」（真实可交互）
 ============================================================ */
 const FONT = '-apple-system,"PingFang SC","HarmonyOS Sans",sans-serif';
-
-/* ══════════════════════════════════════════════════════════
-   字号阶梯（2026-09-23 外观打磨 · 单一真相源）
-   背景：打磨前有 28 种不同的 Math.round(x*P) 系数（0.09~0.80），
-        大量「差一点」的相邻档（0.19/0.20/0.21）→ 层次混乱、无系统。
-   现收敛为 10 档，语义对齐主项目 LX_Pro_Rebuild/11-视觉设计体系.md §4.2
-   「LXType」阶梯（display/headline/title/body/label 五级）。
-   ⚠️ 用法：TS.xs / TS.sm / ... 均为「相对排版基准 P 的系数」。
-      画布基准 P = 画布宽/5（子空间 PPM=130，主页卡 CARD_PPM=200）。
-   ⚠️ 字号不参与布局高度计算（widgetHeight 只用 P）——收敛不影响排版。
-      唯一例外：chipsRows 用字号测宽，已同步。
-══════════════════════════════════════════════════════════ */
-const TS = {
-  xs:    0.12,   /* labelSmall  11sp —— 极次要：时长、单位、注释 */
-  sm:    0.14,   /* labelLarge  13sp —— 次要：副标题、歌手 */
-  bodyS: 0.17,   /* bodyMedium   14sp —— 徽章、辅助行 */
-  body:  0.20,   /* bodyLarge    16sp —— 正文、列表副信息 */
-  titleS:0.24,   /* titleSmall   15sp —— 列表主文字 */
-  title: 0.27,   /* titleLarge   18sp —— 控件标题 */
-  headS: 0.30,   /* headlineSmall 22sp —— 歌名、重点值 */
-  head:  0.34,   /* headlineLarge 28sp —— 区块主标题 */
-  dispS: 0.66,   /* displaySmall  32sp —— 大数字 */
-  disp:  0.80    /* displayLarge  56sp —— 巨型统计值 */
-};
-/* 便捷：字号像素（四舍五入），配合 'px ' + FONT 使用
-   ⚠️ 命名 fpx 而非 fs —— three.js 内部已有 fs 标识符，避免冲突 */
-function fpx(k, P){ return Math.round((TS[k] || TS.body) * P); }
 
   /* ============================================================
      真实数据（由 data/gen_real_data.py 自动生成，勿手改）
@@ -4100,218 +4044,6 @@ scene.add(rimWarm);
 /* 玻璃化总开关（可全局调；false = 退回旧哑光观感，便于对比）*/
 let GLASS_ON = true;
 
-/* ══════════════════════════════════════════════════════════
-   ⚡ 泛光（Bloom）后处理 —— 手写实现（2026-09-23 外观打磨）
-   为什么手写：three.min.js 是 **r160 UMD** 构建，不含 examples
-     → EffectComposer / UnrealBloomPass / ShaderPass 全部不可用。
-   管线（4 pass；后 3 个在 1/4 分辨率跑，省性能）：
-     ① 场景 → rtScene（全分辨率，linear）
-     ② 亮度提取（软阈值）→ rtA（降采样）
-     ③ 分离高斯：横向 rtA→rtB，纵向 rtB→rtA
-     ④ 合成 rtScene + rtA → 屏幕（手动 linear→sRGB 编码，保持原观感）
-   ⚠️ 调研结论：泛光「不糊」的关键是 **threshold 0.7~0.9**（不是降 strength）。
-   ⚠️ 失败自动降级为直接渲染；`BLOOM.enabled = false` 可整体关闭。
-══════════════════════════════════════════════════════════ */
-const BLOOM = (function(){
-  const ON        = true;   /* 总开关（或运行时 BLOOM.enabled = false）*/
-  const THRESHOLD = 0.82;   /* 亮度阈值（关键参数：0.7~0.9 区间不糊）*/
-  const KNEE      = 0.16;   /* 阈值软过渡带 */
-  const STRENGTH  = 0.40;   /* 泛光强度（保守，避免糊成一片）*/
-  const DOWNSCALE = 4;      /* 泛光缓冲降采样倍率 */
-
-  const VERT = [
-    '/* LQ_BLOOM */',   /* ⚠️ 标识：供 onShaderError 安全网识别归属（见 installLiquidGuard）*/
-    'varying vec2 vUv;',
-    'void main(){',
-    '  vUv = uv;',
-    '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
-    '}'
-  ].join('\n');
-
-  const FRAG_BRIGHT = [
-    '/* LQ_BLOOM */',
-    'uniform sampler2D tDiffuse; uniform float threshold; uniform float knee;',,
-    'varying vec2 vUv;',
-    'void main(){',
-    '  vec3 c = texture2D(tDiffuse, vUv).rgb;',
-    '  float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));',
-    '  float w = smoothstep(threshold, threshold + knee, lum);',
-    '  gl_FragColor = vec4(c * w, 1.0);',
-    '}'
-  ].join('\n');
-
-  const FRAG_BLUR = [
-    '/* LQ_BLOOM */',
-    'uniform sampler2D tDiffuse; uniform vec2 texel;',,
-    'varying vec2 vUv;',
-    'void main(){',
-    '  vec4 s = vec4(0.0);',
-    '  s += texture2D(tDiffuse, vUv - texel*4.0) * 0.0162;',
-    '  s += texture2D(tDiffuse, vUv - texel*3.0) * 0.0540;',
-    '  s += texture2D(tDiffuse, vUv - texel*2.0) * 0.1216;',
-    '  s += texture2D(tDiffuse, vUv - texel*1.0) * 0.1945;',
-    '  s += texture2D(tDiffuse, vUv)              * 0.2270;',
-    '  s += texture2D(tDiffuse, vUv + texel*1.0) * 0.1945;',
-    '  s += texture2D(tDiffuse, vUv + texel*2.0) * 0.1216;',
-    '  s += texture2D(tDiffuse, vUv + texel*3.0) * 0.0540;',
-    '  s += texture2D(tDiffuse, vUv + texel*4.0) * 0.0162;',
-    '  gl_FragColor = s;',
-    '}'
-  ].join('\n');
-
-  const FRAG_COMP = [
-    '/* LQ_BLOOM */',
-    'uniform sampler2D tBase; uniform sampler2D tBloom; uniform float strength;',,
-    'varying vec2 vUv;',
-    'vec3 toSRGB(vec3 c){',
-    '  vec3 lo = c * 12.92;',
-    '  vec3 hi = 1.055 * pow(max(c, vec3(0.0)), vec3(1.0/2.4)) - 0.055;',
-    '  return mix(lo, hi, step(vec3(0.0031308), c));',
-    '}',
-    'void main(){',
-    '  vec3 base  = texture2D(tBase,  vUv).rgb;',
-    '  vec3 bloom = texture2D(tBloom, vUv).rgb;',
-    '  gl_FragColor = vec4(toSRGB(base + bloom * strength), 1.0);',
-    '}'
-  ].join('\n');
-
-  let rtScene=null, rtA=null, rtB=null, fsScene=null, fsCam=null, quad=null;
-  let matBright=null, matBlur=null, matComp=null;
-  let ok = ON, W=0, H=0;
-
-  function _dims(){
-    const dpr = Math.min((typeof devicePixelRatio !== 'undefined' ? devicePixelRatio : 1), 2);
-    return [Math.max(2, Math.floor(innerWidth*dpr)), Math.max(2, Math.floor(innerHeight*dpr))];
-  }
-  function _mkRT(w, h, depth){
-    /* ⚠️ H1 修复（2026-09-23 审查）：renderer 开了 antialias:true，但 MSAA 只作用于
-       **默认 framebuffer**；走泛光管线时几何边缘在 rtScene 里就已锯齿化，最终
-       写屏幕的只是一个全屏 quad，无法补回 → **开泛光 = 关抗锯齿**。
-       故：仅给全分辨率、带深度的场景 RT 开 MSAA；rtA/rtB 是 1/4 分辨率模糊缓冲，
-       锯齿无所谓，不该付 MSAA 成本。
-       ⚠️ samples 仅 WebGL2 生效；MSAA+HalfFloat 在部分移动 GPU 上不被支持 ——
-         但 _build() 已被 try/catch 包住，失败会自动降级，不会崩。*/
-    const rt = new THREE.WebGLRenderTarget(w, h, {
-      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
-      format: THREE.RGBAFormat, type: THREE.HalfFloatType,
-      depthBuffer: !!depth, stencilBuffer: false,
-      samples: depth ? 4 : 0
-    });
-    if(rt.texture) rt.texture.generateMipmaps = false;
-    return rt;
-  }
-
-  /* ⚠️ 降级时释放显存（审查 Low-5）：一次性 dispose，避免泄漏 */
-  function _disposeRTs(){
-    [rtScene, rtA, rtB].forEach(function(rt){
-      try{ if(rt && rt.dispose) rt.dispose(); }catch(e){}
-    });
-    rtScene = rtA = rtB = null;
-  }
-
-  function _build(){
-    try{
-      const d = _dims(); W = d[0]; H = d[1];
-      rtScene = _mkRT(W, H, true);
-      const bw = Math.max(2, Math.floor(W/DOWNSCALE)), bh = Math.max(2, Math.floor(H/DOWNSCALE));
-      rtA = _mkRT(bw, bh, false);
-      rtB = _mkRT(bw, bh, false);
-
-      fsCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-      fsScene = new THREE.Scene();
-
-      matBright = new THREE.ShaderMaterial({
-        uniforms: { tDiffuse:{value:null}, threshold:{value:THRESHOLD}, knee:{value:KNEE} },
-        vertexShader: VERT, fragmentShader: FRAG_BRIGHT, depthTest:false, depthWrite:false
-      });
-      matBlur = new THREE.ShaderMaterial({
-        uniforms: { tDiffuse:{value:null}, texel:{value:new THREE.Vector2(1/bw, 0)} },
-        vertexShader: VERT, fragmentShader: FRAG_BLUR, depthTest:false, depthWrite:false
-      });
-      matComp = new THREE.ShaderMaterial({
-        uniforms: { tBase:{value:null}, tBloom:{value:null}, strength:{value:STRENGTH} },
-        vertexShader: VERT, fragmentShader: FRAG_COMP, depthTest:false, depthWrite:false
-      });
-
-      quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), matComp);
-      quad.frustumCulled = false;
-      fsScene.add(quad);
-
-      ok = ON;
-      console.log('[泛光] 后处理就绪（threshold ' + THRESHOLD + ' / strength ' + STRENGTH + '）');
-    }catch(e){
-      ok = false;
-      console.warn('[泛光] 初始化失败，降级为直接渲染:', e && e.message);
-    }
-  }
-
-  function setSize(){
-    if(!ok) return;
-    const d = _dims();
-    if(d[0] === W && d[1] === H) return;
-    try{
-      W = d[0]; H = d[1];
-      rtScene.setSize(W, H);
-      const bw = Math.max(2, Math.floor(W/DOWNSCALE)), bh = Math.max(2, Math.floor(H/DOWNSCALE));
-      rtA.setSize(bw, bh); rtB.setSize(bw, bh);
-    }catch(e){ ok = false; _disposeRTs(); }
-  }
-
-  function render(scene, camera){
-    if(!ok || !rtScene){ renderer.render(scene, camera); return; }
-    try{
-      /* ① 场景 → rtScene */
-      renderer.setRenderTarget(rtScene);
-      renderer.clear();
-      renderer.render(scene, camera);
-
-      /* ② 亮度提取（降采样）*/
-      quad.material = matBright;
-      matBright.uniforms.tDiffuse.value = rtScene.texture;
-      renderer.setRenderTarget(rtA);
-      renderer.clear();
-      renderer.render(fsScene, fsCam);
-
-      /* ③ 横向模糊 */
-      quad.material = matBlur;
-      matBlur.uniforms.tDiffuse.value = rtA.texture;
-      matBlur.uniforms.texel.value.set(1/(rtA.width||1), 0);
-      renderer.setRenderTarget(rtB);
-      renderer.clear();
-      renderer.render(fsScene, fsCam);
-
-      /* ④ 纵向模糊 */
-      matBlur.uniforms.tDiffuse.value = rtB.texture;
-      matBlur.uniforms.texel.value.set(0, 1/(rtA.height||1));
-      renderer.setRenderTarget(rtA);
-      renderer.clear();
-      renderer.render(fsScene, fsCam);
-
-      /* ⑤ 合成 → 屏幕 */
-      quad.material = matComp;
-      matComp.uniforms.tBase.value  = rtScene.texture;
-      matComp.uniforms.tBloom.value = rtA.texture;
-      renderer.setRenderTarget(null);
-      renderer.render(fsScene, fsCam);
-    }catch(e){
-      ok = false;
-      console.warn('[泛光] 渲染失败，降级为直接渲染:', e && e.message);
-      _disposeRTs();
-      renderer.setRenderTarget(null);
-      renderer.render(scene, camera);
-    }
-  }
-
-  _build();
-  return {
-    render: render,
-    setSize: setSize,
-    get enabled(){ return ok; },
-    set enabled(v){ ok = !!v && ON; },
-    params: { THRESHOLD:THRESHOLD, KNEE:KNEE, STRENGTH:STRENGTH, DOWNSCALE:DOWNSCALE }
-  };
-})();
-
 /* ── 玻璃材质工厂（2026-09-23）──
    参数依据 three.js MeshPhysicalMaterial 官方语义：
      transmission 真折射 / thickness 体积感 / ior 折射率 /
@@ -4365,201 +4097,6 @@ function makeGlassSide(colorHex){
     envMapIntensity: 1.2
   });
 }
-
-/* ══════════════════════════════════════════════════════════
-   ⚡ 液态玻璃（Liquid Glass）—— 边缘折射 + SDF 软边 + 菲涅尔边缘光
-   2026-09-23 外观打磨；依据 docs/11 §九·五「调研结论」：
-     最佳参考 = Codrops「Infinite Liquid Glass Grid」的**自写 SDF 假玻璃**
-     （单 pass、零 render target）——本机 r160 UMD 无 examples，正合适。
-   实现方式：`onBeforeCompile` 注入片元着色器（不动 three 源码）：
-     ① SDF 软边：用 uv 到矩形边的距离做 smoothstep → 内容「溶解进背景」，
-        配合已有的四边擦除，彻底消除矩形硬边。
-     ② 边缘折射：uv 越靠边、位移越大（模拟厚玻璃边缘的放大/弯曲）。
-     ③ 菲涅尔边缘光：掠射角亮起 → 「玻璃被光照到」的高光边。
-   ⚠️ 只作用于**有贴图的面**（主页卡 / 子空间控件），纯色侧边不注入。
-   ⚠️ LIQUID.enabled = false 可整体关闭；失败自动降级（着色器编译出错时
-      three 会退回原材质，不崩溃）。
-══════════════════════════════════════════════════════════ */
-const LIQUID = {
-  enabled:   true,    /* 总开关 */
-  edge:      0.055,   /* SDF 软边宽度（uv 归一化）——越大越柔 */
-  refract:   0.022,   /* 边缘折射位移强度（uv） */
-  fresnel:   0.55,    /* 菲涅尔边缘光强度 */
-  rimTint:   [0.72, 0.80, 0.92]   /* 边缘光冷白色（线性） */
-};
-
-/* 给玻璃材质注入液态玻璃着色器（返回同一个材质，链式友好）*/
-function applyLiquidGlass(mat, opts){
-  opts = opts || {};
-  const soft   = opts.edge    !== undefined ? opts.edge    : LIQUID.edge;
-  const refr   = opts.refract !== undefined ? opts.refract : LIQUID.refract;
-  const fres   = opts.fresnel !== undefined ? opts.fresnel : LIQUID.fresnel;
-  const tint   = opts.rimTint || LIQUID.rimTint;
-
-  mat.userData = mat.userData || {};
-  mat.userData.liquid = true;
-  /* ⚠️ H2 修复（2026-09-23 审查）：three 的 program cache key 由
-     shaderID / customVertexShaderID / customFragmentShaderID / defines 等决定，
-     **不包含 onBeforeCompile 的函数内容**。故仅清空 onBeforeCompile + needsUpdate
-     会命中同一个坏 program，「恢复」实际无效。
-     修法：把开关状态编进 cacheKey —— LIQUID.enabled 翻转时 key 变化 → 触发重编译
-     （默认着色器）。附带收益：`LIQUID.enabled = false` 真正生效（原实现只管新建材质）。*/
-  mat.customProgramCacheKey = function(){ return LIQUID.enabled ? 'lxLq1' : 'lxLq0'; };
-  mat.onBeforeCompile = function(shader){
-    if(!LIQUID.enabled) return;   /* 降级后不再注入 */
-    shader.uniforms.uLqEdge    = { value: soft };
-    shader.uniforms.uLqRefract = { value: refr };
-    shader.uniforms.uLqFresnel = { value: fres };
-    shader.uniforms.uLqTint    = { value: new THREE.Vector3(tint[0], tint[1], tint[2]) };
-
-    /* ── 顶点：把 uv 传到片元（贴图已用 vMapUv，这里复用）── */
-    shader.vertexShader = shader.vertexShader.replace(
-      '#include <common>',
-      ['#include <common>',
-       'varying vec2 vLqUv;'].join('\n')
-    );
-    shader.vertexShader = shader.vertexShader.replace(
-      '#include <begin_vertex>',
-      ['#include <begin_vertex>',
-       'vLqUv = uv;'].join('\n')
-    );
-
-    /* ── 片元：SDF 软边 + 边缘折射 + 菲涅尔 ── */
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <common>',
-      ['#include <common>',
-       'varying vec2 vLqUv;',
-       'uniform float uLqEdge;',
-       'uniform float uLqRefract;',
-       'uniform float uLqFresnel;',
-       'uniform vec3  uLqTint;',
-       '/* 矩形 SDF：返回 (到最近边距离, 是否为内部) */',
-       'float lqBoxSDF(vec2 uv, float r){',
-       '  vec2 d = abs(uv - 0.5) - vec2(0.5 - r);',
-       '  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r;',
-       '}'].join('\n')
-    );
-
-    /* 折射：保留原 map_fragment（含 alphaMap / 视频解码等逻辑），
-       在其**之后**追加一次边缘折射采样并混合 —— 不替换、不丢功能。
-       ⚠️ 之所以不用「替换 uv 再采样」：那会丢掉 map_fragment 里的
-          DECODE_VIDEO_TEXTURE / 色彩空间处理，且影响 alphaMap。*/
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <map_fragment>',
-      ['#include <map_fragment>',
-       '/* ── 液态玻璃：边缘折射（叠加采样）── */',
-       'vec2 lqCenter = vLqUv - 0.5;',
-       'float lqEdgeDist = 0.5 - max(abs(lqCenter.x), abs(lqCenter.y));',
-       'float lqEdgeK = 1.0 - smoothstep(0.0, 0.16, lqEdgeDist);',
-       'vec2 lqRefract = -lqCenter * lqEdgeK * uLqRefract;',
-       '#ifdef USE_MAP',
-       '  vec4 lqSample = texture2D( map, vMapUv + lqRefract );',
-       '  /* M-fix: was multiply-blend (dark areas made edge darker = dark ring);',
-       '     now lerp toward brighter sample (edge lift / bend). */',
-       '  diffuseColor.rgb = mix(diffuseColor.rgb, max(diffuseColor.rgb, lqSample.rgb), lqEdgeK * 0.45);',
-       '#endif'].join('\n')
-    );
-
-    /* SDF 软边 + 菲涅尔边缘光：改最终 alpha 与颜色
-       ⚠️ r160 里法线是局部变量 `normal`（由 normal_fragment_begin 定义，
-          位于 map_fragment 之后、opaque_fragment 之前），不是 varying vNormal。
-       ⚠️ Low 修复：smoothstep 的 edge0==edge1（edge 传 0）时 GLSL 结果未定义 → 加下限保护。*/
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <opaque_fragment>',
-      ['/* ── 液态玻璃：SDF 软边（让内容溶进背景，消硬边）── */',
-       'float lqSdf = lqBoxSDF(vLqUv, 0.06);',
-       'float lqE = max(uLqEdge, 1e-4);',
-       'float lqSoft = smoothstep(-lqE, lqE, -lqSdf);',
-       'diffuseColor.a *= lqSoft;',
-       '/* ── 液态玻璃：菲涅尔边缘光（掠射角亮起）── */',
-       'float lqFres = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 3.0);',
-       'outgoingLight += uLqTint * lqFres * uLqFresnel * lqSoft;',
-       '#include <opaque_fragment>'].join('\n')
-    );
-  };
-  mat.needsUpdate = true;
-  return mat;
-}
-
-/* 便捷：做一块「液态玻璃贴图面」（主页卡 / 子空间控件通用）*/
-function makeLiquidGlassFace(tex, opts){
-  opts = opts || {};
-  const m = makeGlassMaterial({
-    map: tex,
-    opacity: opts.opacity !== undefined ? opts.opacity : 0.94,
-    roughness: opts.roughness !== undefined ? opts.roughness : 0.10,
-    envMapIntensity: opts.envMapIntensity !== undefined ? opts.envMapIntensity : 1.5,
-    iridescence: opts.iridescence !== undefined ? opts.iridescence : 0.18
-  });
-  if(LIQUID.enabled) applyLiquidGlass(m, opts);
-  return m;
-}
-
-/* ── 液态玻璃安全网（2026-09-23）──
-   风险：注入的 GLSL 若编译失败，three 不会抛异常，只会 console.error，
-        卡片会变成不可见的黑块 —— 这是「静默失效」，必须防。
-   ⚠️ H3 修复（2026-09-23 审查）：onShaderError 是**全局钩子**，任何材质编译失败
-      都会触发。原实现不分来源一律关掉液态玻璃 → ① 误伤（BLOOM 失败却砍 LIQUID）
-      ② 误报（LIQUID_FAILED 变 true 但实际是 BLOOM 的问题）。
-      现按 shader 源码归属分派，互不牵连。*/
-let LIQUID_FAILED = false;
-let BLOOM_FAILED = false;
-(function installLiquidGuard(){
-  if(!renderer || !renderer.debug){
-    console.warn('[安全网] 无 renderer.debug，着色器错误安全网未安装');
-    return;
-  }
-  /* ⚠️ onShaderError 仅在 renderer.debug.checkShaderErrors 为 true 时被调用（r160 默认 true）。
-     若该开关被关，整套安全网静默失效 —— 显式提示。*/
-  if(renderer.debug.checkShaderErrors === false){
-    console.warn('[安全网] renderer.debug.checkShaderErrors 为 false，安全网不生效');
-  }
-  const prev = renderer.debug.onShaderError;
-  renderer.debug.onShaderError = function(gl, program, vs, fs){
-    if(typeof prev === 'function') { try{ prev(gl, program, vs, fs); }catch(e){} }
-
-    /* 用 shader 源码嗅探归属（onShaderError 拿不到 material）*/
-    let src = '';
-    try{
-      src = String((gl && gl.getShaderSource ? gl.getShaderSource(vs) : '') || '')
-          + String((gl && gl.getShaderSource ? gl.getShaderSource(fs) : '') || '');
-    }catch(e){}
-
-    /* ① 液态玻璃（注入的标志：vLqUv / uLqEdge）*/
-    if(src.indexOf('vLqUv') !== -1 || src.indexOf('uLqEdge') !== -1){
-      if(LIQUID.enabled){
-        LIQUID.enabled = false;
-        LIQUID_FAILED = true;
-        console.warn('[液态玻璃] 着色器编译失败 → 已全局降级为普通玻璃');
-        /* H2 方案 C：customProgramCacheKey 随 LIQUID.enabled 变化，
-           故只需 needsUpdate 即可触发重编译（默认着色器），无需清 onBeforeCompile */
-        try{
-          scene.traverse(function(o){
-            const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
-            mats.forEach(function(m){
-              if(m && m.userData && m.userData.liquid) m.needsUpdate = true;
-            });
-          });
-        }catch(e){}
-      }
-      return;   /* 关键：命中液态玻璃就返回，不牵连其他 */
-    }
-
-    /* ② 泛光（三个 shader 均带 LQ_BLOOM 标识注释）
-       修 BLOOM 的降级缺口：shader 编译失败在 three 里是 console.error + 不可用 program，
-       **不抛异常** → BLOOM.render 的 try/catch 不触发、ok 保持 true → 可能整屏黑。
-       此处主动降级。*/
-    if(src.indexOf('LQ_BLOOM') !== -1){
-      if(BLOOM && BLOOM.enabled){
-        BLOOM.enabled = false;   /* setter 置 ok=false → render() 早退走直接渲染 */
-        BLOOM_FAILED = true;
-        console.warn('[泛光] 着色器编译失败 → 已降级为直接渲染');
-      }
-      return;
-    }
-    /* ③ 其他材质：不动 LIQUID / BLOOM */
-  };
-})();
 
 /* ---------------- 主页 6 卡 ---------------- */
 /* ⚠️ 6 张卡（2026-09-22 按用户要求删除「播放历史」）：
@@ -5177,13 +4714,13 @@ function drawPanelBg(g, W, H, i){
   }
 
   /* 内侧发光边缘（替代硬边框）*/
-  g.strokeStyle = 'rgba(208,214,221,0.12)'; g.lineWidth = 1.2;
+  g.strokeStyle = 'rgba(200,220,240,0.12)'; g.lineWidth = 1.2;
   roundRect(g, W*0.012, H*0.012, W*0.976, H*0.976, r*0.92); g.stroke();
 
   /* 顶部高光 */
   const hg = g.createLinearGradient(0, 0, 0, H*0.16);
-  hg.addColorStop(0, 'rgba(232,236,244,0.12)');
-  hg.addColorStop(1, 'rgba(232,236,244,0)');
+  hg.addColorStop(0, 'rgba(226,238,252,0.12)');
+  hg.addColorStop(1, 'rgba(226,238,252,0)');
   g.fillStyle = hg; roundRect(g,0,0,W,H,r); g.fill();
 }
 function hairline(g, x1,y,x2, alpha){
@@ -5195,7 +4732,7 @@ function label(g, text, x, y, P, alpha){
   /* ⚠️ 提亮 + 放大（2026-09-22 用户反馈「灰色字看不清」）：
      原 rgba(152,160,172,0.78) / 0.23P → 现更亮更大 */
   g.fillStyle = 'rgba(186,196,212,' + (alpha||0.92) + ')';
-  g.font = '500 ' + Math.round(0.27*P) + 'px ' + FONT;
+  g.font = '500 ' + Math.round(0.28*P) + 'px ' + FONT;
   g.textAlign = 'left'; g.textBaseline = 'alphabetic';
   g.fillText(text, x, y);
 }
@@ -5227,7 +4764,7 @@ const DRAW = {
     roundRect(g, pad, pad, boxW, boxH, boxH*0.32); g.stroke();
 
     const icx = pad + boxH*0.52, icy = H/2, ir = boxH*0.16;
-    g.strokeStyle = 'rgba(208,214,220,0.7)';
+    g.strokeStyle = 'rgba(198,208,222,0.7)';
     g.lineWidth = Math.max(1.5, 0.032*P); g.lineCap='round';
     g.beginPath(); g.arc(icx, icy, ir, 0, Math.PI*2); g.stroke();
     g.beginPath(); g.moveTo(icx+ir*0.72, icy+ir*0.72); g.lineTo(icx+ir*1.7, icy+ir*1.7); g.stroke();
@@ -5239,7 +4776,7 @@ const DRAW = {
       g.fillText(st.value, pad + boxH*0.95, H/2 + 1);
     } else {
       g.fillStyle = 'rgba(146,154,168,0.7)';
-      g.font = '400 ' + Math.round(0.27*P) + 'px ' + FONT;
+      g.font = '400 ' + Math.round(0.28*P) + 'px ' + FONT;
       g.fillText(w.placeholder || '搜索歌曲 · 歌手 · 专辑', pad + boxH*0.95, H/2 + 1);
     }
 
@@ -5267,19 +4804,19 @@ const DRAW = {
 
     const chipH = 0.54*P;
     let cx = pad;
-    g.font = '400 ' + Math.round(0.27*P) + 'px ' + FONT;
+    g.font = '400 ' + Math.round(0.26*P) + 'px ' + FONT;
     g.textBaseline = 'middle';
     w.items.forEach((t, i) => {
       const tw = g.measureText(t).width;
       const cw = tw + 0.52*P;
       if(cx + cw > W - pad){ cx = pad; y += chipH + 0.18*P; }
       const sel = (st.sel === i);
-      g.fillStyle = sel ? 'rgba(255,255,255,0.11)' : 'rgba(255,255,255,0.05)';
+      g.fillStyle = sel ? 'rgba(50,90,150,0.36)' : 'rgba(255,255,255,0.05)';
       roundRect(g, cx, y, cw, chipH, chipH*0.5); g.fill();
-      g.strokeStyle = sel ? 'rgba(194,200,208,0.5)' : 'rgba(255,255,255,0.09)';
+      g.strokeStyle = sel ? 'rgba(184,200,220,0.5)' : 'rgba(255,255,255,0.09)';
       g.lineWidth = 1.5;
       roundRect(g, cx, y, cw, chipH, chipH*0.5); g.stroke();
-      g.fillStyle = sel ? 'rgba(244,246,250,0.96)' : 'rgba(210,215,221,0.85)';
+      g.fillStyle = sel ? 'rgba(242,246,252,0.96)' : 'rgba(202,210,222,0.85)';
       g.textAlign = 'center';
       g.fillText(t, cx + cw/2, y + chipH/2 + 1);
       g.textAlign = 'left';
@@ -5325,8 +4862,8 @@ const DRAW = {
       g.fillStyle = 'rgba(236,240,246,0.95)';
       g.font = '500 ' + Math.round(0.27*P) + 'px ' + FONT;
       g.fillText(it.t, pad + th + 0.26*P, ry + rowH*0.50);
-      g.fillStyle = 'rgba(188,194,202,0.86)';
-      g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(178,188,204,0.86)';
+      g.font = '400 ' + Math.round(0.21*P) + 'px ' + FONT;
       g.fillText(it.s, pad + th + 0.26*P, ry + rowH*0.78);
 
       arrow(g, W - pad - 0.14*P, ry + rowH*0.5, 0.22*P, 0.45);
@@ -5354,7 +4891,7 @@ const DRAW = {
         g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = 1.5;
         roundRect(g, tx + gap*0.5, pad, tabW - gap, tabH, tabH*0.5); g.stroke();
       }
-      g.fillStyle = sel ? 'rgba(242,245,248,0.96)' : 'rgba(154,162,176,0.78)';
+      g.fillStyle = sel ? 'rgba(240,244,250,0.96)' : 'rgba(154,162,176,0.78)';
       g.font = (sel ? '500 ' : '400 ') + Math.round(0.27*P) + 'px ' + FONT;
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText(t, tx + tabW/2, H/2 + 1);
@@ -5409,15 +4946,15 @@ const DRAW = {
         g.fillText(it.t[0], cx + cw/2, cy + artH/2 + 1);
 
         if(sel){
-          g.strokeStyle = 'rgba(210,216,224,0.55)'; g.lineWidth = 2;
+          g.strokeStyle = 'rgba(198,214,232,0.55)'; g.lineWidth = 2;
           roundRect(g, cx-1, cy-1, cw+2, artH+2, 0.16*P); g.stroke();
         }
 
         g.textAlign = 'left'; g.textBaseline = 'alphabetic';
-        g.fillStyle = sel ? 'rgba(248,251,255,1)' : 'rgba(242,245,248,0.98)';
+        g.fillStyle = sel ? 'rgba(248,251,255,1)' : 'rgba(240,244,250,0.98)';
         g.font = '600 ' + Math.round(0.30*P) + 'px ' + FONT;
         g.fillText(it.t, cx + 0.05*P, cy + artH + 0.42*P, cw - 0.1*P);
-        g.fillStyle = 'rgba(188,194,202,0.90)';
+        g.fillStyle = 'rgba(178,188,204,0.90)';
         g.font = '400 ' + Math.round(0.24*P) + 'px ' + FONT;
         g.fillText(it.sub, cx + 0.05*P, cy + artH + 0.76*P, cw - 0.1*P);
 
@@ -5474,7 +5011,7 @@ const DRAW = {
       /* ⚠️ 字号/亮度（2026-09-22 用户反馈「灰色字看不清」）
          此处曾被遗漏（只改了 grid），现补齐：序号 0.19→0.24 且提亮。 */
       /* 序号 */
-      g.fillStyle = 'rgba(170,176,184,0.92)';
+      g.fillStyle = 'rgba(158,170,186,0.92)';
       g.font = '500 ' + Math.round(0.24*P) + 'px ' + FONT;
       g.fillText(String(i+1).padStart(numW,'0'), pad, ry + rowH/2);
 
@@ -5498,8 +5035,8 @@ const DRAW = {
         roundRect(g, bx, by, bw, bh, bh*0.34); g.fill();
         g.strokeStyle = 'rgba(255,255,255,0.10)'; g.lineWidth = 1;
         roundRect(g, bx, by, bw, bh, bh*0.34); g.stroke();
-        g.fillStyle = 'rgba(196,202,210,0.94)';
-        g.font = '500 ' + Math.round(0.17*P) + 'px ' + FONT;
+        g.fillStyle = 'rgba(186,200,220,0.94)';
+        g.font = '500 ' + Math.round(0.18*P) + 'px ' + FONT;
         g.textAlign = 'center'; g.textBaseline = 'middle';
         g.fillText(it.src, bx + bw/2, by + bh/2 + 1);
         g.textAlign = 'left'; g.textBaseline = 'middle';
@@ -5507,12 +5044,12 @@ const DRAW = {
 
       /* 歌手 */
       g.textAlign = 'right';
-      g.fillStyle = 'rgba(188,194,202,0.92)';
+      g.fillStyle = 'rgba(178,188,204,0.92)';
       g.font = '400 ' + Math.round(0.24*P) + 'px ' + FONT;
       g.fillText(it.a, W - pad - 0.72*P, ry + rowH/2, 1.55*P);
 
       /* 时长（同样提亮放大）*/
-      g.fillStyle = 'rgba(188,194,202,0.92)';
+      g.fillStyle = 'rgba(178,188,204,0.92)';
       g.font = '500 ' + Math.round(0.24*P) + 'px ' + FONT;
       g.fillText(it.d, W - pad, ry + rowH/2);
 
@@ -5557,9 +5094,9 @@ const DRAW = {
     /* 滑块（高度 = 可见比例，位置 = 滚动比例）*/
     const kh = Math.max(0.34*P, trackH * visRatio);
     const ky = ty0 + (trackH - kh) * ratio;
-    g.fillStyle = 'rgba(210,216,224,0.80)';
+    g.fillStyle = 'rgba(198,214,232,0.80)';
     roundRect(g, tx - 0.025*P, ky, trackW + 0.05*P, kh, trackW/2); g.fill();
-    g.strokeStyle = 'rgba(232,236,242,0.45)'; g.lineWidth = 1.2;
+    g.strokeStyle = 'rgba(226,238,250,0.45)'; g.lineWidth = 1.2;
     roundRect(g, tx - 0.025*P, ky, trackW + 0.05*P, kh, trackW/2); g.stroke();
 
     /* 位置数字：当前第几 / 共几 */
@@ -5567,10 +5104,10 @@ const DRAW = {
       const first = Math.floor(t.scroll) + 1;
       const lastN = Math.min(total, Math.floor(t.scroll) + visible);
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillStyle = 'rgba(242,245,249,0.98)';
-      g.font = '600 ' + Math.round(0.20*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(240,246,254,0.98)';
+      g.font = '600 ' + Math.round(0.21*P) + 'px ' + FONT;
       g.fillText(first + '-' + lastN, W/2, ty0 - 0.20*P > 0 ? ty0 - 0.20*P : 0.10*P);
-      g.fillStyle = 'rgba(188,194,202,0.92)';
+      g.fillStyle = 'rgba(178,188,204,0.92)';
       g.font = '400 ' + Math.round(0.17*P) + 'px ' + FONT;
       g.fillText('共 ' + total, W/2, ty1 + 0.20*P);
     }
@@ -5591,8 +5128,8 @@ const DRAW = {
     g.fillText(w.value, pad, 1.02*P);
     const vw = g.measureText(w.value).width;
 
-    g.fillStyle = 'rgba(176,182,190,0.85)';
-    g.font = '400 ' + Math.round(0.27*P) + 'px ' + FONT;
+    g.fillStyle = 'rgba(168,178,192,0.85)';
+    g.font = '400 ' + Math.round(0.26*P) + 'px ' + FONT;
     g.fillText(w.unit, pad + vw + 0.14*P, 0.98*P);
 
     label(g, w.label, pad, 1.40*P, P, 0.75);
@@ -5606,7 +5143,7 @@ const DRAW = {
         const bh = Math.max(2, maxH*v);
         const bx = pad + i*bw;
         const last = (i === n-1);
-        g.fillStyle = last ? 'rgba(210,216,224,0.85)' : 'rgba(255,255,255,0.16)';
+        g.fillStyle = last ? 'rgba(198,214,232,0.85)' : 'rgba(255,255,255,0.16)';
         roundRect(g, bx, base-bh, bw*0.5, bh, bw*0.25); g.fill();
       });
     }
@@ -5644,7 +5181,7 @@ const DRAW = {
       g.fillText(it.t, pad, ry + 0.28*P);
 
       if(it.s){
-        g.fillStyle = 'rgba(188,194,202,0.88)';
+        g.fillStyle = 'rgba(178,188,204,0.88)';
         g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
         g.textAlign = 'right';
         g.fillText(it.s, W - pad, ry + 0.28*P);
@@ -5653,7 +5190,7 @@ const DRAW = {
       const by = ry + 0.42*P, bh = 0.09*P;
       g.fillStyle = 'rgba(255,255,255,0.07)';
       roundRect(g, pad, by, W-2*pad, bh, bh*0.5); g.fill();
-      g.fillStyle = 'rgba(190,197,204,0.78)';
+      g.fillStyle = 'rgba(178,196,216,0.78)';
       roundRect(g, pad, by, (W-2*pad)*it.v, bh, bh*0.5); g.fill();
 
       R.push({ x:0, y:ry/H, w:1, h:rowH/H, kind:'bar',
@@ -5686,7 +5223,7 @@ const DRAW = {
       const ry = labelH + i*rowH - firstPx;
       g.textAlign='left'; g.textBaseline='alphabetic';
       g.fillStyle = 'rgba(236,240,246,0.95)';
-      g.font = '500 ' + Math.round(0.27*P) + 'px ' + FONT;
+      g.font = '500 ' + Math.round(0.26*P) + 'px ' + FONT;
       g.fillText(it.t, pad, ry + rowH*0.62, W - 2*pad - 1.10*P);
 
       const sw = 0.94*P, sh = 0.54*P;
@@ -5695,10 +5232,10 @@ const DRAW = {
       const stIt = (st.items && st.items[i]) || it;
       const on = !!stIt.v;
 
-      g.fillStyle = on ? 'rgba(168,175,183,0.85)' : 'rgba(255,255,255,0.11)';
+      g.fillStyle = on ? 'rgba(154,176,200,0.85)' : 'rgba(255,255,255,0.11)';
       roundRect(g, sx, sy, sw, sh, sh*0.5); g.fill();
       if(on){
-        g.strokeStyle = 'rgba(208,214,221,0.35)'; g.lineWidth = 1.5;
+        g.strokeStyle = 'rgba(200,216,236,0.35)'; g.lineWidth = 1.5;
         roundRect(g, sx, sy, sw, sh, sh*0.5); g.stroke();
       }
       const kr = sh*0.36;
@@ -5731,43 +5268,43 @@ const DRAW = {
 
     const tx = pad + art + 0.34*P;
     g.textAlign='left'; g.textBaseline='alphabetic';
-    g.fillStyle = 'rgba(244,246,250,0.96)';
+    g.fillStyle = 'rgba(242,246,252,0.96)';
     g.font = '500 ' + Math.round(0.34*P) + 'px ' + FONT;
     g.fillText(w.title, tx, 0.92*P);
     g.fillStyle = 'rgba(150,158,170,0.82)';
-    g.font = '400 ' + Math.round(0.24*P) + 'px ' + FONT;
+    g.font = '400 ' + Math.round(0.23*P) + 'px ' + FONT;
     g.fillText(w.artist, tx, 1.24*P);
 
     const py = 0.36*P + art + 0.34*P, ph = 0.08*P;
     g.fillStyle = 'rgba(255,255,255,0.10)';
     roundRect(g, pad, py, W-2*pad, ph, ph*0.5); g.fill();
-    g.fillStyle = 'rgba(210,216,224,0.88)';
+    g.fillStyle = 'rgba(198,214,232,0.88)';
     roundRect(g, pad, py, (W-2*pad)*w.progress, ph, ph*0.5); g.fill();
     g.beginPath(); g.arc(pad + (W-2*pad)*w.progress, py+ph/2, ph*0.95, 0, Math.PI*2);
-    g.fillStyle = 'rgba(232,236,242,0.95)'; g.fill();
+    g.fillStyle = 'rgba(226,238,250,0.95)'; g.fill();
 
     const cy = py + 0.40*P, cx0 = W/2, gap = 0.86*P;
-    g.strokeStyle = 'rgba(236,240,245,0.85)';
+    g.strokeStyle = 'rgba(230,238,248,0.85)';
     g.lineWidth = Math.max(1.5, 0.04*P); g.lineCap='round';
     g.beginPath(); g.moveTo(cx0-gap-0.09*P, cy-0.11*P); g.lineTo(cx0-gap-0.09*P, cy+0.11*P); g.stroke();
     g.beginPath(); g.moveTo(cx0-gap+0.09*P, cy); g.lineTo(cx0-gap-0.08*P, cy-0.11*P); g.lineTo(cx0-gap-0.08*P, cy+0.11*P); g.closePath();
-    g.fillStyle='rgba(236,240,245,0.85)'; g.fill();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
 
     g.fillStyle = 'rgba(255,255,255,0.10)';
     g.beginPath(); g.arc(cx0, cy, 0.30*P, 0, Math.PI*2); g.fill();
     g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth=1.5;
     g.beginPath(); g.arc(cx0, cy, 0.30*P, 0, Math.PI*2); g.stroke();
-    g.fillStyle = 'rgba(244,246,249,0.95)';
+    g.fillStyle = 'rgba(242,248,255,0.95)';
     if(st.playing){
       g.beginPath(); g.moveTo(cx0-0.07*P, cy-0.13*P); g.lineTo(cx0+0.13*P, cy); g.lineTo(cx0-0.07*P, cy+0.13*P); g.closePath(); g.fill();
     } else {
       roundRect(g, cx0-0.12*P, cy-0.13*P, 0.08*P, 0.26*P, 0.02*P); g.fill();
       roundRect(g, cx0+0.04*P, cy-0.13*P, 0.08*P, 0.26*P, 0.02*P); g.fill();
     }
-    g.strokeStyle = 'rgba(236,240,245,0.85)';
+    g.strokeStyle = 'rgba(230,238,248,0.85)';
     g.beginPath(); g.moveTo(cx0+gap+0.09*P, cy-0.11*P); g.lineTo(cx0+gap+0.09*P, cy+0.11*P); g.stroke();
     g.beginPath(); g.moveTo(cx0+gap-0.09*P, cy); g.lineTo(cx0+gap+0.08*P, cy-0.11*P); g.lineTo(cx0+gap+0.08*P, cy+0.11*P); g.closePath();
-    g.fillStyle='rgba(236,240,245,0.85)'; g.fill();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
 
     R.push({ x:(cx0-0.34*P)/W, y:(cy-0.34*P)/H, w:0.68*P/W, h:0.68*P/H, kind:'play' });
     return R;
@@ -5783,8 +5320,8 @@ const DRAW = {
     miniCover(g, ax, ay, art, art, '#4E5868', '#232830', true);
 
     g.textAlign='center'; g.textBaseline='alphabetic';
-    g.fillStyle='rgba(244,246,250,0.96)';
-    g.font='500 '+Math.round(0.34*P)+'px '+FONT;
+    g.fillStyle='rgba(242,246,252,0.96)';
+    g.font='500 '+Math.round(0.32*P)+'px '+FONT;
     g.fillText(w.title, W/2, ay+art+0.42*P);
     g.fillStyle='rgba(150,158,170,0.82)';
     g.font='400 '+Math.round(0.20*P)+'px '+FONT;
@@ -5793,32 +5330,32 @@ const DRAW = {
     const py = ay+art+1.00*P, ph = 0.07*P, prog = w.progress||0.34;
     g.fillStyle='rgba(255,255,255,0.10)';
     roundRect(g,pad,py,W-2*pad,ph,ph*0.5); g.fill();
-    g.fillStyle='rgba(210,216,224,0.88)';
+    g.fillStyle='rgba(198,214,232,0.88)';
     roundRect(g,pad,py,(W-2*pad)*prog,ph,ph*0.5); g.fill();
     g.beginPath(); g.arc(pad+(W-2*pad)*prog, py+ph/2, ph*0.95, 0, Math.PI*2);
-    g.fillStyle='rgba(232,236,242,0.95)'; g.fill();
+    g.fillStyle='rgba(226,238,250,0.95)'; g.fill();
 
     g.textAlign='left';
     g.fillStyle='rgba(150,158,170,0.72)';
-    g.font='400 '+Math.round(0.17*P)+'px '+FONT;
+    g.font='400 '+Math.round(0.16*P)+'px '+FONT;
     g.fillText('01:14', pad, py+0.28*P);
     g.textAlign='right';
     g.fillText('03:37', W-pad, py+0.28*P);
     g.textAlign='left';
 
     const cy = py+0.62*P, cx0 = W/2, gap = 1.10*P;
-    g.strokeStyle='rgba(236,240,245,0.85)';
+    g.strokeStyle='rgba(230,238,248,0.85)';
     g.lineWidth=Math.max(1.5,0.05*P); g.lineCap='round';
     /* 上一首 */
     g.beginPath(); g.moveTo(cx0-gap-0.11*P, cy-0.15*P); g.lineTo(cx0-gap-0.11*P, cy+0.15*P); g.stroke();
     g.beginPath(); g.moveTo(cx0-gap+0.12*P, cy); g.lineTo(cx0-gap-0.10*P, cy-0.15*P); g.lineTo(cx0-gap-0.10*P, cy+0.15*P); g.closePath();
-    g.fillStyle='rgba(236,240,245,0.85)'; g.fill();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
     /* 播放 / 暂停 */
     g.fillStyle='rgba(255,255,255,0.10)';
     g.beginPath(); g.arc(cx0,cy,0.30*P,0,Math.PI*2); g.fill();
     g.strokeStyle='rgba(255,255,255,0.16)'; g.lineWidth=1.5;
     g.beginPath(); g.arc(cx0,cy,0.30*P,0,Math.PI*2); g.stroke();
-    g.fillStyle='rgba(244,246,249,0.95)';
+    g.fillStyle='rgba(242,248,255,0.95)';
     if(st.playing){
       g.beginPath(); g.moveTo(cx0-0.08*P,cy-0.14*P); g.lineTo(cx0+0.14*P,cy); g.lineTo(cx0-0.08*P,cy+0.14*P); g.closePath(); g.fill();
     } else {
@@ -5826,10 +5363,10 @@ const DRAW = {
       roundRect(g,cx0+0.04*P,cy-0.14*P,0.09*P,0.28*P,0.02*P); g.fill();
     }
     /* 下一首 */
-    g.strokeStyle='rgba(236,240,245,0.85)';
+    g.strokeStyle='rgba(230,238,248,0.85)';
     g.beginPath(); g.moveTo(cx0+gap+0.11*P, cy-0.15*P); g.lineTo(cx0+gap+0.11*P, cy+0.15*P); g.stroke();
     g.beginPath(); g.moveTo(cx0+gap-0.12*P, cy); g.lineTo(cx0+gap+0.10*P, cy-0.15*P); g.lineTo(cx0+gap+0.10*P, cy+0.15*P); g.closePath();
-    g.fillStyle='rgba(236,240,245,0.85)'; g.fill();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
 
     R.push({ x:(cx0-0.38*P)/W, y:(cy-0.38*P)/H, w:0.76*P/W, h:0.76*P/H, kind:'play' });
     return R;
@@ -5920,7 +5457,7 @@ const DRAW = {
         g.font = weight + ' ' + Math.round(size) + 'px ' + FONT;
       }
 
-      g.fillStyle = 'rgba(242,245,249,' + alpha + ')';
+      g.fillStyle = 'rgba(240,246,254,' + alpha + ')';
       g.fillText(l.s, W/2, top + i*lh);
     });
     return [];
@@ -5931,11 +5468,11 @@ const DRAW = {
     const P = wp(W,w);
     const t = track();
     g.textAlign='center'; g.textBaseline='alphabetic';
-    g.fillStyle='rgba(244,246,250,0.97)';
-    g.font='600 '+Math.round(0.27*P)+'px '+FONT;
+    g.fillStyle='rgba(242,246,252,0.97)';
+    g.font='600 '+Math.round(0.28*P)+'px '+FONT;
     g.fillText(t.title, W/2, H*0.40);
     g.fillStyle='rgba(154,162,176,0.9)';
-    g.font='400 '+Math.round(0.17*P)+'px '+FONT;
+    g.font='400 '+Math.round(0.16*P)+'px '+FONT;
     g.fillText(t.artist + ' · ' + t.album, W/2, H*0.66);
     g.fillStyle='rgba(150,158,170,0.5)';
     g.font='400 '+Math.round(0.12*P)+'px '+FONT;
@@ -5948,7 +5485,7 @@ const DRAW = {
     const P = wp(W,w);
     const t = track();
     g.textAlign='center'; g.textBaseline='middle';
-    g.fillStyle='rgba(196,202,209,0.92)';
+    g.fillStyle='rgba(188,198,214,0.92)';
     g.font='400 '+Math.round(0.30*P)+'px '+FONT;
     g.fillText(t.artist + ' · ' + t.album, W/2, H*0.5);
     return [];
@@ -5964,13 +5501,13 @@ const DRAW = {
     const py = H*0.20, ph = 0.06*P;
     g.fillStyle='rgba(255,255,255,0.14)';
     roundRect(g,pad,py,W-2*pad,ph,ph*0.5); g.fill();
-    g.fillStyle='rgba(210,216,224,0.92)';
+    g.fillStyle='rgba(198,214,232,0.92)';
     roundRect(g,pad,py,(W-2*pad)*prog,ph,ph*0.5); g.fill();
     g.beginPath(); g.arc(pad+(W-2*pad)*prog, py+ph/2, ph*0.95,0,Math.PI*2);
     g.fillStyle='#EAF2FB'; g.fill();
 
     /* 时间数字：放大、提亮，确保一眼可见 */
-    g.fillStyle='rgba(198,203,210,0.92)';
+    g.fillStyle='rgba(190,200,216,0.92)';
     g.font='500 '+Math.round(0.30*P)+'px '+FONT;
     g.textAlign='left'; g.textBaseline='alphabetic';
     g.fillText(fmt(NP.cur), pad, py+0.42*P);
@@ -5979,16 +5516,16 @@ const DRAW = {
 
     const cy = H*0.70, cx0 = W/2, gap = 0.80*P;
     g.lineCap='round';
-    g.strokeStyle='rgba(236,240,245,0.85)'; g.lineWidth=Math.max(1.5,0.038*P);
+    g.strokeStyle='rgba(230,238,248,0.85)'; g.lineWidth=Math.max(1.5,0.038*P);
     g.beginPath(); g.moveTo(cx0-gap-0.08*P, cy-0.11*P); g.lineTo(cx0-gap-0.08*P, cy+0.11*P); g.stroke();
     g.beginPath(); g.moveTo(cx0-gap+0.09*P, cy); g.lineTo(cx0-gap-0.07*P, cy-0.11*P); g.lineTo(cx0-gap-0.07*P, cy+0.11*P); g.closePath();
-    g.fillStyle='rgba(236,240,245,0.85)'; g.fill();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
 
     g.fillStyle='rgba(255,255,255,0.09)';
     g.beginPath(); g.arc(cx0,cy,0.26*P,0,Math.PI*2); g.fill();
     g.strokeStyle='rgba(255,255,255,0.16)'; g.lineWidth=1.5;
     g.beginPath(); g.arc(cx0,cy,0.26*P,0,Math.PI*2); g.stroke();
-    g.fillStyle='rgba(244,246,249,0.95)';
+    g.fillStyle='rgba(242,248,255,0.95)';
     if(NP.playing){
       g.beginPath(); g.moveTo(cx0-0.06*P,cy-0.12*P); g.lineTo(cx0+0.12*P,cy); g.lineTo(cx0-0.06*P,cy+0.12*P); g.closePath(); g.fill();
     } else {
@@ -5996,10 +5533,10 @@ const DRAW = {
       roundRect(g,cx0+0.03*P,cy-0.12*P,0.08*P,0.24*P,0.02*P); g.fill();
     }
 
-    g.strokeStyle='rgba(236,240,245,0.85)';
+    g.strokeStyle='rgba(230,238,248,0.85)';
     g.beginPath(); g.moveTo(cx0+gap+0.08*P, cy-0.11*P); g.lineTo(cx0+gap+0.08*P, cy+0.11*P); g.stroke();
     g.beginPath(); g.moveTo(cx0+gap-0.09*P, cy); g.lineTo(cx0+gap+0.07*P, cy-0.11*P); g.lineTo(cx0+gap+0.07*P, cy+0.11*P); g.closePath();
-    g.fillStyle='rgba(236,240,245,0.85)'; g.fill();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
 
     R.push({ x:pad/W, y:(py-0.16*P)/H, w:(W-2*pad)/W, h:(ph+0.32*P)/H, kind:'seek' });
     R.push({ x:(cx0-0.34*P)/W, y:(cy-0.34*P)/H, w:0.68*P/W, h:0.68*P/H, kind:'play' });
@@ -6013,7 +5550,7 @@ const DRAW = {
     const P = wp(W,w), pad = 0.18*P;
     g.textAlign='left'; g.textBaseline='alphabetic';
     g.fillStyle='rgba(150,158,170,0.6)';
-    g.font='400 '+Math.round(0.14*P)+'px '+FONT;
+    g.font='400 '+Math.round(0.13*P)+'px '+FONT;
     g.fillText('接下来播放', pad, 0.40*P);
     const items = w.items || [];
     const rh = 0.52*P;
@@ -6024,7 +5561,7 @@ const DRAW = {
       g.textAlign='left';
       g.fillText(it.t, pad, y);
       g.fillStyle='rgba(146,154,168,0.7)';
-      g.font='400 '+Math.round(0.14*P)+'px '+FONT;
+      g.font='400 '+Math.round(0.13*P)+'px '+FONT;
       g.textAlign='right'; g.fillText(it.s, W-pad, y); g.textAlign='left';
       y += rh;
     });
@@ -6064,18 +5601,18 @@ const DRAW = {
       const bh = Math.max(2, maxH * (v / maxV));
       const bx = pad + i*slot + (slot - bw)/2;
       const isTop = (i === topIdx);
-      g.fillStyle = isTop ? 'rgba(210,216,224,0.92)' : 'rgba(255,255,255,0.16)';
+      g.fillStyle = isTop ? 'rgba(198,214,232,0.92)' : 'rgba(255,255,255,0.16)';
       roundRect(g, bx, baseY - bh, bw, bh, Math.min(bw*0.32, 0.06*P)); g.fill();
       /* 最高峰加发光描边 */
       if(isTop){
-        g.strokeStyle = 'rgba(232,236,242,0.55)'; g.lineWidth = 1.5;
+        g.strokeStyle = 'rgba(226,238,250,0.55)'; g.lineWidth = 1.5;
         roundRect(g, bx, baseY - bh, bw, bh, Math.min(bw*0.32, 0.06*P)); g.stroke();
       }
     });
 
     /* 小时刻度：0 / 6 / 12 / 18 / 23 */
-    g.fillStyle = 'rgba(170,176,184,0.80)';
-    g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
+    g.fillStyle = 'rgba(158,170,186,0.80)';
+    g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
     g.textAlign = 'center'; g.textBaseline = 'alphabetic';
     [0, 6, 12, 18, 23].forEach(h => {
       if(h >= n) return;
@@ -6085,8 +5622,8 @@ const DRAW = {
 
     /* 最高峰标注 */
     if(w.topLabel){
-      g.fillStyle = 'rgba(232,236,242,0.92)';
-      g.font = '500 ' + Math.round(0.20*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(226,238,250,0.92)';
+      g.font = '500 ' + Math.round(0.21*P) + 'px ' + FONT;
       g.textAlign = 'right';
       g.fillText(w.topLabel, W - pad, y + 0.10*P);
       g.textAlign = 'left';
@@ -6142,8 +5679,8 @@ const DRAW = {
       i ? g.lineTo(x, y) : g.moveTo(x, y);
     });
     g.closePath();
-    g.fillStyle = 'rgba(168,176,185,0.26)'; g.fill();
-    g.strokeStyle = 'rgba(214,220,226,0.85)'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = 'rgba(150,180,215,0.26)'; g.fill();
+    g.strokeStyle = 'rgba(206,222,240,0.85)'; g.lineWidth = 2; g.stroke();
 
     /* 顶点小圆点 */
     items.forEach((it, i) => {
@@ -6155,8 +5692,8 @@ const DRAW = {
     });
 
     /* 轴标签 */
-    g.fillStyle = 'rgba(188,194,202,0.92)';
-    g.font = '500 ' + Math.round(0.20*P) + 'px ' + FONT;
+    g.fillStyle = 'rgba(178,188,204,0.92)';
+    g.font = '500 ' + Math.round(0.21*P) + 'px ' + FONT;
     items.forEach((it, i) => {
       const a = ang(i);
       const lx = cx + Math.cos(a)*(R + 0.30*P);
@@ -6172,15 +5709,11 @@ const DRAW = {
 
   /* 环形图：各平台占比（LX-Pro DonutChart.tsx）
      strokeWidth = size*0.14；中心显示累计值；右侧图例带百分比
-     ⚠️ 2026-09-23 外观打磨：原色板沿用 LX-Pro 的 DEFAULT_COLORS
-        （#4daf7c 绿 / #f59e0b 橙 / #3b82f6 蓝 / #8b5cf6 紫 / #ef4444 红…），
-        高饱和（HSV 0.56~0.96）与本项目「灰黑忧郁 · ins 冷淡」定位冲突。
-        → 改冷灰同色系明度梯度（HSV 0.04~0.26），靠明度拉区分度，
-          既保留可辨性又统一冷淡调性。详见 docs/15。 */
+     色板沿用 LX-Pro 的 DEFAULT_COLORS（DonutChart.tsx:15） */
   chart_donut(g, W, H, w, st, idx){
     const P = W/5;
     const items = w.items || [];
-    const COLORS = ['#D7DBE0','#B6BFC9','#9BA5B0','#7E8EA0','#6C7989','#596878','#4F5964','#414C58'];
+    const COLORS = ['#4daf7c','#f59e0b','#3b82f6','#8b5cf6','#ef4444','#14b8a6','#f97316','#64748b'];
     const total = items.reduce((s, it) => s + (it.value || 0), 0) || 1;
 
     /* 左侧圆环 + 右侧图例 */
@@ -6218,8 +5751,8 @@ const DRAW = {
     g.font = '600 ' + Math.round(0.34*P) + 'px ' + FONT;
     g.fillText(w.centerValue || String(Math.round(total)), cx, cy - 0.06*P);
     if(w.centerUnit){
-      g.fillStyle = 'rgba(176,182,190,0.85)';
-      g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(168,178,192,0.85)';
+      g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
       g.fillText(w.centerUnit, cx, cy + 0.28*P);
     }
 
@@ -6235,11 +5768,11 @@ const DRAW = {
       /* 名称 */
       g.textAlign = 'left'; g.textBaseline = 'middle';
       g.fillStyle = 'rgba(228,234,242,0.92)';
-      g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
+      g.font = '400 ' + Math.round(0.21*P) + 'px ' + FONT;
       g.fillText(it.label || '', lx + 0.22*P, ly);
       /* 百分比（右对齐）*/
       g.textAlign = 'right';
-      g.fillStyle = 'rgba(170,176,184,0.85)';
+      g.fillStyle = 'rgba(158,170,186,0.85)';
       g.font = '500 ' + Math.round(0.20*P) + 'px ' + FONT;
       g.fillText(Math.round(frac*100) + '%', W - 0.24*P, ly);
       ly += rowH;
@@ -6264,8 +5797,8 @@ const DRAW = {
     let y = 0;
     if(w.label){ label(g, w.label, pad, 0.48*P, P); y = 0.76*P; }
     if(w.sub){
-      g.fillStyle = 'rgba(162,168,175,0.78)';
-      g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(150,160,176,0.78)';
+      g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
       g.textAlign = 'right'; g.textBaseline = 'alphabetic';
       g.fillText(w.sub, W - pad, 0.46*P);
       g.textAlign = 'left';
@@ -6285,12 +5818,12 @@ const DRAW = {
 
       /* 标签（上，小、灰）*/
       g.textAlign = 'left'; g.textBaseline = 'alphabetic';
-      g.fillStyle = 'rgba(170,176,184,0.88)';
+      g.fillStyle = 'rgba(158,170,186,0.88)';
       g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
       g.fillText(it.label || '', x, ry + rowH*0.38);
 
       /* 数值（下，大、亮）*/
-      g.fillStyle = 'rgba(242,245,249,0.96)';
+      g.fillStyle = 'rgba(240,246,254,0.96)';
       g.font = '600 ' + Math.round(0.30*P) + 'px ' + FONT;
       const vw = g.measureText(it.value || '').width;
       const maxVW = colW - 0.24*P;
@@ -6317,8 +5850,8 @@ const DRAW = {
     let y = 0;
     if(w.label){ label(g, w.label, pad, 0.48*P, P); y = 0.80*P; }
     if(w.sub){
-      g.fillStyle = 'rgba(170,176,184,0.82)';
-      g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(158,170,186,0.82)';
+      g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
       g.textAlign = 'right'; g.textBaseline = 'alphabetic';
       g.fillText(w.sub, W - pad, 0.46*P);
       g.textAlign = 'left';
@@ -6345,7 +5878,7 @@ const DRAW = {
 
     /* 对比线（虚线，LX-Pro 的「上月」）*/
     if(w.compare && w.compare.length === n){
-      g.strokeStyle = 'rgba(164,171,180,0.55)';
+      g.strokeStyle = 'rgba(150,168,190,0.55)';
       g.lineWidth = 1.6;
       g.setLineDash([0.14*P, 0.12*P]);
       g.beginPath();
@@ -6363,12 +5896,12 @@ const DRAW = {
       const px = x0 + i*dx, py = baseY - (v/maxV)*hgt;
       i ? g.lineTo(px, py) : g.moveTo(px, py);
     });
-    g.strokeStyle = 'rgba(214,220,226,0.92)'; g.lineWidth = 2.2; g.stroke();
+    g.strokeStyle = 'rgba(206,222,240,0.92)'; g.lineWidth = 2.2; g.stroke();
 
     g.lineTo(x1, baseY); g.lineTo(x0, baseY); g.closePath();
     const grd = g.createLinearGradient(0, topY, 0, baseY);
-    grd.addColorStop(0, 'rgba(168,176,185,0.28)');
-    grd.addColorStop(1, 'rgba(168,176,185,0.02)');
+    grd.addColorStop(0, 'rgba(150,180,215,0.28)');
+    grd.addColorStop(1, 'rgba(150,180,215,0.02)');
     g.fillStyle = grd; g.fill();
 
     /* 数据点 */
@@ -6380,7 +5913,7 @@ const DRAW = {
 
     /* 最高点标注 */
     const mxI = vals.indexOf(Math.max.apply(null, vals));
-    g.fillStyle = 'rgba(232,236,242,0.92)';
+    g.fillStyle = 'rgba(226,238,250,0.92)';
     g.font = '500 ' + Math.round(0.20*P) + 'px ' + FONT;
     g.textAlign = 'center';
     g.fillText(w.fmt ? w.fmt(vals[mxI]) : vals[mxI].toFixed(1),
@@ -6388,8 +5921,8 @@ const DRAW = {
 
     /* X 轴标签（稀疏显示，避免拥挤）*/
     const step = Math.max(1, Math.ceil(n / 6));
-    g.fillStyle = 'rgba(170,176,184,0.80)';
-    g.font = '400 ' + Math.round(0.17*P) + 'px ' + FONT;
+    g.fillStyle = 'rgba(158,170,186,0.80)';
+    g.font = '400 ' + Math.round(0.18*P) + 'px ' + FONT;
     (w.labels || []).forEach((lb, i) => {
       if(i % step !== 0 && i !== n-1) return;
       g.fillText(lb, x0 + i*dx, baseY + 0.30*P);
@@ -6408,8 +5941,8 @@ const DRAW = {
     let y = 0;
     if(w.label){ label(g, w.label, pad, 0.48*P, P); y = 0.82*P; }
     if(w.sub){
-      g.fillStyle = 'rgba(170,176,184,0.82)';
-      g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(158,170,186,0.82)';
+      g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
       g.textAlign = 'right'; g.textBaseline = 'alphabetic';
       g.fillText(w.sub, W - pad, 0.46*P);
       g.textAlign = 'left';
@@ -6431,7 +5964,7 @@ const DRAW = {
     const heat = t => {
       if(t <= 0) return 'rgba(255,255,255,0.06)';
       const a = 0.16 + 0.66*Math.min(1, t);
-      return 'rgba(168,176,185,' + a.toFixed(3) + ')';
+      return 'rgba(150,180,215,' + a.toFixed(3) + ')';
     };
 
     days.forEach((d, i) => {
@@ -6447,8 +5980,8 @@ const DRAW = {
 
     /* 图例：少 → 多 */
     const ly = y + rows*(cell + cellGap) + 0.20*P;
-    g.fillStyle = 'rgba(170,176,184,0.80)';
-    g.font = '400 ' + Math.round(0.17*P) + 'px ' + FONT;
+    g.fillStyle = 'rgba(158,170,186,0.80)';
+    g.font = '400 ' + Math.round(0.18*P) + 'px ' + FONT;
     g.textBaseline = 'middle';
     g.textAlign = 'left';
     g.fillText('少', pad, ly + cell*0.2);
@@ -6493,7 +6026,7 @@ const DRAW = {
       /* 圆形底 */
       g.fillStyle = active ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.07)';
       g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.fill();
-      g.strokeStyle = active ? 'rgba(208,214,221,0.38)' : 'rgba(255,255,255,0.12)';
+      g.strokeStyle = active ? 'rgba(200,216,236,0.38)' : 'rgba(255,255,255,0.12)';
       g.lineWidth = 1.4;
       g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.stroke();
 
@@ -6529,18 +6062,18 @@ const DRAW = {
       }
       /* 左侧图标点 */
       g.beginPath(); g.arc(pad + 0.10*P, ry + rowH*0.5, 0.075*P, 0, Math.PI*2);
-      g.fillStyle = it.on ? 'rgba(214,220,226,0.95)' : 'rgba(255,255,255,0.22)';
+      g.fillStyle = it.on ? 'rgba(206,222,240,0.95)' : 'rgba(255,255,255,0.22)';
       g.fill();
 
       g.textAlign = 'left'; g.textBaseline = 'middle';
-      g.fillStyle = it.on ? 'rgba(245,247,250,0.98)' : 'rgba(228,234,242,0.92)';
+      g.fillStyle = it.on ? 'rgba(244,248,254,0.98)' : 'rgba(228,234,242,0.92)';
       g.font = '500 ' + Math.round(0.27*P) + 'px ' + FONT;
       g.fillText(it.t, pad + 0.30*P, ry + rowH*0.5);
 
       if(it.s){
         g.textAlign = 'right';
-        g.fillStyle = 'rgba(188,194,202,0.86)';
-        g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
+        g.fillStyle = 'rgba(178,188,204,0.86)';
+        g.font = '400 ' + Math.round(0.21*P) + 'px ' + FONT;
         g.fillText(it.s, W - pad, ry + rowH*0.5);
         g.textAlign = 'left';
       }
@@ -6564,11 +6097,11 @@ const DRAW = {
     /* ① 歌词字号：标签 + 数值 + 滑块 */
     const lrcSize = (st.lrcSize !== undefined) ? st.lrcSize : (w.lrcSize || 0.5);
     g.textAlign = 'left'; g.textBaseline = 'alphabetic';
-    g.fillStyle = 'rgba(204,209,216,0.92)';
+    g.fillStyle = 'rgba(196,206,220,0.92)';
     g.font = '400 ' + Math.round(0.24*P) + 'px ' + FONT;
     g.fillText('歌词字号', pad, y + 0.24*P);
     g.textAlign = 'right';
-    g.fillStyle = 'rgba(242,245,249,0.96)';
+    g.fillStyle = 'rgba(240,246,254,0.96)';
     g.font = '500 ' + Math.round(0.24*P) + 'px ' + FONT;
     g.fillText(Math.round(12 + lrcSize*16) + 'px', W - pad, y + 0.24*P);
     g.textAlign = 'left';
@@ -6576,7 +6109,7 @@ const DRAW = {
     const sy = y + 0.46*P, sh = 0.10*P;
     g.fillStyle = 'rgba(255,255,255,0.10)';
     roundRect(g, pad, sy, W-2*pad, sh, sh*0.5); g.fill();
-    g.fillStyle = 'rgba(210,216,224,0.88)';
+    g.fillStyle = 'rgba(198,214,232,0.88)';
     roundRect(g, pad, sy, (W-2*pad)*lrcSize, sh, sh*0.5); g.fill();
     g.beginPath(); g.arc(pad + (W-2*pad)*lrcSize, sy+sh/2, sh*1.05, 0, Math.PI*2);
     g.fillStyle = 'rgba(232,242,252,0.96)'; g.fill();
@@ -6584,7 +6117,7 @@ const DRAW = {
     y += 0.86*P;
 
     /* ② 歌词对齐：三选 */
-    g.fillStyle = 'rgba(204,209,216,0.92)';
+    g.fillStyle = 'rgba(196,206,220,0.92)';
     g.font = '400 ' + Math.round(0.24*P) + 'px ' + FONT;
     g.fillText('歌词对齐', pad, y + 0.24*P);
     const aligns = w.aligns || ['左','中','右'];
@@ -6593,13 +6126,13 @@ const DRAW = {
     aligns.forEach((a, i) => {
       const ax = pad + i*(aw + 0.15*P);
       const on = (i === curA);
-      g.fillStyle = on ? 'rgba(255,255,255,0.11)' : 'rgba(255,255,255,0.05)';
+      g.fillStyle = on ? 'rgba(50,90,150,0.38)' : 'rgba(255,255,255,0.05)';
       roundRect(g, ax, y + 0.36*P, aw, 0.40*P, 0.14*P); g.fill();
-      g.strokeStyle = on ? 'rgba(194,200,208,0.5)' : 'rgba(255,255,255,0.09)';
+      g.strokeStyle = on ? 'rgba(184,200,220,0.5)' : 'rgba(255,255,255,0.09)';
       g.lineWidth = 1.4;
       roundRect(g, ax, y + 0.36*P, aw, 0.40*P, 0.14*P); g.stroke();
-      g.fillStyle = on ? 'rgba(244,246,250,0.96)' : 'rgba(210,215,221,0.85)';
-      g.font = '500 ' + Math.round(0.24*P) + 'px ' + FONT;
+      g.fillStyle = on ? 'rgba(242,246,252,0.96)' : 'rgba(202,210,222,0.85)';
+      g.font = '500 ' + Math.round(0.22*P) + 'px ' + FONT;
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText(a, ax + aw/2, y + 0.56*P);
       g.textAlign = 'left'; g.textBaseline = 'alphabetic';
@@ -6609,15 +6142,15 @@ const DRAW = {
 
     /* ③ 显示控制栏：开关 */
     const showCtrl = (st.showCtrl !== undefined) ? st.showCtrl : (w.showCtrl !== false);
-    g.fillStyle = 'rgba(204,209,216,0.92)';
+    g.fillStyle = 'rgba(196,206,220,0.92)';
     g.font = '400 ' + Math.round(0.24*P) + 'px ' + FONT;
     g.textBaseline = 'middle';
     g.fillText('显示控制栏', pad, y + 0.20*P);
     const tw = 0.62*P, th = 0.34*P, tx = W - pad - tw, ty = y + 0.20*P - th/2;
-    g.fillStyle = showCtrl ? 'rgba(168,175,183,0.85)' : 'rgba(255,255,255,0.11)';
+    g.fillStyle = showCtrl ? 'rgba(154,176,200,0.85)' : 'rgba(255,255,255,0.11)';
     roundRect(g, tx, ty, tw, th, th*0.5); g.fill();
     if(showCtrl){
-      g.strokeStyle = 'rgba(208,214,221,0.35)'; g.lineWidth = 1.4;
+      g.strokeStyle = 'rgba(200,216,236,0.35)'; g.lineWidth = 1.4;
       roundRect(g, tx, ty, tw, th, th*0.5); g.stroke();
     }
     const kr = th*0.36;
@@ -6689,13 +6222,13 @@ const DRAW = {
     const tw = W - tx - pad;
 
     /* 类型标签 */
-    g.fillStyle = 'rgba(170,176,184,0.85)';
-    g.font = '500 ' + Math.round(0.20*P) + 'px ' + FONT;
+    g.fillStyle = 'rgba(158,170,186,0.85)';
+    g.font = '500 ' + Math.round(0.19*P) + 'px ' + FONT;
     g.fillText(w.kind === 'artist' ? '歌手'
              : w.kind === 'playlist' ? '歌单' : '专辑', tx, ay + 0.26*P);
 
     /* 标题（最多 2 行）*/
-    g.fillStyle = 'rgba(245,247,250,0.98)';
+    g.fillStyle = 'rgba(244,248,254,0.98)';
     g.font = '600 ' + Math.round(0.34*P) + 'px ' + FONT;
     const maxTW = tw;
     let title = w.title || '';
@@ -6707,8 +6240,8 @@ const DRAW = {
 
     /* 副标题 */
     if(w.sub){
-      g.fillStyle = 'rgba(188,194,202,0.90)';
-      g.font = '400 ' + Math.round(0.24*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(178,188,204,0.90)';
+      g.font = '400 ' + Math.round(0.22*P) + 'px ' + FONT;
       g.fillText(w.sub, tx, ay + 1.10*P, maxTW);
     }
 
@@ -6717,12 +6250,12 @@ const DRAW = {
     let sx = tx;
     const sy = ay + 1.52*P;
     stats.forEach((it, i) => {
-      g.fillStyle = 'rgba(242,245,249,0.96)';
-      g.font = '600 ' + Math.round(0.27*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(240,246,254,0.96)';
+      g.font = '600 ' + Math.round(0.26*P) + 'px ' + FONT;
       const vw = g.measureText(it.value).width;
       g.fillText(it.value, sx, sy);
-      g.fillStyle = 'rgba(170,176,184,0.85)';
-      g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(158,170,186,0.85)';
+      g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
       g.fillText(it.label, sx + vw + 0.10*P, sy);
       sx += vw + 0.10*P + g.measureText(it.label).width + 0.44*P;
       if(sx > W - pad - 0.6*P) return;
@@ -6738,12 +6271,12 @@ const DRAW = {
         const on = (st.sel === i);
         g.fillStyle = on ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.07)';
         roundRect(g, bx + 0.06*P, by, slot - 0.12*P, 0.62*P, 0.20*P); g.fill();
-        g.strokeStyle = on ? 'rgba(208,214,221,0.38)' : 'rgba(255,255,255,0.12)';
+        g.strokeStyle = on ? 'rgba(200,216,236,0.38)' : 'rgba(255,255,255,0.12)';
         g.lineWidth = 1.4;
         roundRect(g, bx + 0.06*P, by, slot - 0.12*P, 0.62*P, 0.20*P); g.stroke();
 
         drawPlayIcon(g, a.icon, bx + slot/2 - 0.52*P, by + 0.31*P, 0.44*P, on);
-        g.fillStyle = on ? 'rgba(245,247,250,0.98)' : 'rgba(220,225,231,0.90)';
+        g.fillStyle = on ? 'rgba(244,248,254,0.98)' : 'rgba(214,224,238,0.90)';
         g.font = '500 ' + Math.round(0.20*P) + 'px ' + FONT;
         g.textAlign = 'left'; g.textBaseline = 'middle';
         g.fillText(a.title, bx + slot/2 - 0.22*P, by + 0.32*P);
@@ -6763,7 +6296,7 @@ const DRAW = {
     let y = 0;
     if(w.label){ label(g, w.label, pad, 0.52*P, P); y = 0.72*P; }
     g.fillStyle = 'rgba(198,206,218,0.85)';
-    g.font = '400 ' + Math.round(0.24*P) + 'px ' + FONT;
+    g.font = '400 ' + Math.round(0.25*P) + 'px ' + FONT;
     g.textAlign='left'; g.textBaseline='alphabetic';
     g.fillText(w.text, pad, y + 0.28*P);
     return [];
@@ -6776,7 +6309,7 @@ const _mc = document.createElement('canvas').getContext('2d');
 /* 估算 chips 需要几行（按实际文字宽度换行）*/
 function chipsRows(items, canvasW){
   const P = canvasW/5;
-  _mc.font = '400 ' + Math.round(0.27*P) + 'px ' + FONT;
+  _mc.font = '400 ' + Math.round(0.26*P) + 'px ' + FONT;
   const pad = 0.28*P;
   const avail = canvasW - 2*pad;
   const gap = 0.18*P;
@@ -6893,14 +6426,14 @@ function drawCardBg(g, W, H, i){
   }
 
   /* ③ 内侧发光边缘（替代硬边框，极淡）*/
-  g.strokeStyle = 'rgba(208,214,221,' + (0.06 + d*0.04) + ')';
+  g.strokeStyle = 'rgba(200,220,240,' + (0.06 + d*0.04) + ')';
   g.lineWidth = 1.2;
   roundRect(g, W*0.05, H*0.05, W*0.90, H*0.90, r*0.85); g.stroke();
 
   /* ④ 顶部高光条（玻璃反光暗示）*/
   const hg = g.createLinearGradient(0, 0, 0, H*0.22);
-  hg.addColorStop(0, 'rgba(232,236,244,0.14)');
-  hg.addColorStop(1, 'rgba(232,236,244,0)');
+  hg.addColorStop(0, 'rgba(226,238,252,0.14)');
+  hg.addColorStop(1, 'rgba(226,238,252,0)');
   g.fillStyle = hg; roundRect(g,0,0,W,H,r); g.fill();
 
   /* ⑤ 左上角极细高光线 */
@@ -6935,7 +6468,7 @@ function cardCn(g, text, x, y, size){
   g.fillText(text, x, y);
 }
 function miniToggle(g, x, y, w, h, on){
-  g.fillStyle = on ? 'rgba(168,175,183,0.85)' : 'rgba(255,255,255,0.11)';
+  g.fillStyle = on ? 'rgba(154,176,200,0.85)' : 'rgba(255,255,255,0.11)';
   roundRect(g, x, y, w, h, h*0.5); g.fill();
   const kr = h*0.36, kx = on ? (x+w-h*0.5) : (x+h*0.5);
   g.fillStyle = on ? 'rgba(18,20,24,0.92)' : 'rgba(196,204,216,0.8)';
@@ -6971,11 +6504,11 @@ const CARD = {
     g.strokeStyle='rgba(255,255,255,0.10)'; g.lineWidth=1.5;
     roundRect(g,bx,by,bw,bh,bh*0.5); g.stroke();
     const icx=bx+bh*0.55, icy=by+bh*0.5, ir=bh*0.15;
-    g.strokeStyle='rgba(208,214,220,0.7)'; g.lineWidth=3; g.lineCap='round';
+    g.strokeStyle='rgba(198,208,222,0.7)'; g.lineWidth=3; g.lineCap='round';
     g.beginPath(); g.arc(icx,icy,ir,0,Math.PI*2); g.stroke();
     g.beginPath(); g.moveTo(icx+ir*0.72,icy+ir*0.72); g.lineTo(icx+ir*1.7,icy+ir*1.7); g.stroke();
     g.fillStyle='rgba(146,154,168,0.7)';
-    g.font='400 '+Math.round(0.14*P)+'px '+FONT;
+    g.font='400 '+Math.round(0.15*P)+'px '+FONT;
     g.textAlign='left'; g.textBaseline='middle';
     g.fillText('搜索歌曲 · 歌手 · 专辑', bx+bh*1.0, icy+1);
 
@@ -6989,7 +6522,7 @@ const CARD = {
       roundRect(g,cx,cy,cwid,chh,chh*0.5); g.fill();
       g.strokeStyle='rgba(255,255,255,0.09)'; g.lineWidth=1.5;
       roundRect(g,cx,cy,cwid,chh,chh*0.5); g.stroke();
-      g.fillStyle='rgba(210,215,221,0.85)'; g.textAlign='center';
+      g.fillStyle='rgba(202,210,222,0.85)'; g.textAlign='center';
       g.fillText(t,cx+cwid/2,cy+chh/2+1);
       g.textAlign='left';
       cx+=cwid+0.12*P;
@@ -7015,7 +6548,7 @@ const CARD = {
     }
     g.textAlign='left'; g.textBaseline='alphabetic';
     g.fillStyle='rgba(240,243,247,0.95)';
-    g.font='500 '+Math.round(0.24*P)+'px '+FONT;
+    g.font='500 '+Math.round(0.22*P)+'px '+FONT;
     g.fillText('深夜', pad, cy+cw+0.32*P);
     g.fillStyle='rgba(150,158,170,0.85)';
     g.font='400 '+Math.round(0.14*P)+'px '+FONT;
@@ -7030,11 +6563,11 @@ const CARD = {
 
     g.textAlign='left'; g.textBaseline='alphabetic';
     g.fillStyle='rgba(243,247,252,0.96)';
-    g.font='600 '+Math.round(0.34*P)+'px '+FONT;
+    g.font='600 '+Math.round(0.33*P)+'px '+FONT;
     g.fillText('12.5', pad, 1.18*P);
     const vw=g.measureText('12.5').width;
-    g.fillStyle='rgba(176,182,190,0.85)';
-    g.font='400 '+Math.round(0.14*P)+'px '+FONT;
+    g.fillStyle='rgba(168,178,192,0.85)';
+    g.font='400 '+Math.round(0.15*P)+'px '+FONT;
     g.fillText('小时', pad+vw+0.08*P, 1.14*P);
     g.fillStyle='rgba(150,158,170,0.8)';
     g.font='400 '+Math.round(0.14*P)+'px '+FONT;
@@ -7044,7 +6577,7 @@ const CARD = {
     const base=1.90*P, maxH=0.44*P, bw=(W-2*pad)/bars.length;
     bars.forEach((v,i)=>{
       const bh=Math.max(2,maxH*v), x=pad+i*bw;
-      g.fillStyle = (i===bars.length-1) ? 'rgba(210,216,224,0.85)' : 'rgba(255,255,255,0.16)';
+      g.fillStyle = (i===bars.length-1) ? 'rgba(198,214,232,0.85)' : 'rgba(255,255,255,0.16)';
       roundRect(g,x,base-bh,bw*0.5,bh,bw*0.25); g.fill();
     });
     g.fillStyle='rgba(150,158,170,0.65)';
@@ -7052,21 +6585,18 @@ const CARD = {
     g.fillText('最爱 · 梁博 38 次', pad, H-0.20*P);
   },
 
-  /* 当前播放：封面 + 进度 + 控制 + 歌词预览（重点卡）
-     ⚠️ 2026-09-23 外观打磨：它是 6 张卡里唯一的焦点卡（4.0×2.85，其余 3.9×2.5），
-        但首行位置原为 0.31，与其余卡的 0.35 不一致 → 对齐为 0.35。
-        （焦点感由「卡片更大 + 内容更丰富」体现，英文小标题字号与其他卡保持一致。） */
+  /* 当前播放：封面 + 进度 + 控制 + 歌词预览（重点卡）*/
   now(g,W,H,f){
     const P = CARD_PPM, pad = 0.22*P;
-    cardEn(g, f.sub, pad, 0.35*P);
+    cardEn(g, f.sub, pad, 0.31*P);
 
     const art=0.90*P, ax=pad, ay=0.50*P;
     miniCover(g, ax, ay, art, art, '#4E5868', '#232830', true);
 
     const tx=ax+art+0.22*P;
     g.textAlign='left'; g.textBaseline='alphabetic';
-    g.fillStyle='rgba(244,246,250,0.96)';
-    g.font='500 '+Math.round(0.24*P)+'px '+FONT;
+    g.fillStyle='rgba(242,246,252,0.96)';
+    g.font='500 '+Math.round(0.22*P)+'px '+FONT;
     g.fillText('In My Feelings', tx, ay+0.40*P);
     g.fillStyle='rgba(154,162,176,0.88)';
     g.font='400 '+Math.round(0.14*P)+'px '+FONT;
@@ -7075,12 +6605,12 @@ const CARD = {
     const py=1.52*P, ph=0.045*P, prog=0.34;
     g.fillStyle='rgba(255,255,255,0.10)';
     roundRect(g,pad,py,W-2*pad,ph,ph*0.5); g.fill();
-    g.fillStyle='rgba(210,216,224,0.88)';
+    g.fillStyle='rgba(198,214,232,0.88)';
     roundRect(g,pad,py,(W-2*pad)*prog,ph,ph*0.5); g.fill();
     g.beginPath(); g.arc(pad+(W-2*pad)*prog, py+ph/2, ph*0.95, 0, Math.PI*2);
-    g.fillStyle='rgba(232,236,242,0.95)'; g.fill();
+    g.fillStyle='rgba(226,238,250,0.95)'; g.fill();
 
-    g.fillStyle='rgba(198,203,210,0.85)';
+    g.fillStyle='rgba(190,200,216,0.85)';
     g.font='400 '+Math.round(0.12*P)+'px '+FONT;
     g.fillText('01:14', pad, py+0.30*P);
     g.textAlign='right';
@@ -7088,30 +6618,30 @@ const CARD = {
     g.textAlign='left';
 
     const cy=2.04*P, cx0=W/2, gap=0.62*P;
-    g.strokeStyle='rgba(236,240,245,0.85)';
+    g.strokeStyle='rgba(230,238,248,0.85)';
     g.lineWidth=Math.max(1.5,0.035*P); g.lineCap='round';
     g.beginPath(); g.moveTo(cx0-gap-0.07*P, cy-0.10*P); g.lineTo(cx0-gap-0.07*P, cy+0.10*P); g.stroke();
     g.beginPath(); g.moveTo(cx0-gap+0.08*P, cy); g.lineTo(cx0-gap-0.06*P, cy-0.10*P); g.lineTo(cx0-gap-0.06*P, cy+0.10*P); g.closePath();
-    g.fillStyle='rgba(236,240,245,0.85)'; g.fill();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
 
     g.fillStyle='rgba(255,255,255,0.10)';
     g.beginPath(); g.arc(cx0,cy,0.28*P,0,Math.PI*2); g.fill();
     g.strokeStyle='rgba(255,255,255,0.16)'; g.lineWidth=1.5;
     g.beginPath(); g.arc(cx0,cy,0.28*P,0,Math.PI*2); g.stroke();
-    g.fillStyle='rgba(244,246,249,0.95)';
+    g.fillStyle='rgba(242,248,255,0.95)';
     g.beginPath(); g.moveTo(cx0-0.07*P,cy-0.12*P); g.lineTo(cx0+0.12*P,cy); g.lineTo(cx0-0.07*P,cy+0.12*P); g.closePath(); g.fill();
 
-    g.strokeStyle='rgba(236,240,245,0.85)';
+    g.strokeStyle='rgba(230,238,248,0.85)';
     g.beginPath(); g.moveTo(cx0+gap+0.07*P, cy-0.10*P); g.lineTo(cx0+gap+0.07*P, cy+0.10*P); g.stroke();
     g.beginPath(); g.moveTo(cx0+gap-0.08*P, cy); g.lineTo(cx0+gap+0.06*P, cy-0.10*P); g.lineTo(cx0+gap+0.06*P, cy+0.10*P); g.closePath();
-    g.fillStyle='rgba(236,240,245,0.85)'; g.fill();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
 
     g.textAlign='center';
-    g.fillStyle='rgba(232,236,242,0.88)';
-    g.font='400 '+Math.round(0.12*P)+'px '+FONT;
+    g.fillStyle='rgba(226,236,248,0.88)';
+    g.font='400 '+Math.round(0.125*P)+'px '+FONT;
     g.fillText('Kiki, do you love me?', W/2, 2.44*P);
     g.fillStyle='rgba(140,148,162,0.62)';
-    g.font='400 '+Math.round(0.12*P)+'px '+FONT;
+    g.font='400 '+Math.round(0.105*P)+'px '+FONT;
     g.fillText('Are you riding?', W/2, 2.62*P);
     g.textAlign='left';
   },
@@ -7132,7 +6662,7 @@ const CARD = {
     let y = 1.05*P;
     rows.forEach(([t,a])=>{
       g.fillStyle = 'rgba(232,238,246,0.92)';
-      g.font = '500 ' + Math.round(0.17*P) + 'px ' + FONT;
+      g.font = '500 ' + Math.round(0.16*P) + 'px ' + FONT;
       g.textAlign = 'left'; g.textBaseline = 'alphabetic';
       g.fillText(t, pad, y);
       g.fillStyle = 'rgba(154,162,176,0.82)';
@@ -7142,7 +6672,7 @@ const CARD = {
     });
 
     g.fillStyle = 'rgba(150,158,170,0.6)';
-    g.font = '400 ' + Math.round(0.12*P) + 'px ' + FONT;
+    g.font = '400 ' + Math.round(0.11*P) + 'px ' + FONT;
     g.fillText('查看全部 ›', pad, H - 0.18*P);
     return [];
   },
@@ -7168,17 +6698,17 @@ const CARD = {
     let y = 1.05*P;
     rows.forEach(([t,a])=>{
       g.fillStyle = 'rgba(232,238,246,0.92)';
-      g.font = '500 ' + Math.round(0.14*P) + 'px ' + FONT;
+      g.font = '500 ' + Math.round(0.13*P) + 'px ' + FONT;
       g.textAlign = 'left'; g.textBaseline = 'alphabetic';
       g.fillText(t, pad, y);
       g.fillStyle = 'rgba(150,158,170,0.7)';
-      g.font = '400 ' + Math.round(0.12*P) + 'px ' + FONT;
+      g.font = '400 ' + Math.round(0.10*P) + 'px ' + FONT;
       g.textAlign = 'right'; g.fillText(a, W-pad, y); g.textAlign = 'left';
       y += 0.28*P;
     });
 
     g.fillStyle = 'rgba(150,158,170,0.55)';
-    g.font = '400 ' + Math.round(0.12*P) + 'px ' + FONT;
+    g.font = '400 ' + Math.round(0.09*P) + 'px ' + FONT;
     g.fillText('查看全部 ›', pad, H - 0.18*P);
     return [];
   },
@@ -7192,21 +6722,21 @@ const CARD = {
     const cx=pad+0.42*P, cy=1.34*P, r=0.28*P;
     g.strokeStyle='rgba(255,255,255,0.10)'; g.lineWidth=0.075*P; g.lineCap='round';
     g.beginPath(); g.arc(cx,cy,r,0,Math.PI*2); g.stroke();
-    g.strokeStyle='rgba(196,202,210,0.85)';
+    g.strokeStyle='rgba(186,206,228,0.85)';
     g.beginPath(); g.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+Math.PI*2*0.66); g.stroke();
     g.fillStyle='rgba(240,246,252,0.95)';
-    g.font='500 '+Math.round(0.17*P)+'px '+FONT;
+    g.font='500 '+Math.round(0.16*P)+'px '+FONT;
     g.textAlign='center'; g.textBaseline='middle';
     g.fillText('66%', cx, cy+1);
     g.textAlign='left'; g.textBaseline='alphabetic';
 
     const tx=pad+0.92*P;
     g.fillStyle='rgba(243,247,252,0.96)';
-    g.font='600 '+Math.round(0.27*P)+'px '+FONT;
+    g.font='600 '+Math.round(0.26*P)+'px '+FONT;
     g.fillText('128', tx, 1.28*P);
     const vw=g.measureText('128').width;
-    g.fillStyle='rgba(188,194,201,0.9)';
-    g.font='400 '+Math.round(0.14*P)+'px '+FONT;
+    g.fillStyle='rgba(178,188,202,0.9)';
+    g.font='400 '+Math.round(0.13*P)+'px '+FONT;
     g.fillText('首', tx+vw+0.06*P, 1.26*P);
     g.fillStyle='rgba(150,158,170,0.8)';
     g.font='400 '+Math.round(0.12*P)+'px '+FONT;
@@ -7218,7 +6748,7 @@ const CARD = {
     g.fillText('正在下载 3 首', pad, 2.00*P);
     g.fillStyle='rgba(255,255,255,0.08)';
     roundRect(g,pad,2.04*P,W-2*pad,0.05*P,0.025*P); g.fill();
-    g.fillStyle='rgba(190,197,204,0.75)';
+    g.fillStyle='rgba(178,196,216,0.75)';
     roundRect(g,pad,2.04*P,(W-2*pad)*0.42,0.05*P,0.025*P); g.fill();
   },
 
@@ -7230,7 +6760,7 @@ const CARD = {
 
     const rows=[['深色模式',true],['动态背景',true],['无损音质',false]];
     const rh=0.30*P; let y=0.88*P;
-    g.font='400 '+Math.round(0.14*P)+'px '+FONT;
+    g.font='400 '+Math.round(0.15*P)+'px '+FONT;
     rows.forEach(([t,on],i)=>{
       g.fillStyle='rgba(232,237,244,0.92)';
       g.textAlign='left'; g.textBaseline='middle';
@@ -7266,8 +6796,8 @@ function makeHaloTexture(){
   c.width = c.height = 256;
   const g = c.getContext('2d');
   const rg = g.createRadialGradient(128,128,8,128,128,128);
-  rg.addColorStop(0,'rgba(196,202,210,0.85)');
-  rg.addColorStop(0.42,'rgba(138,146,155,0.30)');
+  rg.addColorStop(0,'rgba(186,200,218,0.85)');
+  rg.addColorStop(0.42,'rgba(120,138,160,0.30)');
   rg.addColorStop(1,'rgba(0,0,0,0)');
   g.fillStyle = rg; g.fillRect(0,0,256,256);
   const tex = new THREE.CanvasTexture(c);
@@ -7282,7 +6812,7 @@ function makeSoftDotTexture(){
   const g = c.getContext('2d');
   const rg = g.createRadialGradient(32,32,0,32,32,32);
   rg.addColorStop(0,'rgba(255,255,255,0.95)');
-  rg.addColorStop(0.32,'rgba(214,220,226,0.30)');
+  rg.addColorStop(0.32,'rgba(206,222,240,0.30)');
   rg.addColorStop(1,'rgba(255,255,255,0)');
   g.fillStyle = rg; g.fillRect(0,0,64,64);
   const tex = new THREE.CanvasTexture(c);
@@ -7313,11 +6843,10 @@ FEATURES.forEach((f, i) => {
   const geo = new THREE.PlaneGeometry(cw, ch);
 
   const tex = makeMainCardTexture(f, i);
-  /* ⚡ 液态玻璃（2026-09-23 外观打磨）：贴图面 = 半透明高反射 + clearcoat
-     + onBeforeCompile 注入「边缘折射 + SDF 软边 + 菲涅尔边缘光」
-     （不再冲淡贴图，且彻底消除矩形硬边）*/
+  /* ⚡ 玻璃化（2026-09-23）：贴图面 = 半透明高反射 + clearcoat（不冲淡贴图）*/
   const faceMat = GLASS_ON
-    ? makeLiquidGlassFace(tex)
+    ? makeGlassMaterial({ map:tex, opacity:0.94, roughness:0.10,
+                          envMapIntensity:1.5, iridescence:0.18 })
     : new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:1, toneMapped:false, fog:false });
   const sideMat = faceMat;   /* 平面无侧边，保留引用兼容旧代码 */
   const mesh = new THREE.Mesh(geo, faceMat);
@@ -7362,8 +6891,8 @@ const MENUS = [
    风格与 drawMenuGlyph 一致：线性、圆头、亮色。 */
 function drawPlayIcon(g, icon, cx, cy, s, active){
   const sw = Math.max(1.4, s*0.13);
-  g.strokeStyle = active ? 'rgba(242,245,249,0.98)' : 'rgba(220,225,231,0.90)';
-  g.fillStyle   = active ? 'rgba(242,245,249,0.98)' : 'rgba(220,225,231,0.90)';
+  g.strokeStyle = active ? 'rgba(240,246,254,0.98)' : 'rgba(214,224,238,0.90)';
+  g.fillStyle   = active ? 'rgba(240,246,254,0.98)' : 'rgba(214,224,238,0.90)';
   g.lineWidth = sw; g.lineCap = 'round'; g.lineJoin = 'round';
   const r = s*0.42;
 
@@ -8098,9 +7627,10 @@ function makeWidgetMesh(w, idx, wwOv, hhOv){
 
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  /* ⚡ 液态玻璃（子空间控件，同主页卡 · 2026-09-23）*/
+  /* ⚡ 玻璃化（子空间控件，同主页卡）*/
   const faceMat = GLASS_ON
-    ? makeLiquidGlassFace(tex, { edge:0.045, refract:0.016, fresnel:0.40 })
+    ? makeGlassMaterial({ map:tex, opacity:0.94, roughness:0.10,
+                          envMapIntensity:1.5, iridescence:0.18 })
     : new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:1, toneMapped:false, fog:false });
   const sideMat = GLASS_ON
     ? makeGlassSide(0x1C2026)
@@ -9615,18 +9145,13 @@ function animate(){
   applyAudioVisual();
 
   updateIndicators(list);
-  /* ⚡ 泛光后处理（2026-09-23）：内部失败会自动降级为 renderer.render */
-  BLOOM.render(scene, camera);
+  renderer.render(scene, camera);
 }
 
 addEventListener('resize', ()=>{
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
-  /* ⚠️ Low-6 修复（2026-09-23 审查）：跨不同 DPR 显示器拖窗口时，
-     renderer 与 BLOOM 缓冲尺寸会不一致 → 补 setPixelRatio 保持一致 */
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(innerWidth, innerHeight);
-  BLOOM.setSize();   /* 同步泛光缓冲尺寸 */
 });
 
 /* ---------------- 启动 ---------------- */

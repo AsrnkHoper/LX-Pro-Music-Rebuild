@@ -36,10 +36,15 @@ function Mat(o){return Object.assign({color:0,opacity:1,map:null,toneMapped:true
 class Geo{constructor(){this.attributes={};} setAttribute(k,v){this.attributes[k]=v;}}
 class BAttr{constructor(a,n){this.array=a;this.itemSize=n;}}
 class Col{setHSL(){return this;}}
+/* 后处理相关桩（2026-09-23 泛光）：RenderTarget / 正交相机 / ShaderMaterial */
+class RT{constructor(w,h,o){this.width=w;this.height=h;this.texture={isTexture:true};
+  this.setSize=(a,b)=>{this.width=a;this.height=b;};}}
+class ShaderMat{constructor(o){this.uniforms=(o&&o.uniforms)||{};
+  this.vertexShader=(o&&o.vertexShader)||'';this.fragmentShader=(o&&o.fragmentShader)||'';}}
 
 global.THREE={
  WebGLRenderer:class{constructor(o){this.domElement=(o&&o.canvas)||{};}
-   setPixelRatio(){} setSize(){} setClearColor(){} render(){}},
+   setPixelRatio(){} setSize(){} setClearColor(){} render(){} clear(){} setRenderTarget(){}},
  Scene:class extends Obj{},
  FogExp2:class{constructor(c,d){this.color=c;this.density=d;}},
  PerspectiveCamera:Cam,
@@ -65,6 +70,11 @@ global.THREE={
  PMREMGenerator:class{constructor(){} compileEquirectangularShader(){}
    fromScene(){ return { texture:{ isTexture:true } }; } dispose(){}},
  WebGLCubeRenderTarget:class{constructor(){this.texture={};}},
+ WebGLRenderTarget:RT,
+ OrthographicCamera:Cam,
+ ShaderMaterial:ShaderMat,
+ LinearFilter:1006, NearestFilter:1003, RGBAFormat:1023, HalfFloatType:1016,
+ ClampToEdgeWrapping:1001,
  CubeCamera:class extends Obj{constructor(){super();}},
  BackSide:1, DoubleSide:2, FrontSide:0,
  RepeatWrapping:1000,
