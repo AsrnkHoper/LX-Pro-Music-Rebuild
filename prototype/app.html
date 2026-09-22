@@ -4328,12 +4328,71 @@ function scrollListTo(mesh, itemRow){
    详情页没有主页卡片，从列表/歌单点进去。
    与 enterSection 的区别：不走「卡片飞向镜头」转场（没有卡片），
    直接压黑 → 切换空间。 */
+/* ⚠️ 空间导航栈（2026-09-22）
+   起因：加了跨空间跳转（歌单→歌单详情→歌手详情）但没有历史栈，
+        返回只能回主页，无法逐级返回。
+   规则：
+     · 从主页进入子空间（enterSection）→ 栈清空，记 [key]
+     · 子空间之间跳转（gotoSpace）→ 压栈
+     · 返回（exitSection）→ 弹栈；栈空则回主页 */
+const spaceStack = [];
+/* 保存每个空间的滚动/选中状态，返回时还原 */
+const spaceState = {};
+
+function saveSpaceState(key){
+  if(!key) return;
+  const ws = pageByKey[key];
+  if(!ws) return;
+  spaceState[key] = ws.map(m => {
+    const u = m.userData;
+    return {
+      scrollPx: u.state.view ? u.state.view.scrollPx : 0,
+      firstPx:  u.state.view ? u.state.view.firstPx : 0,
+      sel: u.state.sel,
+      /* 头图卡与列表的内容（跳转时被填充过）*/
+      title: u.widget.type === 'headcard' ? u.widget.title : undefined,
+      sub:   u.widget.type === 'headcard' ? u.widget.sub : undefined,
+      stats: u.widget.type === 'headcard' ? u.widget.stats : undefined,
+      label: u.widget.type === 'songrow' ? u.widget.label : undefined,
+      items: u.widget.type === 'songrow' ? u.widget.items : undefined
+    };
+  });
+}
+function restoreSpaceState(key){
+  const st = spaceState[key];
+  const ws = pageByKey[key];
+  if(!st || !ws) return;
+  ws.forEach((m, i) => {
+    const s = st[i];
+    if(!s) return;
+    const u = m.userData;
+    if(u.state.view){
+      u.state.view.scrollPx = s.scrollPx || 0;
+      u.state.view.firstPx  = s.firstPx || 0;
+      u.state.view.vel = 0;
+      u.state.view.snapTo = undefined;
+    }
+    if(s.sel !== undefined) u.state.sel = s.sel;
+    if(s.title !== undefined) u.widget.title = s.title;
+    if(s.sub !== undefined) u.widget.sub = s.sub;
+    if(s.stats !== undefined) u.widget.stats = s.stats;
+    if(s.label !== undefined) u.widget.label = s.label;
+    if(s.items !== undefined){
+      u.widget.items = s.items;
+      u.state.items = s.items;
+    }
+    rebuildListWindow(m);
+  });
+}
+
 function gotoSpace(key, payload){
   if(busy) return;
   if(!PAGES[key]) return;
   busy = true;
   document.body.classList.add('busy');
   closeSheet();
+  /* 压栈前保存当前空间状态（返回时还原滚动位置与内容）*/
+  if(curPageKey && curPageKey !== key) saveSpaceState(curPageKey);
   wipe(true);
 
   setTimeout(() => {
@@ -4372,6 +4431,10 @@ function gotoSpace(key, payload){
     crumbCn.textContent = p.cn;
     document.body.classList.add('sub');
     backBtn.classList.add('on');
+    backBtn.textContent = '← 返回上一级';
+
+    /* 压栈（若栈顶不是本空间）*/
+    if(spaceStack[spaceStack.length-1] !== key) spaceStack.push(key);
 
     wipe(false);
     busy = false;
@@ -5703,6 +5766,10 @@ function enterSection(mesh){
 
     crumbEn.textContent = PAGES[key].en;
     crumbCn.textContent = PAGES[key].cn;
+    /* ⚠️ 从主页进入 → 重置导航栈（2026-09-22）*/
+    spaceStack.length = 0;
+    spaceStack.push(key);
+    backBtn.textContent = '← 返回主页';
     document.body.classList.add('sub');
     backBtn.classList.add('on');
 
@@ -5720,9 +5787,38 @@ function exitSection(){
   wipe(true);
 
   setTimeout(() => {
+    /* ⚠️ 先弹栈：若栈里还有上级空间，返回上一级；否则回主页（2026-09-22）*/
+    spaceStack.pop();                       /* 弹出当前空间 */
+    const prev = spaceStack[spaceStack.length - 1];
+
+    if(prev && PAGES[prev]){
+      /* ── 返回上一级空间 ── */
+      curPageKey = prev;
+      activatePage(prev);
+      restoreSpaceState(prev);
+      subGroup.visible = true;
+      mainGroup.visible = false;
+      mode = 'sub';
+
+      const p = PAGES[prev];
+      crumbEn.textContent = p.en;
+      crumbCn.textContent = p.cn;
+      backBtn.textContent = spaceStack.length > 1 ? '← 返回上一级' : '← 返回主页';
+      document.body.classList.add('sub');
+      backBtn.classList.add('on');
+
+      wipe(false);
+      busy = false;
+      document.body.classList.remove('busy');
+      return;
+    }
+
+    /* ── 回主页（栈空）── */
+    spaceStack.length = 0;
     subGroup.visible = false;
     mainGroup.visible = true;
     mode = 'main';
+    curPageKey = null;
 
     /* 还原进入前的视角（回到原来那张卡片的方向）*/
     yaw = savedYaw; pitch = savedPitch;
@@ -5730,6 +5826,7 @@ function exitSection(){
     playEnter(mainPanels);
     rebuildIndex(mainPanels);
 
+    backBtn.textContent = '← 返回主页';
     document.body.classList.remove('sub');
     backBtn.classList.remove('on');
 

@@ -32,7 +32,7 @@ code += `
   playEnter, listRows, scrollList, scrollListTo, scrollListTop, listNavTarget,
   curLyricIndex, nowWidgets, TRACKS, DRAW, widgetHeight,
   handleRegion, settingSlide, redrawWidget, nowWidgets,
-  buildPage, activatePage, gotoSpace,
+  buildPage, activatePage, gotoSpace, spaceStack,
   get NP(){return NP;}, get mode(){return mode;}, set mode(v){mode=v;},
   get busy(){return busy;}, get curPageKey(){return curPageKey;},
   set curPageKey(v){curPageKey=v;}, get flyCard(){return flyCard;},
@@ -744,6 +744,55 @@ if(target){
 const plNames = new Set(REAL.playlists.map(p=>p.t));
 const inter = REAL.albums.filter(a=>plNames.has(a.t)).length;
 ok(inter === 0, `歌单名∩专辑名=${inter}（原「硬匹配专辑」方案因此永不触发，已改）`);
+
+/* ── 5k. 导航栈（用户报「无法返回上一级」） ── */
+console.log('\n════ 5k. 导航栈逐级返回 ════');
+/* 模拟：主页 → 歌单 → 点歌单进详情 → 返回应回歌单（而非主页）*/
+enter('playlist');
+const g3 = T.pageByKey.playlist.find(x=>x.userData.widget.type==='grid');
+const pl0 = g3.userData.widget.items[0];
+/* 点歌单 → songlist */
+T.handleRegion(g3, { kind:'cell', index:0, title:pl0.t });
+drain();
+ok(T.curPageKey === 'songlist', `第1跳：playlist → ${T.curPageKey}`);
+ok(T.spaceStack.length === 2, `栈深 ${T.spaceStack.length}（应为 2：playlist, songlist）`);
+
+/* 点歌曲的歌手 → artist */
+const slSr3 = T.pageByKey.songlist.find(x=>x.userData.widget.type==='songrow');
+const art0 = REAL.artists.find(a =>
+  REAL.allSongs.some(s => (s.a||'').split('、').some(x=>x.trim()===a.t)));
+T.handleRegion(slSr3, { kind:'song', index:0, title:'x', sub:art0.t });
+drain();
+ok(T.curPageKey === 'artist', `第2跳：songlist → ${T.curPageKey}`);
+ok(T.spaceStack.length === 3, `栈深 ${T.spaceStack.length}（应为 3）`);
+
+/* 返回第 1 次 → 应回 songlist */
+T.exitSection(); drain();
+ok(T.curPageKey === 'songlist', `返回1：→ ${T.curPageKey}（应 songlist）`);
+ok(T.mode === 'sub', `仍在子空间（mode=${T.mode}）`);
+ok(T.spaceStack.length === 2, `栈深 ${T.spaceStack.length}（应为 2）`);
+/* 返回后应还原歌单详情的歌曲列表 */
+const slSr4 = T.pageByKey.songlist.find(x=>x.userData.widget.type==='songrow');
+ok(slSr4 && slSr4.userData.widget.items.length > 0,
+   `返回后歌单详情列表仍在（${slSr4?slSr4.userData.widget.items.length:0} 首）`);
+
+/* 返回第 2 次 → 应回 playlist */
+T.exitSection(); drain();
+ok(T.curPageKey === 'playlist', `返回2：→ ${T.curPageKey}（应 playlist）`);
+ok(T.mode === 'sub', `仍在子空间（mode=${T.mode}）`);
+ok(T.spaceStack.length === 1, `栈深 ${T.spaceStack.length}（应为 1）`);
+
+/* 返回第 3 次 → 回主页 */
+T.exitSection(); drain();
+ok(T.mode === 'main', `返回3：回主页（mode=${T.mode}）`);
+ok(T.spaceStack.length === 0, `栈已清空（${T.spaceStack.length}）`);
+
+/* 从主页进入应重置栈 */
+enter('stats');
+ok(T.spaceStack.length === 1 && T.spaceStack[0] === 'stats',
+   `从主页进入重置栈（[${T.spaceStack.join(',')}]）`);
+T.exitSection(); drain();
+ok(T.mode === 'main', '直接返回主页');
 
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');
