@@ -690,6 +690,61 @@ drain();
 ok(T.curPageKey === 'album' && T.mode === 'sub',
    `gotoSpace 生效（curPageKey=${T.curPageKey}, mode=${T.mode}）`);
 
+/* ── 5j. 跳转链路（用户报「点歌单没反应」） ── */
+console.log('\n════ 5j. 跳转链路验证 ════');
+/* ① 歌单数据必须带真实歌曲（此前 songs:null 导致无法跳转）*/
+ok(REAL.playlists[0].songs && REAL.playlists[0].songs.length > 0,
+   `歌单带真实歌曲（${REAL.playlists[0].t}: ${REAL.playlists[0].songs?REAL.playlists[0].songs.length:0} 首）`);
+const withSongs = REAL.playlists.filter(p=>p.songs && p.songs.length).length;
+ok(withSongs === REAL.playlists.length, `全部 ${withSongs}/${REAL.playlists.length} 个歌单都带歌曲`);
+
+/* ② grid 的 items 确实带 songs（跳转的数据前提）*/
+enter('playlist');
+const grid2 = T.pageByKey.playlist.find(x=>x.userData.widget.type==='grid');
+ok(grid2 && grid2.userData.widget.items[0].songs !== null,
+   `grid items 带 songs（首项 ${grid2?grid2.userData.widget.items[0].songs.length:0} 首）`);
+
+/* ③ 点歌单 → 应进 songlist 空间并填入歌曲 */
+const firstPL = grid2.userData.widget.items[0];
+T.handleRegion(grid2, { kind:'cell', index:0, title:firstPL.t });
+drain();
+ok(T.curPageKey === 'songlist', `点歌单跳转到 songlist（实际 ${T.curPageKey}）`);
+const slWs = T.pageByKey.songlist;
+const slHc = slWs.find(x=>x.userData.widget.type==='headcard');
+const slSr = slWs.find(x=>x.userData.widget.type==='songrow');
+ok(slHc && slHc.userData.widget.title === firstPL.t,
+   `头图卡标题已填（${slHc?slHc.userData.widget.title:'?'}）`);
+ok(slSr && slSr.userData.widget.items.length > 0,
+   `歌曲列表已填（${slSr?slSr.userData.widget.items.length:0} 首）`);
+ok(slSr && slSr.userData.widget.items[0].t === firstPL.songs[0].t,
+   `列表首项与歌单首曲一致（${slSr?slSr.userData.widget.items[0].t:'?'}）`);
+
+/* ④ 歌曲列表带专辑字段（供专辑跳转）*/
+ok(slSr && slSr.userData.widget.items[0].alb !== undefined,
+   `歌曲项带 alb 字段（${slSr?slSr.userData.widget.items[0].alb:'?'}）`);
+
+/* ⑤ 点歌曲 → 匹配真实歌手则进 artist */
+enter('songlist');
+const slSr2 = T.pageByKey.songlist.find(x=>x.userData.widget.type==='songrow');
+/* 找一个能匹配 REAL.artists 的歌曲 */
+const target = REAL.artists.find(a =>
+  REAL.allSongs.some(s => (s.a||'').split('、').some(x=>x.trim()===a.t)));
+if(target){
+  T.handleRegion(slSr2, { kind:'song', index:0, title:'x', sub:target.t });
+  drain();
+  ok(T.curPageKey === 'artist', `点歌曲的歌手跳转到 artist（${target.t} → ${T.curPageKey}）`);
+  const aHc = T.pageByKey.artist.find(x=>x.userData.widget.type==='headcard');
+  ok(aHc && aHc.userData.widget.title === target.t,
+     `歌手头图卡标题已填（${aHc?aHc.userData.widget.title:'?'}）`);
+} else {
+  ok(false, '找不到可匹配的歌手（数据异常）');
+}
+
+/* ⑥ 歌单名 vs 专辑名 无交集（解释为何原方案失败）*/
+const plNames = new Set(REAL.playlists.map(p=>p.t));
+const inter = REAL.albums.filter(a=>plNames.has(a.t)).length;
+ok(inter === 0, `歌单名∩专辑名=${inter}（原「硬匹配专辑」方案因此永不触发，已改）`);
+
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');
 let noVis = [];

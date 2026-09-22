@@ -201,10 +201,21 @@ def main():
 
     # ── 歌单（40 个自建，按歌曲数排序）──
     ul = sorted(bk['lists']['userList'], key=lambda p: -len(p['list']))
-    A('/* 自建歌单（按歌曲数降序）*/')
+    A('/* 自建歌单（按歌曲数降序）—— 带真实歌曲，供歌单详情使用 */')
     A('REAL.playlists = [')
     for p in ul:
-        A(f'  {{ t: {js(p["name"])}, n: {len(p["list"])} }},')
+        # 每首歌：歌名 / 歌手 / 时长 / 专辑 / 音源（供列表 + 详情跳转）
+        songs_js = []
+        for x in p['list'][:60]:      # 单歌单最多 60 首（避免文件过大）
+            songs_js.append({
+                't': x.get('name', ''),
+                'a': x.get('singer', ''),
+                'd': x.get('interval', ''),
+                'alb': ((x.get('meta') or {}).get('albumName') or '').strip(),
+                'src': SRC_SHORT.get(x.get('source'), ''),
+            })
+        A(f'  {{ t: {js(p["name"])}, n: {len(p["list"])}, '
+          f'songs: {js(songs_js)} }},')
     A('];')
     A('')
 
