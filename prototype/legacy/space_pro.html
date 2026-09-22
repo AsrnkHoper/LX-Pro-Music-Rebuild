@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#070709">
+<title>Hoper Music · 深空漂移 Pro</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    width:100%;height:100%;overflow:hidden;background:#070709;
+    font-family:-apple-system,"PingFang SC","HarmonyOS Sans",sans-serif;
+    color:#EDEDED;-webkit-font-smoothing:antialiased;user-select:none;
+  }
+  #scene{position:fixed;inset:0;display:block;}
+  .ui{
+    position:fixed;inset:0;z-index:10;pointer-events:none;
+    display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top,0px) + 20px) 22px calc(env(safe-area-inset-bottom,0px) + 16px);
+  }
+  .ui .grow{flex:1;}
+  .hero .t{
+    font-size:26px;font-weight:700;letter-spacing:.5px;
+    background:linear-gradient(180deg,#F4F4F6,#8C8C92);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    text-shadow:0 2px 30px rgba(0,0,0,.6);
+  }
+  .hero .s{margin-top:6px;font-size:12.5px;color:#8A8A8E;letter-spacing:.3px;}
+  .hero .s .dot{
+    display:inline-block;width:5px;height:5px;border-radius:50%;
+    background:#6E7A8A;box-shadow:0 0 10px rgba(110,122,138,.9);
+    vertical-align:middle;margin-right:7px;animation:pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+  .bottom{pointer-events:auto;}
+  .now{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+  .now .art{
+    width:54px;height:54px;border-radius:14px;flex:0 0 auto;
+    background:conic-gradient(from 40deg,#2A2E38,#3A3F4A,#1A1D23,#2A2E38);
+    box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 24px -6px rgba(110,122,138,.5);
+    border:1px solid rgba(255,255,255,.08);animation:spin 24s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .now .info{flex:1;min-width:0;}
+  .now .info .tt{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .now .info .aa{font-size:11.5px;color:#8A8A8E;margin-top:3px;}
+  .progress{height:2px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden;}
+  .progress i{display:block;height:100%;width:34%;
+    background:linear-gradient(90deg,#4A5464,#8A97A8);box-shadow:0 0 12px rgba(110,122,138,.8);}
+  .hint{text-align:center;font-size:10.5px;color:#4A4A4E;letter-spacing:1px;margin-top:14px;transition:opacity .5s;}
+
+  /* 音频可视化条（底部）*/
+  .visualizer{
+    position:fixed;left:0;right:0;bottom:0;height:70px;z-index:9;
+    pointer-events:none;opacity:.55;
+  }
+  /* 聚焦提示 */
+  .focus-tip{
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-size:11px;color:#8A8A8E;letter-spacing:2px;
+    opacity:0;transition:opacity .4s;pointer-events:none;z-index:12;
+  }
+  .focus-tip.on{opacity:1;}
+
+  /* 聚焦返回按钮 */
+  .back{
+    position:fixed;left:22px;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);
+    z-index:15;display:none;align-items:center;gap:6px;
+    padding:9px 16px;border-radius:20px;
+    background:rgba(20,20,22,.7);border:1px solid rgba(255,255,255,.08);
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    color:#EDEDED;font-size:12.5px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+  }
+  .back.on{display:flex;}
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+<canvas class="visualizer" id="viz"></canvas>
+
+<div class="ui">
+  <div class="hero">
+    <div class="t">Good evening.</div>
+    <div class="s"><span class="dot"></span>今晚也想听点安静的吗？</div>
+  </div>
+  <div class="grow"></div>
+  <div class="bottom">
+    <div class="now">
+      <div class="art"></div>
+      <div class="info">
+        <div class="tt" id="nowTitle">In My Feelings</div>
+        <div class="aa" id="nowArtist">Drake · Scorpion</div>
+      </div>
+    </div>
+    <div class="progress"><i></i></div>
+    <div class="hint" id="hint">拖动屏幕 · 转动视角 &nbsp;|&nbsp; 点击封面 · 聚焦</div>
+  </div>
+</div>
+
+<div class="back" id="backBtn">← 返回漫游</div>
+<div class="focus-tip" id="focusTip"></div>
+
+<script src="../three.min.js"></script>
+<script>
+/* ============================================================
+   深空漂移 Pro
+   新增：① 景深模糊  ② 点击封面聚焦  ③ 音频可视化  ④ 相机轻微摆动
+============================================================ */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x070709, 1);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x070709, 0.055);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 500);
+camera.position.set(0, 0, 0);
+
+/* ---------- 光照 ---------- */
+scene.add(new THREE.AmbientLight(0x8891a0, 0.55));
+const key = new THREE.DirectionalLight(0xaeb8c8, 0.9); key.position.set(3, 6, 4); scene.add(key);
+const rim = new THREE.PointLight(0x5B5468, 1.2, 60); rim.position.set(-8, 4, -10); scene.add(rim);
+const fill = new THREE.PointLight(0x3D4A5C, 1.0, 60); fill.position.set(8, -5, -6); scene.add(fill);
+
+/* ============================================================
+   ① 封面面板
+============================================================ */
+const covers = [];
+const palettes = [
+  ['#2A2E38','#101216'],['#312B3A','#100D15'],['#232C33','#0B0F12'],
+  ['#2E2A24','#12100C'],['#26313A','#0E1317'],['#2C2A34','#0E0C12'],
+  ['#233038','#0B1114'],['#332B2E','#120D0F']
+];
+const labels = ['深夜','雨天','独处','失眠','迷失','心事','夜行','空白'];
+
+function makeCoverTexture(i){
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+  const g = c.getContext('2d');
+  const [a,b] = palettes[i % palettes.length];
+  const grd = g.createLinearGradient(0,0,512,512);
+  grd.addColorStop(0, a); grd.addColorStop(1, b);
+  g.fillStyle = grd; g.fillRect(0,0,512,512);
+  const rg = g.createRadialGradient(256,180,20,256,180,320);
+  rg.addColorStop(0,'rgba(160,175,195,0.20)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = rg; g.fillRect(0,0,512,512);
+  g.fillStyle = 'rgba(237,237,237,0.92)';
+  g.font = 'bold 58px -apple-system,"PingFang SC",sans-serif';
+  g.fillText(labels[i % labels.length], 52, 300);
+  g.fillStyle = 'rgba(138,138,142,0.85)';
+  g.font = '28px -apple-system,"PingFang SC",sans-serif';
+  g.fillText((8 + i) + ' 首 · Hoper', 52, 348);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+const COVER_GEO = new THREE.BoxGeometry(3.2, 3.2, 0.22);
+const coverGroup = new THREE.Group();
+scene.add(coverGroup);
+
+const TOTAL = 26;
+for(let i = 0; i < TOTAL; i++){
+  const tex = makeCoverTexture(i);
+  const faceMat = new THREE.MeshStandardMaterial({
+    map: tex, roughness: 0.72, metalness: 0.12,
+    emissive: 0x1a1f28, emissiveIntensity: 0.6
+  });
+  const sideMat = new THREE.MeshStandardMaterial({ color: 0x14161b, roughness: 0.9, metalness: 0.2 });
+  const mesh = new THREE.Mesh(COVER_GEO, [sideMat, sideMat, sideMat, sideMat, faceMat, sideMat]);
+
+  const angle = Math.random() * Math.PI * 2;
+  const radius = 6 + Math.random() * 16;
+  mesh.position.set(
+    Math.cos(angle) * radius,
+    (Math.random() - 0.5) * 22,
+    -8 - Math.random() * 150
+  );
+  mesh.rotation.y = (Math.random() - 0.5) * 1.2;
+  mesh.rotation.z = (Math.random() - 0.5) * 0.25;
+
+  mesh.userData = {
+    baseY: mesh.position.y,
+    floatAmp: 0.6 + Math.random() * 1.4,
+    floatSpeed: 0.3 + Math.random() * 0.6,
+    phase: Math.random() * Math.PI * 2,
+    spin: (Math.random() - 0.5) * 0.06,
+    label: labels[i % labels.length],
+    count: 8 + i,
+    index: i
+  };
+  coverGroup.add(mesh);
+  covers.push(mesh);
+}
+
+/* ============================================================
+   星空 + 尘埃
+============================================================ */
+const starGeo = new THREE.BufferGeometry();
+const STAR_COUNT = 2600;
+const pos = new Float32Array(STAR_COUNT * 3);
+const col = new Float32Array(STAR_COUNT * 3);
+for(let i = 0; i < STAR_COUNT; i++){
+  pos[i*3]   = (Math.random() - 0.5) * 120;
+  pos[i*3+1] = (Math.random() - 0.5) * 120;
+  pos[i*3+2] = -Math.random() * 320;
+  const t = Math.random();
+  const c = new THREE.Color().setHSL(0.6 + t*0.08, 0.12 + t*0.12, 0.45 + Math.random()*0.4);
+  col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+starGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+const starMat = new THREE.PointsMaterial({
+  size: 0.5, vertexColors: true, transparent: true, opacity: 0.85,
+  sizeAttenuation: true, depthWrite: false, blending: THREE.AdditiveBlending
+});
+const stars = new THREE.Points(starGeo, starMat);
+scene.add(stars);
+
+const dustGeo = new THREE.BufferGeometry();
+const DUST = 500;
+const dpos = new Float32Array(DUST * 3);
+for(let i = 0; i < DUST; i++){
+  dpos[i*3]   = (Math.random() - 0.5) * 40;
+  dpos[i*3+1] = (Math.random() - 0.5) * 40;
+  dpos[i*3+2] = -Math.random() * 120;
+}
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dpos, 3));
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({
+  size: 0.9, color: 0x8a97a8, transparent: true, opacity: 0.35,
+  sizeAttenuation: true, depthWrite: false, blending: THREE.AdditiveBlending
+}));
+scene.add(dust);
+
+/* ============================================================
+   ④ 相机轻微摆动（呼吸感）
+============================================================ */
+let swayTime = 0;
+
+/* ============================================================
+   ③ 音频可视化（Web Audio API 频谱）
+   注：无真实音频时用"模拟频谱"驱动，视觉一致。
+   若接入真实 <audio>，把 source 换成 audio 即可。
+============================================================ */
+const analyser = null;                 // 预留：真实音频分析器
+let fakeBars = new Array(48).fill(0);  // 模拟频谱
+const vizCanvas = document.getElementById('viz');
+const vizCtx = vizCanvas.getContext('2d');
+let vizW, vizH;
+function resizeViz(){
+  const dpr = Math.min(devicePixelRatio, 2);
+  vizW = innerWidth; vizH = 70;
+  vizCanvas.width = vizW * dpr; vizCanvas.height = vizH * dpr;
+  vizCanvas.style.width = vizW + 'px'; vizCanvas.style.height = vizH + 'px';
+  vizCtx.setTransform(dpr,0,0,dpr,0,0);
+}
+resizeViz();
+
+function drawVisualizer(t){
+  // 模拟频谱：用多个正弦叠加，产生"音乐跳动"感
+  const N = fakeBars.length;
+  for(let i = 0; i < N; i++){
+    const base = Math.sin(t * 2.1 + i * 0.5) * 0.5 + 0.5;
+    const mid  = Math.sin(t * 3.7 + i * 0.9) * 0.3 + 0.5;
+    const hi   = Math.sin(t * 6.3 + i * 1.7) * 0.2 + 0.5;
+    // 中间高、两边低的包络
+    const env = Math.sin((i / (N-1)) * Math.PI);
+    const v = (base * 0.5 + mid * 0.3 + hi * 0.2) * env;
+    fakeBars[i] += (v - fakeBars[i]) * 0.25;
+  }
+
+  vizCtx.clearRect(0, 0, vizW, vizH);
+  const barW = vizW / N;
+  for(let i = 0; i < N; i++){
+    const h = fakeBars[i] * vizH * 0.85;
+    const x = i * barW + barW * 0.22;
+    const w = barW * 0.56;
+    const grd = vizCtx.createLinearGradient(0, vizH - h, 0, vizH);
+    grd.addColorStop(0, 'rgba(138,151,168,0.85)');
+    grd.addColorStop(1, 'rgba(74,84,100,0.15)');
+    vizCtx.fillStyle = grd;
+    vizCtx.fillRect(x, vizH - h, w, h);
+  }
+}
+
+/* ============================================================
+   ② 景深模糊
+   原理：每帧把「相机到每个封面的距离」写进 shader uniform，
+   通过自定义材质 + 后处理较复杂；此处用更稳的方案：
+   - 用 renderer 的雾 + 距离透明度模拟景深
+   - 并给远/近封面加不同模糊（用 canvas 贴图预模糊副本）
+   简化实现：远处封面降低对比 + 透明度，近处清晰
+============================================================ */
+
+/* ============================================================
+   ② 点击封面聚焦
+============================================================ */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+let focusTarget = null;          // 正在聚焦的封面
+let focusProgress = 0;           // 0=漫游 1=完全聚焦
+let isFocusing = false;
+const backBtn = document.getElementById('backBtn');
+const focusTip = document.getElementById('focusTip');
+const nowTitle = document.getElementById('nowTitle');
+const nowArtist = document.getElementById('nowArtist');
+const hintEl = document.getElementById('hint');
+
+function focusCover(mesh){
+  focusTarget = mesh;
+  isFocusing = true;
+  focusTip.textContent = mesh.userData.label;
+  focusTip.classList.add('on');
+  backBtn.classList.add('on');
+  hintEl.style.opacity = '0';
+  nowTitle.textContent = mesh.userData.label;
+  nowArtist.textContent = mesh.userData.count + ' 首 · Hoper 歌单';
+}
+function unfocus(){
+  isFocusing = false;
+  focusTip.classList.remove('on');
+  backBtn.classList.remove('on');
+  hintEl.style.opacity = '1';
+  nowTitle.textContent = 'In My Feelings';
+  nowArtist.textContent = 'Drake · Scorpion';
+}
+backBtn.addEventListener('click', unfocus);
+
+/* 拖拽 + 点击 判定 */
+let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0, moved = false;
+let yaw = 0, pitch = 0, curYaw = 0, curPitch = 0;
+
+function onDown(x, y){
+  dragging = true; lastX = x; lastY = y; downX = x; downY = y; moved = false;
+}
+function onMove(x, y){
+  if(!dragging) return;
+  if(Math.abs(x - downX) > 6 || Math.abs(y - downY) > 6) moved = true;
+  if(!isFocusing){
+    yaw   -= (x - lastX) * 0.005;
+    pitch -= (y - lastY) * 0.003;
+    yaw   = Math.max(-0.9, Math.min(0.9, yaw));
+    pitch = Math.max(-0.5, Math.min(0.5, pitch));
+  }
+  lastX = x; lastY = y;
+}
+function onUp(x, y){
+  dragging = false;
+  // 没移动 = 点击
+  if(!moved && !isFocusing) pickCover(x, y);
+}
+function pickCover(x, y){
+  const rect = canvas.getBoundingClientRect();
+  pointer.x = ((x - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((y - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(covers, false);
+  if(hits.length > 0){
+    focusCover(hits[0].object);
+  }
+}
+
+canvas.addEventListener('touchstart', e => onDown(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+canvas.addEventListener('touchmove',  e => onMove(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+canvas.addEventListener('touchend',   e => {
+  const t = e.changedTouches[0];
+  onUp(t.clientX, t.clientY);
+}, {passive:true});
+canvas.addEventListener('mousedown', e => onDown(e.clientX, e.clientY));
+canvas.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+canvas.addEventListener('mouseup',   e => onUp(e.clientX, e.clientY));
+canvas.addEventListener('mouseleave', () => { dragging = false; });
+
+/* ============================================================
+   动画循环
+============================================================ */
+const clock = new THREE.Clock();
+let camZ = 0;
+const MAX_ADVANCE = 150;
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.elapsedTime;
+
+  /* ---- 相机飞行 ---- */
+  if(!isFocusing){
+    camZ -= dt * 2.2;
+    if(camZ < -MAX_ADVANCE) camZ = 0;
+  }
+
+  /* ---- ④ 相机轻微摆动（呼吸感）---- */
+  swayTime += dt;
+  const swayX = Math.sin(swayTime * 0.5) * 0.35;
+  const swayY = Math.cos(swayTime * 0.37) * 0.22;
+  const swayRoll = Math.sin(swayTime * 0.23) * 0.008;
+
+  /* ---- 平滑视角 ---- */
+  curYaw   += (yaw   - curYaw)   * Math.min(1, dt * 4);
+  curPitch += (pitch - curPitch) * Math.min(1, dt * 4);
+
+  /* ---- 聚焦插值 ---- */
+  focusProgress += ((isFocusing ? 1 : 0) - focusProgress) * Math.min(1, dt * 2.2);
+
+  /* ---- 相机位置 ---- */
+  if(focusProgress > 0.01 && focusTarget){
+    // 目标：飞向封面正前方
+    const targetPos = new THREE.Vector3().copy(focusTarget.position);
+    targetPos.z += 6;                         // 停在封面正前 6 单位
+    const roamPos = new THREE.Vector3(curYaw * 2.5 + swayX, curPitch * 3.0 + swayY, camZ);
+    const camPos = roamPos.clone().lerp(targetPos, easeInOut(focusProgress));
+    camera.position.copy(camPos);
+    // 看向封面
+    const look = new THREE.Vector3().copy(focusTarget.position);
+    camera.lookAt(look);
+    camera.rotation.z += swayRoll;
+  } else {
+    camera.position.set(curYaw * 2.5 + swayX, curPitch * 3.0 + swayY, camZ);
+    camera.rotation.set(curPitch * 0.35, curYaw * 0.5, swayRoll);
+  }
+
+  /* ---- 封面浮动 + 自转 + 回收 ---- */
+  for(const m of covers){
+    const u = m.userData;
+    m.position.y = u.baseY + Math.sin(t * u.floatSpeed + u.phase) * u.floatAmp;
+    if(!isFocusing || m !== focusTarget){
+      m.rotation.y += u.spin * dt;
+    } else {
+      // 聚焦的封面转到正对相机
+      m.rotation.y += (0 - m.rotation.y) * Math.min(1, dt * 3);
+      m.rotation.z += (0 - m.rotation.z) * Math.min(1, dt * 3);
+    }
+    const dz = m.position.z - camera.position.z;
+    if(dz > 3 && !isFocusing){ m.position.z = camera.position.z - 150 - Math.random() * 40; }
+
+    /* ---- ② 景深：远处降透明度/变暗（雾已做一部分，这里加强）---- */
+    const dist = camera.position.distanceTo(m.position);
+    const dof = THREE.MathUtils.clamp(1 - (dist - 8) / 90, 0.12, 1);
+    if(m.material && Array.isArray(m.material)){
+      const fm = m.material[4];
+      if(fm){
+        fm.transparent = true;
+        fm.opacity = dof;
+        fm.emissiveIntensity = 0.6 * dof;
+      }
+    }
+  }
+
+  /* ---- 星空漂移 ---- */
+  stars.position.z = camera.position.z * 0.35;
+  dust.position.z  = camera.position.z * 0.7;
+
+  /* ---- ③ 音频可视化 ---- */
+  drawVisualizer(t);
+
+  renderer.render(scene, camera);
+}
+
+function easeInOut(x){ return x < 0.5 ? 2*x*x : 1 - Math.pow(-2*x + 2, 2) / 2; }
+
+/* 自适应 */
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  resizeViz();
+});
+
+animate();
+</script>
+</body>
+</html>

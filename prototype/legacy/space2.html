@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#070709">
+<title>Hoper Music · 深空漂移</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    width:100%;height:100%;overflow:hidden;background:#070709;
+    font-family:-apple-system,"PingFang SC","HarmonyOS Sans",sans-serif;
+    color:#EDEDED;-webkit-font-smoothing:antialiased;user-select:none;
+  }
+  #scene{position:fixed;inset:0;display:block;touch-action:none;}
+  .ui{
+    position:fixed;inset:0;z-index:10;pointer-events:none;
+    display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top,0px) + 20px) 22px calc(env(safe-area-inset-bottom,0px) + 16px);
+  }
+  .ui .grow{flex:1;}
+  .hero .t{
+    font-size:26px;font-weight:700;letter-spacing:.5px;
+    background:linear-gradient(180deg,#F4F4F6,#8C8C92);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    text-shadow:0 2px 30px rgba(0,0,0,.6);
+  }
+  .hero .s{margin-top:6px;font-size:12.5px;color:#8A8A8E;letter-spacing:.3px;}
+  .hero .s .dot{
+    display:inline-block;width:5px;height:5px;border-radius:50%;
+    background:#6E7A8A;box-shadow:0 0 10px rgba(110,122,138,.9);
+    vertical-align:middle;margin-right:7px;animation:pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+  .bottom{pointer-events:auto;}
+  .now{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+  .now .art{
+    width:54px;height:54px;border-radius:14px;flex:0 0 auto;
+    background:conic-gradient(from 40deg,#2A2E38,#3A3F4A,#1A1D23,#2A2E38);
+    box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 24px -6px rgba(110,122,138,.5);
+    border:1px solid rgba(255,255,255,.08);animation:spin 24s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .now .info{flex:1;min-width:0;}
+  .now .info .tt{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .now .info .aa{font-size:11.5px;color:#8A8A8E;margin-top:3px;}
+  .progress{height:2px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden;}
+  .progress i{display:block;height:100%;width:34%;
+    background:linear-gradient(90deg,#4A5464,#8A97A8);box-shadow:0 0 12px rgba(110,122,138,.8);}
+  .hint{text-align:center;font-size:10.5px;color:#4A4A4E;letter-spacing:1px;margin-top:14px;}
+  #err{
+    position:fixed;inset:0;z-index:99;background:#070709;display:none;
+    align-items:center;justify-content:center;padding:30px;text-align:center;
+    font-size:13px;color:#8A8A8E;line-height:1.7;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div class="ui">
+  <div class="hero">
+    <div class="t">Good evening.</div>
+    <div class="s"><span class="dot"></span>今晚也想听点安静的吗？</div>
+  </div>
+  <div class="grow"></div>
+  <div class="bottom">
+    <div class="now">
+      <div class="art"></div>
+      <div class="info">
+        <div class="tt">In My Feelings</div>
+        <div class="aa">Drake · Scorpion</div>
+      </div>
+    </div>
+    <div class="progress"><i></i></div>
+    <div class="hint">拖动屏幕 · 转动视角</div>
+  </div>
+</div>
+
+<div id="err"></div>
+
+<script>
+/* ============================================================
+   深空漂移 · 真 3D（零依赖 Canvas 引擎）
+   - 手写三维投影：世界坐标 (x,y,z) → 屏幕坐标 (sx,sy)
+   - 真透视：scale = f / (z)，近大远小
+   - 相机在 Z 轴飞行，手指拖拽转动视角
+   - 不依赖 WebGL / 外部文件，任何浏览器都能跑
+============================================================ */
+(function(){
+try{
+  var canvas = document.getElementById('scene');
+  var ctx = canvas.getContext('2d');
+  var W, H, DPR;
+
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* ---------- 相机 ---------- */
+  var cam = { x:0, y:0, z:0 };          // 相机在空间中的位置
+  var yaw = 0, pitch = 0;               // 视角朝向
+  var curYaw = 0, curPitch = 0;
+  var FOCAL = 520;                      // 焦距（越大视野越窄）
+
+  /* 世界点 → 相机空间 → 屏幕 */
+  function project(p){
+    // 平移：相对相机
+    var dx = p.x - cam.x;
+    var dy = p.y - cam.y;
+    var dz = p.z - cam.z;
+    // 先绕 Y 轴旋转（左右转头）
+    var cy = Math.cos(curYaw), sy = Math.sin(curYaw);
+    var rx = dx * cy - dz * sy;
+    var rz = dx * sy + dz * cy;
+    // 再绕 X 轴旋转（上下点头）
+    var cp = Math.cos(curPitch), sp = Math.sin(curPitch);
+    var ry = dy * cp - rz * sp;
+    var rz2 = dy * sp + rz * cp;
+    if(rz2 <= 0.1) return null;         // 在相机背后
+    var scale = FOCAL / rz2;
+    return {
+      x: W/2 + rx * scale,
+      y: H/2 - ry * scale,
+      scale: scale,
+      depth: rz2
+    };
+  }
+
+  /* ---------- 封面面板 ---------- */
+  var labels = ['深夜','雨天','独处','失眠','迷失','心事','夜行','空白'];
+  var palettes = [
+    ['#2A2E38','#101216'],['#312B3A','#100D15'],['#232C33','#0B0F12'],
+    ['#2E2A24','#12100C'],['#26313A','#0E1317'],['#2C2A34','#0E0C12'],
+    ['#233038','#0B1114'],['#332B2E','#120D0F']
+  ];
+  var covers = [];
+  var TOTAL = 24;
+  for(var i=0;i<TOTAL;i++){
+    var ang = Math.random()*Math.PI*2;
+    var rad = 5 + Math.random()*14;
+    covers.push({
+      x: Math.cos(ang)*rad,
+      y: (Math.random()-0.5)*20,
+      z: -8 - Math.random()*150,
+      size: 3.2,
+      rotY: (Math.random()-0.5)*1.1,
+      label: labels[i % labels.length],
+      pal: palettes[i % palettes.length],
+      count: 8 + i,
+      floatAmp: 0.6 + Math.random()*1.4,
+      floatSpeed: 0.3 + Math.random()*0.6,
+      phase: Math.random()*Math.PI*2,
+      spin: (Math.random()-0.5)*0.05
+    });
+  }
+
+  /* ---------- 星空 ---------- */
+  var stars = [];
+  for(var s=0;s<900;s++){
+    stars.push({
+      x:(Math.random()-0.5)*140,
+      y:(Math.random()-0.5)*140,
+      z:-Math.random()*340,
+      b:0.25 + Math.random()*0.65
+    });
+  }
+  // 近处尘埃
+  var dust = [];
+  for(var d=0;d<260;d++){
+    dust.push({
+      x:(Math.random()-0.5)*44,
+      y:(Math.random()-0.5)*44,
+      z:-Math.random()*130,
+      b:0.2 + Math.random()*0.4
+    });
+  }
+
+  /* ---------- 拖拽交互 ---------- */
+  var dragging=false, lastX=0, lastY=0;
+  function down(x,y){dragging=true;lastX=x;lastY=y;}
+  function move(x,y){
+    if(!dragging)return;
+    yaw   -= (x-lastX)*0.005;
+    pitch -= (y-lastY)*0.003;
+    yaw   = Math.max(-0.95, Math.min(0.95, yaw));
+    pitch = Math.max(-0.55, Math.min(0.55, pitch));
+    lastX=x;lastY=y;
+  }
+  function up(){dragging=false;}
+  canvas.addEventListener('touchstart',function(e){down(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
+  canvas.addEventListener('touchmove', function(e){move(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
+  canvas.addEventListener('touchend', up, {passive:true});
+  canvas.addEventListener('mousedown',function(e){down(e.clientX,e.clientY);});
+  canvas.addEventListener('mousemove',function(e){move(e.clientX,e.clientY);});
+  canvas.addEventListener('mouseup', up);
+  canvas.addEventListener('mouseleave', up);
+
+  /* ---------- 渲染循环 ---------- */
+  var lastT = performance.now();
+  var MAX_ADV = 150;
+
+  function frame(now){
+    requestAnimationFrame(frame);
+    var dt = Math.min((now - lastT)/1000, 0.05); lastT = now;
+    var t = now/1000;
+
+    /* 相机沿 -Z 飞行 */
+    cam.z -= dt * 2.4;
+    if(cam.z < -MAX_ADV) cam.z = 0;
+
+    /* 平滑视角 */
+    curYaw   += (yaw   - curYaw)   * Math.min(1, dt*4);
+    curPitch += (pitch - curPitch) * Math.min(1, dt*4);
+    cam.x = curYaw * 2.2;
+    cam.y = curPitch * 2.6;
+
+    /* 背景 */
+    ctx.fillStyle = '#070709';
+    ctx.fillRect(0,0,W,H);
+
+    /* 空间光晕 */
+    var g1 = ctx.createRadialGradient(W*0.25, H*0.15, 0, W*0.25, H*0.15, W*0.7);
+    g1.addColorStop(0,'rgba(110,122,138,0.10)'); g1.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = g1; ctx.fillRect(0,0,W,H);
+    var g2 = ctx.createRadialGradient(W*0.85, H*0.75, 0, W*0.85, H*0.75, W*0.6);
+    g2.addColorStop(0,'rgba(91,84,104,0.08)'); g2.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = g2; ctx.fillRect(0,0,W,H);
+
+    /* 星空（远） */
+    drawPoints(stars, 1.0, dt);
+    /* 尘埃（近） */
+    drawPoints(dust, 2.2, dt);
+
+    /* 封面面板：按深度从远到近排序（远的先画） */
+    var list = [];
+    for(var i=0;i<covers.length;i++){
+      var c = covers[i];
+      c.y += Math.sin(t*c.floatSpeed + c.phase) * c.floatAmp * dt * 0.6;
+      c.rotY += c.spin * dt;
+      if(c.z - cam.z > 3){ c.z = cam.z - MAX_ADV - Math.random()*40; }
+      var pr = project(c);
+      if(pr) list.push({c:c, p:pr});
+    }
+    list.sort(function(a,b){ return b.p.depth - a.p.depth; });
+    for(var k=0;k<list.length;k++){
+      drawCover(list[k].c, list[k].p);
+    }
+
+    /* 暗角 */
+    var vig = ctx.createRadialGradient(W/2,H/2,H*0.35,W/2,H/2,H*0.85);
+    vig.addColorStop(0,'rgba(0,0,0,0)'); vig.addColorStop(1,'rgba(0,0,0,0.65)');
+    ctx.fillStyle = vig; ctx.fillRect(0,0,W,H);
+
+    /* 颗粒噪点 */
+    ctx.globalAlpha = 0.03;
+    for(var n=0;n<40;n++){
+      ctx.fillStyle = Math.random()>0.5 ? '#fff' : '#000';
+      ctx.fillRect(Math.random()*W, Math.random()*H, 1, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* 画粒子（真 3D 投影） */
+  function drawPoints(arr, sizeMul, dt){
+    for(var i=0;i<arr.length;i++){
+      var st = arr[i];
+      var pr = project(st);
+      if(!pr) continue;
+      // 雾：越远越暗
+      var fog = Math.max(0, 1 - pr.depth/300);
+      var a = st.b * fog;
+      if(a < 0.02) continue;
+      var r = Math.max(0.4, Math.min(2.6, pr.scale * 0.006 * sizeMul));
+      ctx.beginPath();
+      ctx.arc(pr.x, pr.y, r, 0, 6.2832);
+      ctx.fillStyle = 'rgba(174,184,200,' + a.toFixed(3) + ')';
+      ctx.fill();
+    }
+  }
+
+  /* 画封面面板：真 3D 立方体（有厚度 + 侧面） */
+  function drawCover(c, p){
+    var fog = Math.max(0, 1 - p.depth/260);
+    var w = c.size * p.scale;
+    if(w < 2) return;
+    var x = p.x, y = p.y;
+
+    // 面板厚度（沿 Z 的视觉偏移，制造立体感）
+    var thick = Math.max(1.5, w * 0.06);
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0.06, fog);
+    ctx.translate(x, y);
+    ctx.rotate(c.rotY * 0.25);          // 轻微倾斜
+
+    // 侧面（厚度）：暗色矩形
+    ctx.fillStyle = 'rgba(18,20,25,' + (0.9*fog) + ')';
+    ctx.fillRect(-w/2 + thick, -w/2 + thick, w, w);
+
+    // 正面：渐变封面
+    var grd = ctx.createLinearGradient(-w/2, -w/2, w/2, w/2);
+    grd.addColorStop(0, c.pal[0]); grd.addColorStop(1, c.pal[1]);
+    ctx.fillStyle = grd;
+    ctx.fillRect(-w/2, -w/2, w, w);
+
+    // 顶部微光
+    var hl = ctx.createLinearGradient(0,-w/2,0,0);
+    hl.addColorStop(0,'rgba(174,184,200,0.14)'); hl.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = hl;
+    ctx.fillRect(-w/2,-w/2,w,w/2);
+
+    // 边框
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-w/2, -w/2, w, w);
+
+    // 文字（只在够大时画）
+    if(w > 34){
+      ctx.fillStyle = 'rgba(237,237,237,0.92)';
+      ctx.font = 'bold ' + Math.round(w*0.16) + 'px -apple-system,"PingFang SC",sans-serif';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(c.label, -w/2 + w*0.10, w*0.18);
+      ctx.fillStyle = 'rgba(138,138,142,0.85)';
+      ctx.font = Math.round(w*0.085) + 'px -apple-system,"PingFang SC",sans-serif';
+      ctx.fillText(c.count + ' 首 · Hoper', -w/2 + w*0.10, w*0.30);
+    }
+    ctx.restore();
+  }
+
+  requestAnimationFrame(frame);
+}catch(err){
+  var e = document.getElementById('err');
+  e.style.display = 'flex';
+  e.textContent = '出错了：' + err.message;
+}
+})();
+</script>
+</body>
+</html>

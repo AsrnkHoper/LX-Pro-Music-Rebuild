@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#070709">
+<title>Hoper Music · 球面空间主页</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{
+    --bg:#070709; --glass:rgba(255,255,255,0.045); --glass-b:rgba(255,255,255,0.08);
+    --t1:#EDEDED; --t2:#8A8A8E; --t3:#4A4A4E;
+    --accent:#6E7A8A; --glow:rgba(110,122,138,0.35); --divider:rgba(255,255,255,0.06);
+  }
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
+    font-family:-apple-system,"PingFang SC","HarmonyOS Sans",sans-serif;
+    color:var(--t1);-webkit-font-smoothing:antialiased;user-select:none;}
+  #scene{position:fixed;inset:0;display:block;}
+
+  /* 顶部问候 */
+  .top{position:fixed;top:0;left:0;right:0;z-index:10;pointer-events:none;
+    padding:calc(env(safe-area-inset-top,0px) + 22px) 24px 0;
+    transition:opacity .4s;}
+  .top .t{font-size:26px;font-weight:700;letter-spacing:.5px;
+    background:linear-gradient(180deg,#F4F4F6,#8C8C92);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    text-shadow:0 2px 30px rgba(0,0,0,.7);}
+  .top .s{margin-top:6px;font-size:12.5px;color:var(--t2);letter-spacing:.3px;
+    text-shadow:0 2px 12px rgba(0,0,0,.8);}
+  .top .s .dot{display:inline-block;width:5px;height:5px;border-radius:50%;
+    background:var(--accent);box-shadow:0 0 10px var(--glow);vertical-align:middle;margin-right:7px;
+    animation:pulse 2.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+
+  /* 底部 */
+  .bottom{position:fixed;left:0;right:0;bottom:0;z-index:10;pointer-events:none;
+    padding:0 20px calc(env(safe-area-inset-bottom,0px) + 16px);}
+
+  .hint{text-align:center;font-size:10.5px;color:var(--t3);letter-spacing:1px;
+    margin-bottom:14px;text-shadow:0 2px 12px rgba(0,0,0,.8);transition:opacity .4s;}
+
+  /* 聚焦时的说明条 */
+  .caption{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
+    z-index:12;text-align:center;pointer-events:none;
+    opacity:0;transform:translateY(10px);transition:opacity .4s,transform .4s;}
+  .caption.on{opacity:1;transform:translateY(0);}
+  .caption .ct{font-size:19px;font-weight:600;letter-spacing:.6px;text-shadow:0 2px 20px rgba(0,0,0,.9);}
+  .caption .cs{font-size:11.5px;color:var(--t2);margin-top:6px;letter-spacing:1px;}
+
+  /* 返回按钮 */
+  .back{position:fixed;left:50%;transform:translateX(-50%) translateY(10px);
+    bottom:calc(env(safe-area-inset-bottom,0px) + 96px);z-index:15;
+    padding:10px 22px;border-radius:22px;display:flex;align-items:center;gap:7px;
+    background:rgba(20,20,22,.75);border:1px solid var(--glass-b);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    color:var(--t1);font-size:12.5px;letter-spacing:.5px;
+    box-shadow:0 12px 34px rgba(0,0,0,.6);
+    opacity:0;pointer-events:none;transition:opacity .35s,transform .35s;}
+  .back.on{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+  .back:active{background:rgba(255,255,255,.1);}
+
+  /* 迷你播放条 */
+  .mini{pointer-events:auto;height:58px;border-radius:19px;display:flex;align-items:center;gap:12px;
+    padding:0 14px;margin-bottom:12px;
+    background:rgba(13,14,16,.58);border:1px solid rgba(255,255,255,0.05);
+    backdrop-filter:blur(26px) saturate(120%);-webkit-backdrop-filter:blur(26px) saturate(120%);
+    box-shadow:0 18px 44px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);}
+  .mini .disc{width:40px;height:40px;border-radius:50%;flex:0 0 auto;position:relative;overflow:hidden;
+    background:conic-gradient(from 0deg,#2A2E38,#3A3F4A,#1A1D23,#2A2E38);
+    box-shadow:0 6px 16px rgba(0,0,0,.6);animation:spin 20s linear infinite;}
+  .mini .disc::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;
+    transform:translate(-50%,-50%);border-radius:50%;background:var(--bg);border:2px solid rgba(255,255,255,.12);}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .mini .info{flex:1;min-width:0;}
+  .mini .info .t{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mini .info .a{font-size:10.5px;color:var(--t2);margin-top:2px;}
+  .mini .ctrl{display:flex;align-items:center;gap:2px;}
+  .mini .ctrl button{background:none;border:none;color:var(--t1);width:36px;height:36px;
+    display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .2s,transform .2s;}
+  .mini .ctrl button:active{background:rgba(255,255,255,.08);transform:scale(.9);}
+
+  /* 底部导航 */
+  .tabbar{pointer-events:auto;height:56px;display:flex;align-items:center;justify-content:space-around;
+    border-radius:19px;background:rgba(11,12,14,.55);border:1px solid rgba(255,255,255,0.05);
+    backdrop-filter:blur(26px) saturate(120%);-webkit-backdrop-filter:blur(26px) saturate(120%);
+    box-shadow:0 16px 40px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04);}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--t3);
+    font-size:10px;letter-spacing:.5px;padding:6px 14px;transition:color .25s,transform .25s;}
+  .tab svg{transition:transform .25s;}
+  .tab.on{color:var(--accent);}
+  .tab.on svg{transform:translateY(-2px) scale(1.08);filter:drop-shadow(0 0 8px var(--glow));}
+  .tab:active{transform:scale(.9);}
+
+  /* 底部索引栏：点击跳转到指定卡片 */
+  .index{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;
+    scrollbar-width:none;pointer-events:auto;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 10px),transparent);
+    mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 10px),transparent);
+    transition:opacity .4s;}
+  .index::-webkit-scrollbar{display:none;}
+  .chip{flex:0 0 auto;min-width:36px;height:36px;padding:0 9px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid rgba(255,255,255,0.06);
+    color:var(--t3);font-size:11px;letter-spacing:1.2px;font-weight:300;
+    transition:transform .25s,background .25s,color .25s,border-color .25s;}
+  .chip:active{transform:scale(.92);background:rgba(255,255,255,0.06);
+    color:var(--t1);border-color:rgba(255,255,255,0.16);}
+
+  /* 屏幕边缘方向指示 */
+  .indicators{position:fixed;inset:0;z-index:9;pointer-events:none;}
+  .ind{position:absolute;width:0;height:0;
+    border-left:6px solid transparent;border-right:6px solid transparent;
+    border-bottom:10px solid rgba(138,151,168,0.9);
+    filter:drop-shadow(0 0 6px rgba(110,122,138,0.9));
+    opacity:0;transition:opacity .35s;}
+
+  /* ============================================================
+     电影感后期层（胶片颗粒 / 暗角 / 冷暖分级 / 柔光斑）
+  ============================================================ */
+  .fx-grade{position:fixed;inset:0;z-index:2;pointer-events:none;
+    /* 冷暖对比：左上暖白 → 右下青蓝（高级感万能公式）*/
+    background:linear-gradient(165deg,
+      rgba(255,238,222,0.035) 0%,
+      rgba(0,0,0,0) 42%,
+      rgba(26,54,78,0.070) 100%);}
+
+  .fx-vignette{position:fixed;inset:0;z-index:3;pointer-events:none;
+    /* 柔和暗角：四角压暗，视线收拢到中心 */
+    background:radial-gradient(ellipse 74% 60% at 50% 46%,
+      rgba(0,0,0,0) 40%,
+      rgba(0,0,0,0.26) 76%,
+      rgba(0,0,0,0.60) 100%);}
+
+  .fx-leak{position:fixed;z-index:4;pointer-events:none;
+    left:-20%;top:-24%;width:72%;height:72%;
+    background:radial-gradient(circle, rgba(126,156,186,0.10), rgba(0,0,0,0) 66%);
+    filter:blur(34px);
+    animation:leakBreathe 11s ease-in-out infinite;}
+  @keyframes leakBreathe{0%,100%{opacity:.55;transform:scale(1)}
+    50%{opacity:.95;transform:scale(1.09)}}
+
+  .fx-grain{position:fixed;inset:-22%;z-index:5;pointer-events:none;
+    opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation:grainShift .7s steps(4) infinite;}
+  @keyframes grainShift{
+    0%{transform:translate(0,0)}
+    25%{transform:translate(-1.6%,1.2%)}
+    50%{transform:translate(1.4%,-1.6%)}
+    75%{transform:translate(-1.2%,-1.2%)}
+    100%{transform:translate(0,0)}}
+
+  /* 聚焦时的加深暗角（沉浸/聚焦感）*/
+  .fx-focus{position:fixed;inset:0;z-index:6;pointer-events:none;
+    opacity:0;transition:opacity .7s ease;
+    background:radial-gradient(ellipse 62% 52% at 50% 50%,
+      rgba(0,0,0,0) 28%, rgba(0,0,0,0.58) 100%);}
+  body.focused .fx-focus{opacity:1;}
+
+  /* 闲置时 UI 隐去（沉浸感）*/
+  .top,.bottom{transition:opacity 1.4s ease;}
+  body.idle .top, body.idle .bottom{opacity:.08;}
+
+  /* 聚焦时：UI 隐去 + 不可点击（避免挡住卡片）*/
+  body.focused .top,
+  body.focused .bottom{opacity:0;pointer-events:none;}
+  body.focused .bottom .index,
+  body.focused .bottom .mini,
+  body.focused .bottom .tabbar{pointer-events:none;}
+
+  /* 排版微调：更克制的字重与字距 */
+  .top .t{font-size:27px;font-weight:600;letter-spacing:-0.3px;}
+  .top .s{font-size:12px;letter-spacing:.7px;color:rgba(150,156,166,.92);}
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<!-- 电影感后期层 -->
+<div class="fx-grade"></div>
+<div class="fx-vignette"></div>
+<div class="fx-leak"></div>
+<div class="fx-grain"></div>
+<div class="fx-focus"></div>
+
+<div class="indicators" id="indicators"></div>
+
+<div class="top" id="topBar">
+  <div class="t" id="greet">Good evening.</div>
+  <div class="s"><span class="dot"></span>今晚也想听点安静的吗？</div>
+</div>
+
+<div class="caption" id="caption">
+  <div class="ct" id="capTitle">标题</div>
+  <div class="cs" id="capSub">副标题</div>
+</div>
+
+<div class="back" id="backBtn">← 返回球面</div>
+
+<div class="bottom">
+  <div class="index" id="indexBar"></div>
+  <div class="mini">
+    <div class="disc"></div>
+    <div class="info">
+      <div class="t">In My Feelings</div>
+      <div class="a">Drake · Scorpion</div>
+    </div>
+    <div class="ctrl">
+      <button id="playBtn" aria-label="play">
+        <svg id="playIcon" width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button aria-label="next">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5v14l9-7zM16 5h2v14h-2z"/></svg>
+      </button>
+    </div>
+  </div>
+  <nav class="tabbar">
+    <div class="tab on" data-tab="home">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>
+      <span>首页</span>
+    </div>
+    <div class="tab" data-tab="discover">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15 9-4 4-2 4 4-2 2-4z"/></svg>
+      <span>发现</span>
+    </div>
+    <div class="tab" data-tab="playlist">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h12M4 12h12M4 19h8"/><circle cx="19" cy="19" r="2.2"/><path d="M21 19V9"/></svg>
+      <span>歌单</span>
+    </div>
+    <div class="tab" data-tab="mine">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+      <span>我的</span>
+    </div>
+  </nav>
+</div>
+
+<script src="../three.min.js"></script>
+<script>
+/* ============================================================
+   球面空间主页
+   - 卡片均匀分布在一个球面上（斐波那契球面算法）
+   - 相机在球心，转动视角环视球面
+   - 卡片始终 billboard 正对相机
+   - 点击卡片 → 飞向相机 + 放大 + 其他卡片淡出
+============================================================ */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x070709, 1);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x070709, 0.035);
+
+const camera = new THREE.PerspectiveCamera(68, innerWidth/innerHeight, 0.1, 500);
+
+/* 光照
+   注意：卡片已改为「无光照材质」，场景不再需要灯光。
+   （保留此说明：若以后加入受光照的3D物体，再在此添加光源）*/
+
+/* ============================================================
+   卡片数据（占位文字）
+============================================================ */
+/* 主页卡片预设（6 项）*/
+const FEATURES = [
+  { title:'搜索',     sub:'SEARCH',      desc:'歌曲 · 歌手 · 专辑' },
+  { title:'我的歌单', sub:'PLAYLISTS',   desc:'收藏与自建歌单' },
+  { title:'听歌统计', sub:'STATS',       desc:'时长 · 排行 · 习惯' },
+  { title:'当前播放', sub:'NOW PLAYING', desc:'正在播放的歌曲' },
+  { title:'下载管理', sub:'DOWNLOADS',   desc:'已下载的歌曲与歌词' },
+  { title:'设置',     sub:'SETTINGS',    desc:'主题 · 音质 · 关于' }
+];
+
+/* 6 张卡片在球面上的分布：
+   水平环绕 6 个方位（60° 间隔），高度略有错落。
+   az = 0 时位于正前方，向右递增。 */
+const SPOTS = [
+  { az:   0, el:  0 },   // 搜索     → 正前方居中
+  { az:  60, el:  6 },   // 我的歌单
+  { az: 120, el: -6 },   // 听歌统计
+  { az: 180, el:  4 },   // 当前播放
+  { az: 240, el: -4 },   // 下载管理
+  { az: 300, el:  6 }    // 设置
+];
+
+/* 卡片配色：低饱和莫兰迪 / 高级灰 / 雾霾蓝
+   （阴影侧偏青蓝，营造电影感的冷暖对比）*/
+const PALETTES = [
+  ['#3B4149','#22262B'], ['#3E3B45','#25232B'], ['#35414A','#1F272D'],
+  ['#42403A','#27251F'], ['#37424A','#212830'], ['#3F3B46','#242129']
+];
+
+function makeCardTexture(f, i){
+  const c = document.createElement('canvas');
+  c.width = 640; c.height = 420;
+  const g = c.getContext('2d');
+  const [a,b] = PALETTES[i % PALETTES.length];
+
+  /* 底色：低饱和哑光渐变 */
+  const grd = g.createLinearGradient(0,0,560,420);
+  grd.addColorStop(0,a); grd.addColorStop(1,b);
+  g.fillStyle = grd; g.fillRect(0,0,640,420);
+
+  /* 阴影侧：极淡青蓝（冷暖对比的"冷端"）*/
+  const sg = g.createLinearGradient(0,420,0,140);
+  sg.addColorStop(0,'rgba(38,72,94,0.20)');
+  sg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = sg; g.fillRect(0,0,640,420);
+
+  /* 高光侧：极淡暖白（冷暖对比的"暖端"）*/
+  const hg = g.createRadialGradient(566,34,8,566,34,430);
+  hg.addColorStop(0,'rgba(255,240,224,0.11)');
+  hg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = hg; g.fillRect(0,0,640,420);
+
+  /* 顶部发丝高光线（暖白）*/
+  g.fillStyle = 'rgba(255,246,235,0.40)';
+  g.fillRect(46, 40, 548, 1.4);
+
+  /* 英文副标题（小字 + 大字距，置于顶部）*/
+  g.fillStyle = 'rgba(158,166,178,0.80)';
+  g.font = '400 21px -apple-system,"PingFang SC",sans-serif';
+  if('letterSpacing' in g) g.letterSpacing = '6px';
+  g.textBaseline = 'alphabetic';
+  g.fillText(f.sub, 46, 100);
+  if('letterSpacing' in g) g.letterSpacing = '0px';
+
+  /* 中文主标题（大字重，置于中部）*/
+  g.fillStyle = 'rgba(240,243,247,0.95)';
+  g.font = '500 58px -apple-system,"PingFang SC",sans-serif';
+  g.fillText(f.title, 46, 292);
+
+  /* 一条短横线（极简装饰，位于标题下方）*/
+  g.strokeStyle = 'rgba(255,255,255,0.18)';
+  g.lineWidth = 2;
+  g.beginPath(); g.moveTo(48, 330); g.lineTo(150, 330); g.stroke();
+
+  /* 发丝边框 */
+  g.strokeStyle = 'rgba(255,255,255,0.13)';
+  g.lineWidth = 2;
+  roundRect(g, 2, 2, 636, 416, 30); g.stroke();
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+function roundRect(g,x,y,w,h,r){
+  g.beginPath();
+  g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath();
+}
+
+/* 卡片外发光贴图（让卡片从深色背景中"浮"出来）*/
+function makeHaloTexture(){
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(128,128,8,128,128,128);
+  rg.addColorStop(0,   'rgba(186,200,218,0.85)');
+  rg.addColorStop(0.42,'rgba(120,138,160,0.30)');
+  rg.addColorStop(1,   'rgba(0,0,0,0)');
+  g.fillStyle = rg; g.fillRect(0,0,256,256);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+const HALO_TEX = makeHaloTexture();
+
+/* ============================================================
+   斐波那契球面分布
+============================================================ */
+const R = 8.6;                        // 球半径（卡片少 → 半径小、卡片大）
+const CARD_W = 3.4, CARD_H = 2.2;
+const CARD_GEO = new THREE.BoxGeometry(CARD_W, CARD_H, 0.08);
+
+const panels = [];
+
+for(let i = 0; i < FEATURES.length; i++){
+  const spot = SPOTS[i];
+  const az = spot.az * Math.PI / 180;
+  const el = spot.el * Math.PI / 180;
+
+  /* 球面坐标 → 三维坐标（az=0 位于正前方）*/
+  const px = Math.cos(el) * Math.sin(az);
+  const py = Math.sin(el);
+  const pz = -Math.cos(el) * Math.cos(az);
+
+  // 轻微半径差异，制造纵深层次
+  const radius = R * (0.92 + Math.random() * 0.16);
+
+  const tex = makeCardTexture(FEATURES[i], i);
+
+  /* 【关键】用「无光照」材质：
+     卡片颜色 = 贴图本身，完全不受场景光源影响，
+     从根本上消除"亮暗分界线 / 明暗硬边"的劣质感 */
+  const faceMat = new THREE.MeshBasicMaterial({
+    map: tex, transparent: true, opacity: 1, toneMapped: false, fog: false
+  });
+  const sideMat = new THREE.MeshBasicMaterial({
+    color: 0x22262E, transparent: true, opacity: 1, fog: false
+  });
+  const mesh = new THREE.Mesh(CARD_GEO, [sideMat, sideMat, sideMat, sideMat, faceMat, sideMat]);
+
+  /* 外发光：放在卡片正后方，形成一圈柔光 */
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: HALO_TEX, color: 0xA8BACF, transparent: true, opacity: 0.3,
+    blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+  }));
+  halo.scale.set(CARD_W * 1.95, CARD_H * 2.4, 1);
+  halo.position.z = -0.2;
+  mesh.add(halo);
+
+  mesh.position.set(px * radius, py * radius, pz * radius);
+  mesh.userData = {
+    home: mesh.position.clone(),
+    /* 漂浮方向沿球面径向 → 卡片像在"呼吸"，而不是乱飘 */
+    floatDir: new THREE.Vector3(px, py, pz).normalize(),
+    phase: Math.random() * Math.PI * 2,
+    faceMat: faceMat,
+    sideMat: sideMat,
+    feature: FEATURES[i],
+    index: i,
+    halo: halo
+  };
+  scene.add(mesh);
+  panels.push(mesh);
+}
+
+/* ============================================================
+   星空 + 尘埃
+============================================================ */
+const starGeo = new THREE.BufferGeometry();
+const STAR_COUNT = 2200;
+const spos = new Float32Array(STAR_COUNT * 3);
+const scol = new Float32Array(STAR_COUNT * 3);
+for(let i = 0; i < STAR_COUNT; i++){
+  // 均匀分布在一个大球壳里
+  const u = Math.random()*2 - 1;
+  const ph = Math.random()*Math.PI*2;
+  const rr = Math.sqrt(1-u*u);
+  const dist = 30 + Math.random()*60;
+  spos[i*3] = Math.cos(ph)*rr*dist;
+  spos[i*3+1] = u*dist;
+  spos[i*3+2] = Math.sin(ph)*rr*dist;
+  const t = Math.random();
+  const c = new THREE.Color().setHSL(0.6 + t*0.08, 0.12 + t*0.12, 0.5 + Math.random()*0.4);
+  scol[i*3]=c.r; scol[i*3+1]=c.g; scol[i*3+2]=c.b;
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(spos,3));
+starGeo.setAttribute('color', new THREE.BufferAttribute(scol,3));
+const starMat = new THREE.PointsMaterial({ size:0.45, vertexColors:true, transparent:true,
+  opacity:0.8, sizeAttenuation:true, depthWrite:false, blending:THREE.AdditiveBlending });
+const stars = new THREE.Points(starGeo, starMat);
+scene.add(stars);
+
+/* ============================================================
+   漂浮尘埃：近处柔和光点 → 空气感 / 氛围感
+============================================================ */
+function makeSoftDotTexture(){
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(32,32,0,32,32,32);
+  rg.addColorStop(0,   'rgba(255,255,255,0.95)');
+  rg.addColorStop(0.32,'rgba(206,222,240,0.30)');
+  rg.addColorStop(1,   'rgba(255,255,255,0)');
+  g.fillStyle = rg; g.fillRect(0,0,64,64);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+const MOTE_N = 150;
+const moteGeo = new THREE.BufferGeometry();
+const motePos = new Float32Array(MOTE_N * 3);
+for(let i = 0; i < MOTE_N; i++){
+  const u = Math.random()*2 - 1, ph = Math.random()*Math.PI*2, rr = Math.sqrt(1-u*u);
+  const dist = 4.5 + Math.random()*9;
+  motePos[i*3]   = Math.cos(ph)*rr*dist;
+  motePos[i*3+1] = u*dist;
+  motePos[i*3+2] = Math.sin(ph)*rr*dist;
+}
+moteGeo.setAttribute('position', new THREE.BufferAttribute(motePos,3));
+const moteMat = new THREE.PointsMaterial({
+  map: makeSoftDotTexture(), size: 0.55, color: 0xC2D2E6,
+  transparent: true, opacity: 0.42, sizeAttenuation: true,
+  depthWrite: false, blending: THREE.AdditiveBlending, fog: false
+});
+const motes = new THREE.Points(moteGeo, moteMat);
+scene.add(motes);
+
+/* ============================================================
+   交互
+============================================================ */
+let dragging=false, lastX=0, lastY=0, downX=0, downY=0, moved=false;
+let yaw=0, pitch=0, curYaw=0, curPitch=0;
+
+/* 闲置计时：无操作一段时间后隐去 UI，营造沉浸感 */
+let idleT = 0;
+function pokeUI(){
+  idleT = 0;
+  document.body.classList.remove('idle');
+}
+['touchstart','touchmove','mousedown','mousemove','wheel','keydown']
+  .forEach(ev => addEventListener(ev, pokeUI, {passive:true}));
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+let focused = null;
+
+function onDown(x,y){ dragging=true; lastX=x; lastY=y; downX=x; downY=y; moved=false; }
+function onMove(x,y){
+  if(!dragging) return;
+  if(Math.abs(x-downX)>6 || Math.abs(y-downY)>6) moved=true;
+  if(!focused){
+    yaw   -= (x-lastX)*0.012;
+    pitch -= (y-lastY)*0.008;
+    pitch = Math.max(-1.3, Math.min(1.3, pitch));
+  }
+  lastX=x; lastY=y;
+}
+function onUp(x,y){
+  dragging=false;
+  if(!moved) pickCard(x,y);
+}
+function pickCard(x,y){
+  const rect = canvas.getBoundingClientRect();
+  pointer.x = ((x-rect.left)/rect.width)*2-1;
+  pointer.y = -((y-rect.top)/rect.height)*2+1;
+  scene.updateMatrixWorld(true);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(panels, false);
+  if(hits.length > 0){
+    focusCard(hits[0].object);
+  } else {
+    unfocus();
+  }
+}
+
+canvas.addEventListener('touchstart', e=>onDown(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
+canvas.addEventListener('touchmove',  e=>onMove(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
+canvas.addEventListener('touchend',   e=>{const t=e.changedTouches[0]; onUp(t.clientX,t.clientY);},{passive:true});
+canvas.addEventListener('mousedown', e=>onDown(e.clientX,e.clientY));
+canvas.addEventListener('mousemove', e=>onMove(e.clientX,e.clientY));
+canvas.addEventListener('mouseup',   e=>onUp(e.clientX,e.clientY));
+canvas.addEventListener('mouseleave', ()=>{dragging=false;});
+
+/* 聚焦 / 返回 */
+const capEl = document.getElementById('caption');
+const backBtn = document.getElementById('backBtn');
+const indexBar = document.getElementById('indexBar');
+const topBar = document.getElementById('topBar');
+
+function focusCard(mesh){
+  focused = mesh;
+  const f = mesh.userData.feature;
+  document.getElementById('capTitle').textContent = f.title;
+  document.getElementById('capSub').textContent = f.desc || f.sub;
+  capEl.classList.add('on');
+  backBtn.classList.add('on');
+  document.body.classList.add('focused');
+}
+function unfocus(){
+  if(!focused) return;
+  focused = null;
+  capEl.classList.remove('on');
+  backBtn.classList.remove('on');
+  document.body.classList.remove('focused');
+}
+backBtn.addEventListener('click', unfocus);
+
+/* ============================================================
+   定位工具①：视角自动转向指定卡片
+============================================================ */
+function lookAtCard(mesh){
+  if(focused) unfocus();
+  const d = mesh.position.clone().normalize();
+  const targetPitch = Math.asin(THREE.MathUtils.clamp(d.y, -1, 1));
+  let targetYaw = Math.atan2(-d.x, -d.z);
+  // 走最短路径（避免绕远路）
+  while(targetYaw - yaw >  Math.PI) targetYaw -= Math.PI * 2;
+  while(targetYaw - yaw < -Math.PI) targetYaw += Math.PI * 2;
+  yaw = targetYaw;
+  pitch = THREE.MathUtils.clamp(targetPitch, -1.3, 1.3);
+  mesh.userData.hl = 1;               // 触发高亮脉冲
+}
+
+/* ============================================================
+   定位工具②：底部索引栏（显示卡片名）
+============================================================ */
+panels.forEach((m, i) => {
+  const chip = document.createElement('div');
+  chip.className = 'chip';
+  chip.textContent = FEATURES[i].title;
+  chip.addEventListener('click', () => lookAtCard(m));
+  indexBar.appendChild(chip);
+});
+
+/* ============================================================
+   定位工具③：屏幕边缘方向指示
+============================================================ */
+const indicators = document.getElementById('indicators');
+const indEls = panels.map(() => {
+  const el = document.createElement('div');
+  el.className = 'ind';
+  indicators.appendChild(el);
+  return el;
+});
+
+const _v = new THREE.Vector3();
+const _invQ = new THREE.Quaternion();
+
+function updateIndicators(){
+  if(focused){
+    for(const el of indEls) el.style.opacity = '0';
+    return;
+  }
+  const tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5));
+  const aspect = innerWidth / innerHeight;
+  _invQ.copy(camera.quaternion).invert();
+
+  for(let i = 0; i < panels.length; i++){
+    const el = indEls[i];
+    const m = panels[i];
+
+    _v.copy(m.position).sub(camera.position).applyQuaternion(_invQ);
+
+    let nx, ny, visible;
+    if(_v.z < -0.01){
+      const d = -_v.z;
+      nx = (_v.x / d) / (tanHalf * aspect);
+      ny = (_v.y / d) / tanHalf;
+      visible = Math.abs(nx) < 0.9 && Math.abs(ny) < 0.9;
+    } else {
+      // 在相机背后 → 镜像方向
+      const d = Math.max(0.01, _v.z);
+      nx = -(_v.x / d) / (tanHalf * aspect);
+      ny = -(_v.y / d) / tanHalf;
+      visible = false;
+    }
+
+    if(visible){ el.style.opacity = '0'; continue; }
+
+    let mx = Math.abs(nx), my = Math.abs(ny);
+    if(mx < 0.001 && my < 0.001){ nx = 0; ny = -1.5; mx = 0; my = 1.5; }
+    const k = 1 / Math.max(mx, my);
+    const ex = THREE.MathUtils.clamp(nx * k, -0.93, 0.93);
+    const ey = THREE.MathUtils.clamp(ny * k, -0.93, 0.93);
+
+    const rot = Math.atan2(ex, ey) * 180 / Math.PI;
+    el.style.left = ((ex * 0.5 + 0.5) * 100) + '%';
+    el.style.top  = ((-ey * 0.5 + 0.5) * 100) + '%';
+    el.style.transform = 'translate(-50%,-50%) rotate(' + rot + 'deg)';
+    el.style.opacity = '1';
+  }
+}
+
+/* ============================================================
+   动画循环
+============================================================ */
+const clock = new THREE.Clock();
+const ONE = new THREE.Vector3(1,1,1);
+const FOCUS_SCALE = new THREE.Vector3(1.42, 1.42, 1.42);
+const _dir = new THREE.Vector3();
+const _target = new THREE.Vector3();
+const _tmpScale = new THREE.Vector3();
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.elapsedTime;
+
+  curYaw   += (yaw   - curYaw)   * Math.min(1, dt*6);
+  curPitch += (pitch - curPitch) * Math.min(1, dt*6);
+
+  /* 相机在球心，只做轻微浮动 */
+  camera.position.set(
+    Math.sin(t*0.4)*0.12,
+    Math.cos(t*0.31)*0.10,
+    Math.sin(t*0.11)*0.55        /* 极缓慢前后"推轨"，电影呼吸感 */
+  );
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = curYaw;
+  camera.rotation.x = curPitch;
+  camera.rotation.z = Math.sin(t*0.2)*0.005;
+
+  /* 尘埃缓慢流动 */
+  motes.rotation.y += dt * 0.012;
+  motes.rotation.x += dt * 0.004;
+
+  /* 闲置检测：无操作后隐去 UI（沉浸感）*/
+  idleT += dt;
+  if(idleT > 6 && !focused) document.body.classList.add('idle');
+
+  /* 卡片 */
+  for(const m of panels){
+    const u = m.userData;
+
+    /* 高亮脉冲衰减 */
+    if(u.hl === undefined) u.hl = 0;
+    if(u.hl > 0.002) u.hl *= Math.pow(0.06, dt); else u.hl = 0;
+
+    if(m === focused){
+      /* 飞向相机正前方 + 放大 */
+      _dir.set(0,0,-1).applyQuaternion(camera.quaternion);
+      _target.copy(camera.position).addScaledVector(_dir, 9);
+      m.position.lerp(_target, Math.min(1, dt*5));
+      _tmpScale.copy(FOCUS_SCALE);
+    } else {
+      /* 回到球面原位 + 轻微漂浮 */
+      const off = Math.sin(t*0.5 + u.phase) * 0.18;
+      m.position.copy(u.home).addScaledVector(u.floatDir, off);
+      _tmpScale.copy(ONE);
+    }
+    _tmpScale.multiplyScalar(1 + u.hl * 0.35);      // 高亮时放大
+    m.scale.lerp(_tmpScale, Math.min(1, dt*5));
+
+    /* Billboard：始终正面朝向相机 */
+    m.lookAt(camera.position);
+
+    /* 透明度：景深 + 聚焦时其他卡片淡出 */
+    const dist = camera.position.distanceTo(m.position);
+    const dof = THREE.MathUtils.clamp(1 - (dist-7)/30, 0.55, 1);
+    const dim = (focused && m !== focused) ? 0.06 : 1;
+    const targetOp = dof * dim;
+    u.faceMat.opacity += (targetOp - u.faceMat.opacity) * Math.min(1, dt*6);
+    u.sideMat.opacity = u.faceMat.opacity;
+    /* 高亮脉冲：靠外发光闪一下（无光照材质没有 emissive）*/
+    u.halo.material.opacity = u.faceMat.opacity * (0.30 + u.hl * 1.5);
+  }
+
+  /* 刷新屏幕边缘方向指示 */
+  updateIndicators();
+
+  renderer.render(scene, camera);
+}
+
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+animate();
+
+/* ============================================================
+   UI
+============================================================ */
+(function(){
+  var h = new Date().getHours();
+  var greet, mood;
+  if(h < 5){        greet = 'Late night.';    mood = '夜里还醒着的人，不止你一个。'; }
+  else if(h < 11){  greet = 'Good morning.';  mood = '早安。先放一首，慢慢醒过来。'; }
+  else if(h < 14){  greet = 'Noon.';          mood = '午后的光，有点懒。'; }
+  else if(h < 18){  greet = 'Good afternoon.';mood = '这个点，适合听点旧的歌。'; }
+  else if(h < 23){  greet = 'Good evening.';  mood = '今晚也想听点安静的吗？'; }
+  else {            greet = 'Late night.';    mood = '夜深了，把声音调小一点。'; }
+  document.getElementById('greet').textContent = greet;
+  var sub = document.querySelector('.top .s');
+  if(sub) sub.innerHTML = '<span class="dot"></span>' + mood;
+})();
+
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+    tab.classList.add('on');
+  });
+});
+
+var playing = true;
+document.getElementById('playBtn').addEventListener('click', function(){
+  playing = !playing;
+  document.getElementById('playIcon').innerHTML = playing
+    ? '<path d="M8 5v14l11-7z"/>'
+    : '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>';
+  document.querySelector('.mini .disc').style.animationPlayState = playing ? 'running' : 'paused';
+});
+</script>
+</body>
+</html>

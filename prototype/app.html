@@ -1,0 +1,3641 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08090C">
+<title>Hoper Music</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{
+    --bg:#08090C; --glass:rgba(255,255,255,0.045); --glass-b:rgba(255,255,255,0.08);
+    --t1:#ECEDEF; --t2:#8C9097; --t3:#4B4E54;
+    --accent:#7A828C; --glow:rgba(122,130,140,0.32); --divider:rgba(255,255,255,0.06);
+  }
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
+    font-family:-apple-system,"PingFang SC","HarmonyOS Sans",sans-serif;
+    color:var(--t1);-webkit-font-smoothing:antialiased;user-select:none;}
+  #scene{position:fixed;inset:0;display:block;}
+
+  /* 电影感后期层 */
+  .fx-grade{position:fixed;inset:0;z-index:2;pointer-events:none;
+    background:linear-gradient(165deg,
+      rgba(208,213,220,0.030) 0%, rgba(0,0,0,0) 42%, rgba(42,50,62,0.075) 100%);}
+  .fx-vignette{position:fixed;inset:0;z-index:3;pointer-events:none;
+    background:radial-gradient(ellipse 74% 60% at 50% 46%,
+      rgba(0,0,0,0) 40%, rgba(0,0,0,0.26) 76%, rgba(0,0,0,0.60) 100%);}
+  .fx-leak{position:fixed;z-index:4;pointer-events:none;
+    left:-20%;top:-24%;width:72%;height:72%;
+    background:radial-gradient(circle, rgba(124,132,144,0.14), rgba(0,0,0,0) 66%);
+    filter:blur(34px);animation:leakBreathe 11s ease-in-out infinite;}
+  @keyframes leakBreathe{0%,100%{opacity:.55;transform:scale(1)}
+    50%{opacity:.95;transform:scale(1.09)}}
+  .fx-grain{position:fixed;inset:-22%;z-index:5;pointer-events:none;
+    opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation:grainShift .7s steps(4) infinite;}
+  @keyframes grainShift{
+    0%{transform:translate(0,0)} 25%{transform:translate(-1.6%,1.2%)}
+    50%{transform:translate(1.4%,-1.6%)} 75%{transform:translate(-1.2%,-1.2%)}
+    100%{transform:translate(0,0)}}
+
+  .fx-wipe{position:fixed;inset:0;z-index:8;pointer-events:none;
+    background:#08090C;opacity:0;transition:opacity .34s ease;}
+  .fx-wipe.on{opacity:1;transition:opacity .15s ease;}
+
+  /* UI 显隐 */
+  .top,.bottom{transition:opacity 1.4s ease;}
+  body.idle .top, body.idle .bottom{opacity:.08;}
+  body.busy .top, body.busy .bottom{opacity:0;pointer-events:none;}
+  body.busy .bottom .index,
+  body.busy .bottom .mini{pointer-events:none;}
+
+  /* 顶部 */
+  .top{position:fixed;top:0;left:0;right:0;z-index:10;pointer-events:none;
+    padding:calc(env(safe-area-inset-top,0px) + 22px) 24px 0;}
+  .top .t{font-size:27px;font-weight:600;letter-spacing:-0.3px;
+    background:linear-gradient(180deg,#22334E,#5E7290);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    text-shadow:0 2px 30px rgba(255,255,255,.35);}
+  .top .s{margin-top:6px;font-size:12px;letter-spacing:.7px;color:rgba(38,52,76,.88);
+    text-shadow:0 1px 8px rgba(255,255,255,.3);}
+  .top .s .dot{display:inline-block;width:5px;height:5px;border-radius:50%;
+    background:var(--accent);box-shadow:0 0 10px var(--glow);vertical-align:middle;margin-right:7px;
+    animation:pulse 2.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+
+  /* 子页面栏目名 */
+  .crumb{position:fixed;left:0;right:0;z-index:11;pointer-events:none;
+    top:calc(env(safe-area-inset-top,0px) + 22px);text-align:center;
+    opacity:0;transform:translateY(-6px);transition:opacity .5s ease,transform .5s ease;}
+  body.sub .crumb{opacity:1;transform:translateY(0);}
+  .crumb .en{font-size:10px;letter-spacing:4px;color:rgba(45,60,86,.78);}
+  .crumb .cn{font-size:16px;font-weight:500;letter-spacing:2px;margin-top:5px;
+    color:rgba(28,40,58,.94);text-shadow:0 1px 8px rgba(255,255,255,.35);}
+
+  /* 底部 */
+  .bottom{position:fixed;left:0;right:0;bottom:0;z-index:10;pointer-events:none;
+    padding:0 20px calc(env(safe-area-inset-bottom,0px) + 24px);}
+
+  .index{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;
+    scrollbar-width:none;pointer-events:auto;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 10px),transparent);
+    mask-image:linear-gradient(90deg,transparent,#000 10px,#000 calc(100% - 10px),transparent);}
+  .index::-webkit-scrollbar{display:none;}
+  .chip{flex:0 0 auto;height:34px;padding:0 12px;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;white-space:nowrap;
+    background:transparent;border:1px solid rgba(28,40,58,0.25);
+    color:#26374E;font-size:12px;letter-spacing:.4px;font-weight:400;
+    transition:transform .25s,background .25s,color .25s,border-color .25s;}
+  .chip:active{transform:scale(.92);background:rgba(255,255,255,0.06);
+    color:#1B2940;border-color:rgba(40,70,110,0.5);}
+
+  .mini{pointer-events:auto;height:58px;border-radius:19px;display:flex;align-items:center;gap:12px;
+    padding:0 14px;
+    background:rgba(13,14,16,.58);border:1px solid rgba(255,255,255,0.05);
+    backdrop-filter:blur(26px) saturate(120%);-webkit-backdrop-filter:blur(26px) saturate(120%);
+    box-shadow:0 18px 44px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);}
+  .mini .disc{width:40px;height:40px;border-radius:50%;flex:0 0 auto;position:relative;overflow:hidden;
+    background:conic-gradient(from 0deg,#2A2E38,#3A3F4A,#1A1D23,#2A2E38);
+    box-shadow:0 6px 16px rgba(0,0,0,.6);animation:spin 20s linear infinite;}
+  .mini .disc::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;
+    transform:translate(-50%,-50%);border-radius:50%;background:var(--bg);border:2px solid rgba(255,255,255,.12);}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .mini .info{flex:1;min-width:0;}
+  .mini .info .t{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mini .info .a{font-size:10.5px;color:var(--t2);margin-top:2px;}
+  .mini .ctrl{display:flex;align-items:center;gap:2px;}
+  .mini .ctrl button{background:none;border:none;color:var(--t1);width:36px;height:36px;
+    display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .2s,transform .2s;}
+  .mini .ctrl button:active{background:rgba(255,255,255,.08);transform:scale(.9);}
+
+  /* 底部导航栏已移除（减少传统设计元素）*/
+
+  /* 提示条 */
+  .toast{position:fixed;left:50%;transform:translateX(-50%) translateY(8px);
+    bottom:calc(env(safe-area-inset-bottom,0px) + 176px);z-index:14;
+    padding:9px 18px;border-radius:18px;white-space:nowrap;
+    background:rgba(20,20,22,.82);border:1px solid var(--glass-b);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    font-size:12px;color:var(--t1);letter-spacing:.4px;
+    box-shadow:0 12px 30px rgba(0,0,0,.6);
+    opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* 返回按钮 */
+  .back{position:fixed;left:50%;transform:translateX(-50%) translateY(10px);
+    bottom:calc(env(safe-area-inset-bottom,0px) + 98px);z-index:15;
+    padding:10px 22px;border-radius:22px;display:flex;align-items:center;gap:7px;
+    background:rgba(20,20,22,.75);border:1px solid var(--glass-b);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    color:var(--t1);font-size:12.5px;letter-spacing:.5px;
+    box-shadow:0 12px 34px rgba(0,0,0,.6);
+    opacity:0;pointer-events:none;transition:opacity .35s,transform .35s;}
+  .back.on{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+  .back:active{background:rgba(255,255,255,.1);}
+
+  /* 搜索输入面板 */
+  .sheet{position:fixed;inset:0;z-index:40;background:rgba(7,7,9,.55);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .3s;}
+  .sheet.on{opacity:1;pointer-events:auto;}
+  .sheet .panel{width:100%;background:#0D0E11;border-radius:26px 26px 0 0;
+    border-top:1px solid var(--glass-b);padding:22px 22px calc(env(safe-area-inset-bottom,0px) + 26px);
+    transform:translateY(30px);transition:transform .35s cubic-bezier(.2,.9,.3,1);}
+  .sheet.on .panel{transform:translateY(0);}
+  .sheet .field{display:flex;align-items:center;gap:10px;height:50px;border-radius:16px;
+    background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);padding:0 16px;}
+  .sheet .field svg{opacity:.6;flex:0 0 auto;}
+  .sheet input{flex:1;background:none;border:none;outline:none;color:var(--t1);
+    font-size:15px;font-family:inherit;letter-spacing:.3px;}
+  .sheet input::placeholder{color:var(--t3);}
+  .sheet .go{margin-top:14px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+    background:rgba(50,90,150,.30);border:1px solid rgba(255,255,255,0.10);
+    font-size:14px;letter-spacing:1px;color:rgba(240,244,250,.95);}
+  .sheet .go:active{background:rgba(50,90,150,.45);}
+
+  /* 边缘方向指示 */
+  .indicators{position:fixed;inset:0;z-index:9;pointer-events:none;}
+  .ind{position:absolute;width:0;height:0;
+    border-left:6px solid transparent;border-right:6px solid transparent;
+    border-bottom:10px solid rgba(60,84,112,0.9);
+    filter:drop-shadow(0 0 6px rgba(50,90,150,0.9));
+    opacity:0;transition:opacity .35s;}
+
+  /* ============================================================
+     沉浸式歌曲页（不是卡片，全部自由漂浮）
+  ============================================================ */
+  .np{position:fixed;inset:0;z-index:7;
+    display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top,0px) + 12px) 26px calc(env(safe-area-inset-bottom,0px) + 20px);
+    opacity:0;pointer-events:none;transition:opacity .55s ease;}
+  body.playing .np{opacity:1;pointer-events:auto;}
+  body.playing .bottom,
+  body.playing .crumb,
+  body.playing .back,
+  body.playing .top{opacity:0;pointer-events:none;}
+
+  /* 封面色晕 + 暗角（沉浸背景）*/
+  .np-wash{position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse 72% 42% at 50% 24%, var(--wash,rgba(96,120,150,.22)), rgba(0,0,0,0) 72%),
+      radial-gradient(ellipse 92% 74% at 50% 50%, rgba(0,0,0,0) 42%, rgba(0,0,0,.58) 100%);
+    transition:background 1.2s ease;}
+  /* 胶片颗粒也覆盖歌曲页 */
+  .np::after{content:'';position:absolute;inset:0;pointer-events:none;
+    opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation:grainShift .7s steps(4) infinite;}
+
+  .np-top{display:flex;align-items:center;justify-content:space-between;
+    height:38px;position:relative;z-index:2;transition:opacity .6s ease;}
+  .np-top button{background:none;border:none;color:rgba(226,232,240,.85);
+    width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+    border-radius:50%;transition:background .2s,transform .2s;}
+  .np-top button:active{background:rgba(255,255,255,.08);transform:scale(.9);}
+
+  /* 给 3D 黑胶留出的空间 */
+  .np-stage{flex:0 0 30vh;position:relative;z-index:2;}
+
+  .np-meta{text-align:center;position:relative;z-index:2;}
+  .np-meta .t{font-size:22px;font-weight:600;letter-spacing:.2px;
+    color:rgba(242,246,252,.97);text-shadow:0 2px 24px rgba(0,0,0,.7);}
+  .np-meta .a{font-size:12.5px;letter-spacing:.8px;color:rgba(154,162,176,.9);margin-top:7px;}
+
+  /* 歌词：可自由滚动，无卡片 */
+  .np-lyrics{flex:1;overflow-y:auto;position:relative;z-index:2;
+    margin:16px -10px 0;padding:0 10px;
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 15%,#000 80%,transparent 100%);
+    mask-image:linear-gradient(180deg,transparent 0,#000 15%,#000 80%,transparent 100%);
+    scrollbar-width:none;overscroll-behavior:contain;}
+  .np-lyrics::-webkit-scrollbar{display:none;}
+  .np-ly{padding:9px 0;text-align:center;
+    font-size:15.5px;line-height:1.5;letter-spacing:.3px;
+    color:rgba(138,146,160,.52);
+    transition:color .45s ease,transform .45s ease,opacity .45s ease;
+    transform-origin:center;}
+  .np-ly.on{color:rgba(244,248,254,.98);font-size:18.5px;font-weight:500;
+    transform:scale(1.03);text-shadow:0 2px 20px rgba(150,180,215,.35);}
+  .np-ly.near{color:rgba(180,190,204,.72);}
+
+  /* 进度条：可拖动 */
+  .np-progress{position:relative;z-index:2;margin-top:12px;transition:opacity .6s ease;}
+  .np-bar{height:26px;display:flex;align-items:center;cursor:pointer;touch-action:none;}
+  .np-track{position:relative;width:100%;height:3px;border-radius:2px;
+    background:rgba(255,255,255,.13);}
+  .np-fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px;
+    background:linear-gradient(90deg,rgba(140,164,192,.9),rgba(216,232,248,.95));}
+  .np-knob{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;
+    background:#EDF5FE;transform:translate(-50%,-50%);
+    box-shadow:0 0 12px rgba(170,200,235,.7);}
+  .np-bar.drag .np-knob{width:16px;height:16px;}
+  .np-times{display:flex;justify-content:space-between;margin-top:1px;
+    font-size:11px;letter-spacing:.5px;color:rgba(146,154,168,.7);font-variant-numeric:tabular-nums;}
+
+  /* 控制栏：半透明 */
+  .np-ctrl{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;
+    gap:30px;margin-top:12px;transition:opacity .6s ease;}
+  .np-ctrl button{background:none;border:none;color:rgba(230,238,248,.9);
+    display:flex;align-items:center;justify-content:center;border-radius:50%;
+    transition:background .2s,transform .2s,color .2s;}
+  .np-ctrl button:active{transform:scale(.9);}
+  .np-ctrl .side{width:50px;height:50px;}
+  .np-ctrl .side:active{background:rgba(255,255,255,.07);}
+  .np-ctrl .main{width:66px;height:66px;
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 10px 30px rgba(0,0,0,.45);}
+  .np-ctrl .main:active{background:rgba(255,255,255,.13);}
+
+  /* 沉浸：闲置时控件隐去 */
+  body.np-idle .np-top,
+  body.np-idle .np-ctrl{opacity:.10;}
+  body.np-idle .np-progress{opacity:.22;}
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div class="fx-grade"></div>
+<div class="fx-vignette"></div>
+<div class="fx-leak"></div>
+<div class="fx-grain"></div>
+<div class="fx-wipe" id="wipe"></div>
+
+<div class="indicators" id="indicators"></div>
+
+<div class="top" id="topBar">
+  <div class="t" id="greet">Good evening.</div>
+  <div class="s" id="mood"><span class="dot"></span>今晚也想听点安静的吗？</div>
+</div>
+
+<div class="crumb" id="crumb">
+  <div class="en" id="crumbEn">SEARCH</div>
+  <div class="cn" id="crumbCn">搜索</div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="back" id="backBtn">← 返回主页</div>
+
+<div class="bottom">
+  <div class="index" id="indexBar"></div>
+  <div class="mini">
+    <div class="disc"></div>
+    <div class="info">
+      <div class="t">In My Feelings</div>
+      <div class="a">Drake · Scorpion</div>
+    </div>
+    <div class="ctrl">
+      <button id="playBtn" aria-label="play">
+        <svg id="playIcon" width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button id="miniNext" aria-label="next">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5v14l9-7zM16 5h2v14h-2z"/></svg>
+      </button>
+    </div>
+  </div>
+  </div>
+
+<!-- 搜索输入面板 -->
+<div class="sheet" id="sheet">
+  <div class="panel">
+    <div class="field">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/>
+      </svg>
+      <input id="sheetInput" type="text" placeholder="搜索歌曲 · 歌手 · 专辑" autocomplete="off">
+    </div>
+    <div class="go" id="sheetGo">搜 索</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     沉浸式歌曲页（封面/歌词/控件全部自由漂浮，无卡片容器）
+============================================================ -->
+<div class="np" id="np">
+  <div class="np-wash" id="npWash"></div>
+
+  <div class="np-top">
+    <button id="npBack" aria-label="收起">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <button aria-label="更多">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>
+    </button>
+  </div>
+
+  <!-- 3D 黑胶唱片占位（真实封面由 WebGL 渲染在这里）-->
+  <div class="np-stage"></div>
+
+  <div class="np-meta">
+    <div class="t" id="npTitle">In My Feelings</div>
+    <div class="a" id="npArtist">Drake · Scorpion</div>
+  </div>
+
+  <!-- 歌词：自由滚动 -->
+  <div class="np-lyrics" id="npLyrics"></div>
+
+  <!-- 进度条：可拖动 -->
+  <div class="np-progress">
+    <div class="np-bar" id="npBar">
+      <div class="np-track">
+        <div class="np-fill" id="npFill"></div>
+        <div class="np-knob" id="npKnob"></div>
+      </div>
+    </div>
+    <div class="np-times"><span id="npCur">00:00</span><span id="npDur">03:37</span></div>
+  </div>
+
+  <!-- 控制栏：半透明 -->
+  <div class="np-ctrl">
+    <button class="side" id="npPrev" aria-label="上一首">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zm12 0v14l-9-7z"/></svg>
+    </button>
+    <button class="main" id="npPlay" aria-label="播放/暂停">
+      <svg id="npPlayIcon" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <button class="side" id="npNext" aria-label="下一首">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM6 5v14l9-7z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script src="three.min.js"></script>
+<script>
+/* ============================================================
+   Hoper Music
+   主页：球面 6 张功能卡
+   子页面：漂浮的「控件容器」（真实可交互）
+============================================================ */
+const FONT = '-apple-system,"PingFang SC","HarmonyOS Sans",sans-serif';
+
+/* ---------------- 基础 ---------------- */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x08090C, 1);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x08090C, 0.03);
+const camera = new THREE.PerspectiveCamera(68, innerWidth/innerHeight, 0.1, 500);
+
+/* ---------------- 主页 6 卡 ---------------- */
+const FEATURES = [
+  { key:'now',      title:'当前播放', sub:'NOW PLAYING', desc:'正在播放的歌曲',     w:4.0, h:2.85 },
+  { key:'search',   title:'搜索',     sub:'SEARCH',      desc:'歌曲 · 歌手 · 专辑', w:3.9, h:2.5 },
+  { key:'playlist', title:'我的歌单', sub:'PLAYLISTS',   desc:'收藏与自建歌单',     w:3.9, h:2.5 },
+  { key:'stats',    title:'听歌统计', sub:'STATS',       desc:'时长 · 排行 · 习惯', w:3.9, h:2.5 },
+  { key:'download', title:'下载管理', sub:'DOWNLOADS',   desc:'已下载的歌曲与歌词', w:3.9, h:2.5 },
+  { key:'settings', title:'设置',     sub:'SETTINGS',    desc:'主题 · 音质 · 关于', w:3.9, h:2.5 },
+  { key:'history',  title:'播放历史', sub:'HISTORY',     desc:'最近听过的歌',       w:3.6, h:2.25 }
+];
+/* 7 张卡：水平均匀环绕（约 51° 一张），上下轻微错落（±5°）*/
+const SPOTS = [
+  { az:   0, el:  0 },   // 当前播放 ← 正前方
+  { az:  51, el:  4 },   // 搜索
+  { az: 103, el: -4 },   // 我的歌单
+  { az: 154, el:  4 },   // 听歌统计
+  { az: 206, el: -3 },   // 下载管理
+  { az: 257, el:  3 },   // 设置
+  { az: 309, el: -4 }    // 播放历史
+];
+
+/* ---------------- 我的歌单：数据 ---------------- */
+/* ---------------- 数据：真实规模样本 ----------------
+   ⚠️ 真实规模（用户实测）：音乐爱好者的库是「歌曲至少几百首、歌单至少 40 个」。
+   旧样本（4 个歌单 × 7 首）刚好卡在控件容量上限上，会掩盖容量问题。
+   这里用确定性生成器产出：40 个歌单 / 1900+ 首歌（含一个 523 首的「全部歌曲」）。
+--------------------------------------------------------- */
+
+/* 歌名池（真实歌手/曲目，中英混合）*/
+const SONG_POOL = [
+  ['夜里的风','Drake'],['黑夜中','梁博'],['后来','刘若英'],['消愁','毛不易'],
+  ['Ghost','Justin Bieber'],['Faded','Alan Walker'],['夜空中最亮的星','逃跑计划'],
+  ['雨天','孙燕姿'],['阴天','莫文蔚'],['搁浅','周杰伦'],['红豆','王菲'],['下雨了','薛之谦'],
+  ['Blank Space','Taylor Swift'],['Someone Like You','Adele'],
+  ['像我这样的人','毛不易'],['秦皇岛','万能青年旅店'],['花房姑娘','崔健'],['不将就','李荣浩'],
+  ['孤独患者','陈奕迅'],['Intro','The xx'],
+  ['起风了','买辣椒也用券'],['平凡之路','朴树'],['光年之外','邓紫棋'],['Sunflower','Post Malone'],
+  ['感觉自己是巨星','毛不易'],['海阔天空','Beyond'],['少年','梦然'],
+  ['Snowman','WYS'],['Coffee','Beabadoobee'],['death bed','Powfu'],['Warm Night','Idealism'],
+  ['Sleepy','Kupla'],['Rainy Day','Jinsang'],['Alone','Tomppabeats'],
+  ['Plastic Love','竹内まりや'],['Ride on Time','山下達郎'],['真夜中のドア','松原みき'],
+  ['Telephone Number','大橋純子'],['Dress Down','角松敏生'],['Sparkle','山下達郎'],
+  ['Last Summer Whisper','杏里'],
+  ['My Foolish Heart','Bill Evans'],['Blue in Green','Miles Davis'],
+  ['Autumn Leaves','Cannonball Adderley'],['Round Midnight','Thelonious Monk'],
+  ['Stella by Starlight','Chet Baker'],['Lush Life','John Coltrane'],
+  ['In a Sentimental Mood','Duke Ellington'],
+  ['River Flows in You','Yiruma'],['Kiss the Rain','Yiruma'],['Nuvole Bianche','Ludovico Einaudi'],
+  ['Merry Christmas Mr. Lawrence','坂本龍一'],['Aqua','坂本龍一'],
+  ["Comptine d'un autre été",'Yann Tiersen'],['Una Mattina','Ludovico Einaudi'],
+  ['晴天','周杰伦'],['七里香','周杰伦'],['稻香','周杰伦'],['青花瓷','周杰伦'],
+  ['浮夸','陈奕迅'],['十年','陈奕迅'],['K歌之王','陈奕迅'],['富士山下','陈奕迅'],
+  ['倔强','五月天'],['温柔','五月天'],['突然好想你','五月天'],
+  ['成都','赵雷'],['理想','赵雷'],['南方姑娘','赵雷'],
+  ['斑马斑马','宋冬野'],['董小姐','宋冬野'],['安和桥','宋冬野'],
+  ['山丘','李宗盛'],['漂洋过海来看你','李宗盛'],
+  ['Love Story','Taylor Swift'],['Cruel Summer','Taylor Swift'],['Anti-Hero','Taylor Swift'],
+  ['Shape of You','Ed Sheeran'],['Perfect','Ed Sheeran'],['Photograph','Ed Sheeran'],
+  ['Blinding Lights','The Weeknd'],['Starboy','The Weeknd'],['Save Your Tears','The Weeknd'],
+  ['Lover Is a Day','Cuco'],['Lo Que Siento','Cuco'],
+  ['Apocalypse','Cigarettes After Sex'],["Nothing's Gonna Hurt You Baby",'Cigarettes After Sex'],
+  ['Space Song','Beach House'],['Myth','Beach House'],
+  ['K.','Cigarettes After Sex'],['Sunsetz','Cigarettes After Sex'],
+  ['Angels','The xx'],['Crystalised','The xx'],
+  ['Ivy','Frank Ocean'],['Pink + White','Frank Ocean'],['Thinkin Bout You','Frank Ocean'],
+  ['Nikes','Frank Ocean'],['Seigfried','Frank Ocean'],
+  ['Creep','Radiohead'],['No Surprises','Radiohead'],['High and Dry','Radiohead'],
+  ['Wonderwall','Oasis'],['Don\'t Look Back in Anger','Oasis'],
+  ['Yellow','Coldplay'],['Fix You','Coldplay'],['The Scientist','Coldplay'],
+  ['Do I Wanna Know?','Arctic Monkeys'],['505','Arctic Monkeys'],
+  ['Take Me to Church','Hozier'],['Work Song','Hozier']
+];
+
+/* 同名曲目的版本后缀（让大规模数据看起来自然）*/
+const SONG_VERSIONS = ['(Live)','(Remix)','(Acoustic)','(Demo)','(Remastered)'];
+
+/* 确定性伪随机（刷新结果不变，便于反复对比测试）*/
+function _rng(seed){
+  let s = seed >>> 0;
+  return function(){ s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+}
+function _dur(sec){
+  return String(Math.floor(sec/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0');
+}
+/* 生成 n 首歌（池子不够时按版本后缀区分，模拟真实库里的多版本）*/
+function _mkSongs(n, seed){
+  const rnd = _rng(seed), out = [], times = {};
+  for(let i = 0; i < n; i++){
+    const idx = (i + Math.floor(rnd()*7)) % SONG_POOL.length;
+    const p = SONG_POOL[idx];
+    const c = (times[idx] = (times[idx] || 0) + 1);
+    const sfx = c > 1 ? SONG_VERSIONS[(c-2) % SONG_VERSIONS.length] : '';
+    out.push({ t: p[0] + sfx, a: p[1], d: _dur(120 + Math.floor(rnd()*280)) });
+  }
+  return out;
+}
+
+/* 歌单名池：[名字, 渐变起, 渐变止] —— 共 40 个 */
+const PLAYLIST_NAMES = [
+  ['全部歌曲','#3A3D43','#1D1F23'],
+  ['深夜','#3E4E58','#242C32'],
+  ['雨天','#46525E','#262E36'],
+  ['独处','#3A4A5E','#1E2635'],
+  ['通勤','#4A5464','#2A3038'],
+  ['失眠','#3F4248','#212327'],
+  ['旧歌','#43464C','#23252A'],
+  ['城市夜行','#3C3F45','#202226'],
+  ['清晨','#39404A','#1F232A'],
+  ['跑步','#414A56','#232830'],
+  ['写代码','#353A41','#1B1D21'],
+  ['驾驶','#444A54','#242830'],
+  ['海边','#3A4A5A','#1E2530'],
+  ['冬天','#3E444E','#20242B'],
+  ['夏天','#474C54','#25282E'],
+  ['回忆','#404450','#22252C'],
+  ['分手','#46414C','#242128'],
+  ['治愈','#3C4750','#1E252B'],
+  ['咖啡','#4A443C','#26221C'],
+  ['睡前','#383E48','#1C2028'],
+  ['周末','#424854','#232730'],
+  ['老电影','#45403A','#252220'],
+  ['旅行','#3B4854','#1F252C'],
+  ['独白','#3F434C','#212429'],
+  ['Lo-Fi 学习','#544A5E','#2E2836'],
+  ['City Pop','#3E4E58','#242C32'],
+  ['深夜爵士','#454C58','#242A35'],
+  ['钢琴纯音','#3F4248','#212327'],
+  ['后摇','#404854','#22262E'],
+  ['氛围电子','#3A4250','#1E222A'],
+  ['民谣','#494440','#262320'],
+  ['粤语老歌','#3D454E','#1F2329'],
+  ['华语摇滚','#484449','#252328'],
+  ['日系治愈','#3E4A52','#20262C'],
+  ['欧美流行','#41464E','#23262C'],
+  ['古典小品','#44484E','#24262A'],
+  ['环境白噪','#3B4046','#1F2226'],
+  ['电影原声','#464A50','#25272B'],
+  ['游戏音乐','#3C424C','#1E2129'],
+  ['爵士人声','#484349','#252227']
+];
+
+const PLAYLIST_DATA = (function(){
+  const mineNames  = PLAYLIST_NAMES.slice(0, 24);
+  const savedNames = PLAYLIST_NAMES.slice(24);
+  const WHEN = ['2 小时前','昨天','3 天前','上周'];
+  const mk = (names, seedBase, countFn) => names.map((nm, i) => {
+    const n = countFn(i);
+    return {
+      t: nm[0],
+      sub: n + ' 首 · ' + (i < WHEN.length ? WHEN[i] : (i + 1) + ' 天前'),
+      g: [nm[1], nm[2]],
+      songs: _mkSongs(n, seedBase + i * 7919)
+    };
+  });
+  return {
+    /* 我创建的 24 个：第一个是「全部歌曲」523 首（测极端规模），其余 15~60 首 */
+    mine:  mk(mineNames,  1000,  i => i === 0 ? 523 : 15 + ((i * 13) % 46)),
+    /* 我收藏的 16 个：各 15~60 首 */
+    saved: mk(savedNames, 50000, i => 15 + ((i * 17) % 46))
+  };
+})();
+
+/* ---------------- 子页面：控件定义 ---------------- */
+const PAGES = {
+  search: {
+    en:'SEARCH', cn:'搜索',
+    widgets: [
+      { type:'search', label:'搜索栏' },
+      { type:'chips', label:'热门搜索', items:['周杰伦','深夜电台','纯音乐','Lo-Fi','粤语老歌','钢琴'] },
+      { type:'list', label:'搜索记录', items:[
+        { t:'in my feelings', s:'歌曲 · 上次搜索' },
+        { t:'梁博 黑夜中',    s:'歌曲 · 2 天前' },
+        { t:'夜空中最亮的星', s:'歌曲 · 上周' }
+      ]}
+    ]
+  },
+  playlist: {
+    en:'PLAYLISTS', cn:'我的歌单',
+    /* 列表型空间（P1 → 2026-09-22 按真实规模改造）：
+       · 正面左：分类 tabs + 歌单网格（40 个，可滚动）
+       · 正面右：选中歌单的歌曲列表（最多 523 首，窗口化虚拟滚动）
+       · 最右：导航条（拖它直接跳到任意位置）
+       ⚠️ 真实规模下「找不到目标」是最大痛点，故必须同屏给出定位手段。*/
+    cam: { yawMax: 1.08, pitchMax: 0.55, sensX: 0.0055, sensY: 0.005 },
+    radius: 7,
+    widgets: [
+      /* 搜索直达：几百首里输入即跳（比一屏屏转快得多）*/
+      { type:'search', label:'搜索', placeholder:'搜歌名 · 歌手',
+        az:0, el:34, w:2.0, h:0.40, bare:true, float:0 },
+
+      { type:'tabs', label:'分类', items:['我创建的','我收藏的'], sets:['mine','saved'],
+        az:0, el:22, w:2.0, h:0.42, bare:true, float:0 },
+
+      { type:'grid', label:'歌单', sel:0,
+        az:0, el:-8, w:2.45, h:2.9, bare:true, float:0,
+        items: PLAYLIST_DATA.mine.map(p => ({ t:p.t, sub:p.sub, g:p.g, songs:p.songs })) },
+
+      { type:'songrow', label:'全部歌曲',
+        az:30, el:-4, w:2.45, h:3.25, bare:true, float:0,
+        items: PLAYLIST_DATA.mine[0].songs },
+
+      /* 导航条：显示「当前第几-第几 / 共几」，拖它跳到任意位置 */
+      { type:'listnav', label:'定位', target:'songrow',
+        az:44, el:-4, w:0.40, h:3.25, bare:true, float:0 }
+    ]
+  },
+  stats: {
+    en:'STATS', cn:'听歌统计',
+    widgets: [
+      { type:'stat', value:'12.5', unit:'小时', label:'本周听歌时长',
+        bars:[0.42,0.68,0.31,0.92,0.57,0.48,0.79] },
+      { type:'bars', label:'歌手排行', items:[
+        { t:'梁博',      v:0.92, s:'38 次' },
+        { t:'毛不易',    v:0.74, s:'31 次' },
+        { t:'陈奕迅',    v:0.58, s:'24 次' },
+        { t:'Radiohead', v:0.41, s:'17 次' }
+      ]},
+      { type:'bars', label:'歌曲排行', items:[
+        { t:'黑夜中', v:0.88, s:'21 次' },
+        { t:'消愁',   v:0.62, s:'15 次' }
+      ]}
+    ]
+  },
+  now: {
+    en:'NOW PLAYING', cn:'当前播放',
+    /* 空间播放器：
+       · 歌词：屏幕左半边，斜对镜头（有透视）
+       · 封面：屏幕右半边，斜对镜头
+       · 进度/控制：封面正下方，正对镜头（方便交互）
+       · 左右转动：歌曲信息 / 播放队列 */
+    cam: { yawMax: 0.95, pitchMax: 0.55, sensX: 0.0055, sensY: 0.005 },
+    radius: 7,
+    widgets: [
+      /* 歌词：左半屏 + 斜置，字更大
+         ⚠️ sv 决定「高亮行」的位置（高亮行在面板正中）→ 0.47 = 屏幕中央 */
+      { type:'lyric3d',   label:'歌词', sf:0.29, sv:0.47, fw:0.52, fh:0.32,
+        pscale:1.7, tilt: 0.32, bare:true, float:0 },
+
+      /* 封面：右半屏 + 斜置（与下方文字成组，不单独漂浮）*/
+      { type:'cover',     label:'封面', sf:0.76, sv:0.39, fw:0.24, square:true,
+        tilt:-0.32, bare:true, float:0 },
+
+      /* 作者 · 专辑：紧贴封面下方 */
+      { type:'nowinfo',   label:'信息', sf:0.76, sv:0.485, fw:0.36, fh:0.045,
+        pscale:1.2, bare:true, float:0 },
+
+      /* 进度条 + 控制：紧接信息行，正对镜头 */
+      { type:'transport', label:'控制', sf:0.76, sv:0.57, fw:0.36, fh:0.11,
+        pscale:1.35, bare:true, float:0 },
+
+      /* 向左转可见 */
+      { type:'meta',      label:'歌曲', az: -52, el:  12, w:3.4, h:1.4, pscale:1.3, bare:true, float:0 },
+      { type:'queue',     label:'队列', az: -52, el: -16, w:3.4, h:2.4, pscale:1.2, bare:true, float:0, items:[
+        { t:'后来',   s:'04:52' },
+        { t:'黑夜中', s:'05:18' },
+        { t:'Ghost',  s:'03:20' }
+      ]}
+    ]
+  },
+  download: {
+    en:'DOWNLOADS', cn:'下载管理',
+    widgets: [
+      { type:'stat', value:'128', unit:'首', label:'已下载 · 占用 1.2 GB',
+        bars:[0.2,0.35,0.5,0.42,0.6,0.72,0.66] },
+      { type:'list', label:'下载中', items:[
+        { t:'夜空中最亮的星', s:'正在下载 · 68%' },
+        { t:'Faded',          s:'正在下载 · 24%' }
+      ]},
+      { type:'toggle', label:'下载设置', items:[
+        { t:'仅 Wi-Fi 下载', v:true },
+        { t:'自动下载歌词', v:true },
+        { t:'下载封面图',   v:false }
+      ]}
+    ]
+  },
+  settings: {
+    en:'SETTINGS', cn:'设置',
+    widgets: [
+      { type:'toggle', label:'外观', items:[
+        { t:'深色模式', v:true },
+        { t:'动态背景', v:true },
+        { t:'减少动效', v:false }
+      ]},
+      { type:'chips', label:'在线音质', items:['标准','较高','无损','Hi-Res'] },
+      { type:'toggle', label:'播放', items:[
+        { t:'切歌淡入淡出', v:true },
+        { t:'桌面歌词',     v:false }
+      ]},
+      { type:'text', label:'关于', text:'Hoper Music · 版本 0.1.0 · 本地原型' }
+    ]
+  },
+
+  /* ---- 精简菜单后的空间（按实际使用保留）---- */
+  history: {
+    en:'HISTORY', cn:'播放历史',
+    widgets: [
+      { type:'list', label:'今天', items:[
+        { t:'夜里的风', s:'Drake · 02:12' },
+        { t:'后来',     s:'刘若英 · 04:52' },
+        { t:'消愁',     s:'毛不易 · 03:19' }
+      ]},
+      { type:'list', label:'昨天', items:[
+        { t:'黑夜中', s:'梁博 · 05:18' },
+        { t:'Ghost',  s:'Justin Bieber · 03:20' }
+      ]}
+    ]
+  }
+};
+
+/* ---------------- 配色 ---------------- */
+const PALETTES = [
+  ['#3A3D43','#1D1F23'], ['#3C3F45','#202226'], ['#353A41','#1B1D21'],
+  ['#43464C','#23252A'], ['#393E46','#1E2024'], ['#3F4248','#212327']
+];
+
+/* ---------------- 绘图工具 ---------------- */
+function roundRect(g,x,y,w,h,r){
+  r = Math.min(r, w/2, h/2);
+  g.beginPath();
+  g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath();
+}
+function drawPanelBg(g, W, H, i){
+  const [a,b] = PALETTES[i % PALETTES.length];
+  const r = Math.min(H*0.10, 0.30*(W/5));
+  const grd = g.createLinearGradient(0,0,W*0.9,H);
+  grd.addColorStop(0,a); grd.addColorStop(1,b);
+  g.fillStyle = grd; roundRect(g,0,0,W,H,r); g.fill();
+
+  const sg = g.createLinearGradient(0,H,0,H*0.35);
+  sg.addColorStop(0,'rgba(38,72,94,0.20)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = sg; roundRect(g,0,0,W,H,r); g.fill();
+
+  const hg = g.createRadialGradient(W*0.88,H*0.10,4,W*0.88,H*0.10,W*0.75);
+  hg.addColorStop(0,'rgba(198,204,212,0.09)'); hg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = hg; roundRect(g,0,0,W,H,r); g.fill();
+
+  g.strokeStyle = 'rgba(255,255,255,0.13)'; g.lineWidth = 2;
+  roundRect(g,1,1,W-2,H-2,r); g.stroke();
+}
+function hairline(g, x1,y,x2, alpha){
+  g.strokeStyle = 'rgba(255,255,255,' + (alpha||0.06) + ')';
+  g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x1,y); g.lineTo(x2,y); g.stroke();
+}
+function label(g, text, x, y, P, alpha){
+  g.fillStyle = 'rgba(152,160,172,' + (alpha||0.78) + ')';
+  g.font = '400 ' + Math.round(0.23*P) + 'px ' + FONT;
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.fillText(text, x, y);
+}
+function arrow(g, x, y, s, alpha){
+  g.strokeStyle = 'rgba(160,170,184,' + (alpha||0.55) + ')';
+  g.lineWidth = Math.max(1.5, s*0.16);
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  g.beginPath();
+  g.moveTo(x-s*0.35, y-s*0.45); g.lineTo(x+s*0.35, y); g.lineTo(x-s*0.35, y+s*0.45);
+  g.stroke();
+}
+/* 排版基准：控件可用 pscale 放大内容（文字/按钮），面板尺寸不变 */
+function wp(W, w){ return (W/5) * (w && w.pscale ? w.pscale : 1); }
+
+/* ---------------- 控件绘制（返回可点击区域）---------------- */
+const DRAW = {
+
+  /* 搜索栏：输入框 + 搜索按钮 */
+  search(g, W, H, w, st, idx){
+    const P = W/5, R = [];
+    const pad = 0.28*P;
+    const boxH = H - 2*pad;
+    const btnR = boxH*0.5;
+    const boxW = W - 2*pad - boxH - 0.22*P;
+
+    g.fillStyle = 'rgba(255,255,255,0.055)';
+    roundRect(g, pad, pad, boxW, boxH, boxH*0.32); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.10)'; g.lineWidth = 1.5;
+    roundRect(g, pad, pad, boxW, boxH, boxH*0.32); g.stroke();
+
+    const icx = pad + boxH*0.52, icy = H/2, ir = boxH*0.16;
+    g.strokeStyle = 'rgba(198,208,222,0.7)';
+    g.lineWidth = Math.max(1.5, 0.032*P); g.lineCap='round';
+    g.beginPath(); g.arc(icx, icy, ir, 0, Math.PI*2); g.stroke();
+    g.beginPath(); g.moveTo(icx+ir*0.72, icy+ir*0.72); g.lineTo(icx+ir*1.7, icy+ir*1.7); g.stroke();
+
+    g.textAlign = 'left'; g.textBaseline = 'middle';
+    if(st.value){
+      g.fillStyle = 'rgba(238,242,248,0.96)';
+      g.font = '400 ' + Math.round(0.30*P) + 'px ' + FONT;
+      g.fillText(st.value, pad + boxH*0.95, H/2 + 1);
+    } else {
+      g.fillStyle = 'rgba(146,154,168,0.7)';
+      g.font = '400 ' + Math.round(0.28*P) + 'px ' + FONT;
+      g.fillText(w.placeholder || '搜索歌曲 · 歌手 · 专辑', pad + boxH*0.95, H/2 + 1);
+    }
+
+    const bx = W - pad - btnR, by = H/2;
+    g.fillStyle = 'rgba(255,255,255,0.085)';
+    g.beginPath(); g.arc(bx, by, btnR, 0, Math.PI*2); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = 1.5;
+    g.beginPath(); g.arc(bx, by, btnR, 0, Math.PI*2); g.stroke();
+    g.strokeStyle = 'rgba(238,242,248,0.9)';
+    g.lineWidth = Math.max(1.5, 0.042*P); g.lineCap='round'; g.lineJoin='round';
+    g.beginPath(); g.moveTo(bx-0.11*P, by); g.lineTo(bx+0.10*P, by); g.stroke();
+    g.beginPath(); g.moveTo(bx+0.03*P, by-0.07*P); g.lineTo(bx+0.10*P, by); g.lineTo(bx+0.03*P, by+0.07*P); g.stroke();
+
+    R.push({ x:pad/W, y:pad/H, w:boxW/W, h:boxH/H, kind:'searchInput' });
+    R.push({ x:(bx-btnR)/W, y:(by-btnR)/H, w:2*btnR/W, h:2*btnR/H, kind:'searchGo' });
+    return R;
+  },
+
+  /* 标签组 */
+  chips(g, W, H, w, st, idx){
+    const P = W/5, R = [];
+    const pad = 0.28*P;
+    let y = 0.34*P;
+    if(w.label){ label(g, w.label, pad, y + 0.14*P, P); y += 0.46*P; }
+
+    const chipH = 0.54*P;
+    let cx = pad;
+    g.font = '400 ' + Math.round(0.26*P) + 'px ' + FONT;
+    g.textBaseline = 'middle';
+    w.items.forEach((t, i) => {
+      const tw = g.measureText(t).width;
+      const cw = tw + 0.52*P;
+      if(cx + cw > W - pad){ cx = pad; y += chipH + 0.18*P; }
+      const sel = (st.sel === i);
+      g.fillStyle = sel ? 'rgba(50,90,150,0.36)' : 'rgba(255,255,255,0.05)';
+      roundRect(g, cx, y, cw, chipH, chipH*0.5); g.fill();
+      g.strokeStyle = sel ? 'rgba(184,200,220,0.5)' : 'rgba(255,255,255,0.09)';
+      g.lineWidth = 1.5;
+      roundRect(g, cx, y, cw, chipH, chipH*0.5); g.stroke();
+      g.fillStyle = sel ? 'rgba(242,246,252,0.96)' : 'rgba(202,210,222,0.85)';
+      g.textAlign = 'center';
+      g.fillText(t, cx + cw/2, y + chipH/2 + 1);
+      g.textAlign = 'left';
+      R.push({ x:cx/W, y:y/H, w:cw/W, h:chipH/H, kind:'chip', index:i, value:t });
+      cx += cw + 0.18*P;
+    });
+    return R;
+  },
+
+  /* 列表 */
+  list(g, W, H, w, st, idx){
+    const P = W/5, R = [];
+    const pad = 0.28*P;
+    let y = 0;
+    if(w.label){ label(g, w.label, pad, 0.48*P, P); y = 0.64*P; }
+    const rowH = 0.85*P;
+
+    w.items.forEach((it, i) => {
+      const ry = y + i*rowH;
+      if(st.sel === i){
+        g.fillStyle = 'rgba(255,255,255,0.05)';
+        roundRect(g, pad*0.5, ry+0.05*P, W-pad, rowH-0.1*P, 0.14*P); g.fill();
+      }
+      const th = rowH*0.54;
+      g.fillStyle = 'rgba(255,255,255,0.09)';
+      roundRect(g, pad, ry + rowH*0.23, th, th, 0.11*P); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,0.07)'; g.lineWidth = 1;
+      roundRect(g, pad, ry + rowH*0.23, th, th, 0.11*P); g.stroke();
+
+      g.textAlign='left'; g.textBaseline='alphabetic';
+      g.fillStyle = 'rgba(236,240,246,0.95)';
+      g.font = '500 ' + Math.round(0.27*P) + 'px ' + FONT;
+      g.fillText(it.t, pad + th + 0.26*P, ry + rowH*0.50);
+      g.fillStyle = 'rgba(150,158,170,0.78)';
+      g.font = '400 ' + Math.round(0.21*P) + 'px ' + FONT;
+      g.fillText(it.s, pad + th + 0.26*P, ry + rowH*0.78);
+
+      arrow(g, W - pad - 0.14*P, ry + rowH*0.5, 0.22*P, 0.45);
+      if(i < w.items.length-1) hairline(g, pad + th + 0.26*P, ry+rowH, W-pad, 0.055);
+
+      R.push({ x:0, y:ry/H, w:1, h:rowH/H, kind:'row', index:i, title:it.t, sub:it.s });
+    });
+    return R;
+  },
+
+  /* 分段切换（tabs）：分类 / 热门 / 最新 */
+  tabs(g, W, H, w, st, idx){
+    const P = W/5, R = [];
+    const pad = 0.24*P;
+    const gap = 0.12*P;
+    const n = w.items.length;
+    const tabW = (W - 2*pad) / n;
+    const tabH = H - 2*pad;
+    w.items.forEach((t, i) => {
+      const tx = pad + i*tabW;
+      const sel = (st.sel === i);
+      if(sel){
+        g.fillStyle = 'rgba(255,255,255,0.075)';
+        roundRect(g, tx + gap*0.5, pad, tabW - gap, tabH, tabH*0.5); g.fill();
+        g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = 1.5;
+        roundRect(g, tx + gap*0.5, pad, tabW - gap, tabH, tabH*0.5); g.stroke();
+      }
+      g.fillStyle = sel ? 'rgba(240,244,250,0.96)' : 'rgba(154,162,176,0.78)';
+      g.font = (sel ? '500 ' : '400 ') + Math.round(0.27*P) + 'px ' + FONT;
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(t, tx + tabW/2, H/2 + 1);
+      R.push({ x:tx/W, y:pad/H, w:tabW/W, h:tabH/H, kind:'tab', index:i, value:t });
+    });
+    return R;
+  },
+
+  /* 封面网格（歌单）：2 列封面 + 名字 + 副信息 */
+  /* 封面网格（grid）—— 窗口化虚拟列表（40+ 歌单场景）
+     与 songrow 同理：只画可见窗口，滚动改 offset。 */
+  grid(g, W, H, w, st, idx){
+    const P = W/5, R = [];
+    const pad = 0.30*P;
+    const cols = 2, gap = 0.26*P;
+    const cw = (W - 2*pad - (cols-1)*gap) / cols;
+    const artH = cw * 0.74;
+    const rowH = artH + 0.90*P;
+    const items = w.items || [];
+    const n = items.length;
+    const totalRows = Math.ceil(n / cols);
+    const v = st.view || (st.view = { start:0, count:Math.max(1, Math.floor(H/rowH)) });
+
+    /* 像素模型（2026-09-22），同 songrow */
+    const firstPx = w.__firstPx || 0;
+    const labelH = w.label ? 0.74*P : 0;
+    const firstRow = Math.max(0, Math.floor((firstPx - labelH) / rowH));
+    const lastRow  = Math.min(totalRows, firstRow + Math.ceil(H/rowH) + 2*LIST_BUF + 2);
+
+    for(let r = firstRow; r < lastRow; r++){
+      for(let c = 0; c < cols; c++){
+        const i = r*cols + c;
+        if(i >= n) break;
+        const it = items[i];
+        const cx = pad + c * (cw + gap);
+        const cy = labelH + r*rowH - firstPx;
+        const sel = (st.sel === i);
+
+        const cc = it.g || ['#3E4E58','#242C32'];
+        const grd = g.createLinearGradient(cx, cy, cx+cw, cy+artH);
+        grd.addColorStop(0, cc[0]); grd.addColorStop(1, cc[1]);
+        g.fillStyle = grd;
+        roundRect(g, cx, cy, cw, artH, 0.15*P); g.fill();
+        g.strokeStyle = 'rgba(255,255,255,0.10)'; g.lineWidth = 1.5;
+        roundRect(g, cx, cy, cw, artH, 0.15*P); g.stroke();
+
+        g.strokeStyle = 'rgba(255,255,255,0.13)'; g.lineWidth = 1.5;
+        g.beginPath(); g.arc(cx+cw/2, cy+artH/2, artH*0.32, 0, Math.PI*2); g.stroke();
+        g.fillStyle = 'rgba(244,248,252,0.22)';
+        g.font = '600 ' + Math.round(0.66*P) + 'px ' + FONT;
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(it.t[0], cx + cw/2, cy + artH/2 + 1);
+
+        if(sel){
+          g.strokeStyle = 'rgba(198,214,232,0.55)'; g.lineWidth = 2;
+          roundRect(g, cx-1, cy-1, cw+2, artH+2, 0.16*P); g.stroke();
+        }
+
+        g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+        g.fillStyle = sel ? 'rgba(246,250,254,0.98)' : 'rgba(232,238,246,0.92)';
+        g.font = '500 ' + Math.round(0.25*P) + 'px ' + FONT;
+        g.fillText(it.t, cx + 0.05*P, cy + artH + 0.38*P, cw - 0.1*P);
+        g.fillStyle = 'rgba(150,158,170,0.75)';
+        g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
+        g.fillText(it.sub, cx + 0.05*P, cy + artH + 0.70*P, cw - 0.1*P);
+
+        R.push({ x:cx/W, y:cy/H, w:cw/W, h:(artH+0.90*P)/H, kind:'cell', index:i, title:it.t });
+      }
+    }
+
+    /* 标题（内容首段，随滚动上移）——与 songrow 统一 */
+    if(w.label && labelH > 0 && firstPx < labelH){
+      label(g, w.label + (n ? '  ·  ' + n + ' 个' : ''), pad, 0.52*P - firstPx, P);
+    }
+    return R;
+  },
+
+  /* 歌曲行列表（songrow）：序号 + 歌名 + 歌手 + 时长 */
+  /* 歌曲行列表（songrow）—— 窗口化虚拟列表
+     ⚠️ 真实规模可达数百首，绝不能整列画进贴图（会撞 canvas 16384px 上限）。
+     只画「可见窗口 + 缓冲」，滚动 = 改 tex.offset.y（GPU 侧），
+     滚出缓冲才重画窗口。内存与总曲目数无关。 */
+  songrow(g, W, H, w, st, idx){
+    const P = W/5, R = [];
+    const pad = 0.26*P;
+    const rowH = 0.78*P;
+    const items = w.items || [];
+    const n = items.length;
+    const v = st.view || (st.view = { start:0, count:Math.max(1, Math.floor(H/rowH)) });
+
+    /* 像素模型（2026-09-22）：贴图起点 = __firstPx（内容坐标）
+       标题作为「第 0 段内容」参与滚动（标准列表行为）*/
+    const firstPx = w.__firstPx || 0;
+    const labelH = w.label ? 0.74*P : 0;
+    /* 贴图首行对应的内容像素 = firstPx；行 i 的内容像素 = labelH + i*rowH */
+    const first = Math.max(0, Math.floor((firstPx - labelH) / rowH));
+    const last  = Math.min(n, first + Math.ceil(H/rowH) + 2*LIST_BUF + 2);
+
+    const numW = n >= 100 ? 4 : 2;
+
+    /* 标题（作为内容首段，会随滚动上移）*/
+    if(w.label && labelH > 0 && firstPx < labelH){
+      label(g, w.label + (n ? '  ·  ' + n + ' 首' : ''), pad, 0.52*P - firstPx, P);
+    }
+
+    for(let i = first; i < last; i++){
+      const it = items[i];
+      if(!it) continue;
+      const ry = labelH + i*rowH - firstPx;
+
+      if(st.sel === i){
+        g.fillStyle = 'rgba(255,255,255,0.06)';
+        roundRect(g, pad*0.35, ry+0.04*P, W-pad*0.7, rowH-0.08*P, 0.12*P); g.fill();
+      }
+
+      g.textAlign = 'left'; g.textBaseline = 'middle';
+      /* 序号 */
+      g.fillStyle = 'rgba(128,138,152,0.70)';
+      g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
+      g.fillText(String(i+1).padStart(numW,'0'), pad, ry + rowH/2);
+
+      /* 歌名 */
+      const tx = pad + 0.62*P;
+      g.fillStyle = 'rgba(236,240,246,0.95)';
+      g.font = '500 ' + Math.round(0.24*P) + 'px ' + FONT;
+      g.fillText(it.t, tx, ry + rowH/2, W - tx - 2.30*P);
+
+      /* 歌手 */
+      g.textAlign = 'right';
+      g.fillStyle = 'rgba(146,154,168,0.72)';
+      g.font = '400 ' + Math.round(0.18*P) + 'px ' + FONT;
+      g.fillText(it.a, W - pad - 0.62*P, ry + rowH/2, 1.30*P);
+
+      /* 时长 */
+      g.fillStyle = 'rgba(150,158,170,0.72)';
+      g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
+      g.fillText(it.d, W - pad, ry + rowH/2);
+
+      if(i < n-1) hairline(g, pad, ry+rowH, W-pad, 0.05);
+
+      /* ⚠️ 区域坐标用「窗口内相对位置」，滚动时不需重算全部区域 */
+      R.push({ x:0, y:ry/H, w:1, h:rowH/H, kind:'song',
+               index:i, title:it.t, sub:it.a });
+    }
+
+    return R;
+  },
+
+  /* 列表导航条（长列表快速定位）
+     ⚠️ 解决「几百首里找不到目标」的核心痛点（2026-09-22）：
+        · 显示「当前视窗 / 总数」，给出位置感
+        · 拖滑块 = 跳到任意位置（不用一屏屏转）
+        · 点顶部/底部 = 回开头 / 去结尾
+     通过 w.target 关联到同空间里的某个列表控件（按 type 匹配）。*/
+  listnav(g, W, H, w, st, idx){
+    const P = W/5, R = [];
+    const pad = 0.14*P;
+    const trackW = Math.max(3, 0.10*P);
+    const tx = W/2 - trackW/2;
+    const ty0 = pad, ty1 = H - pad;
+    const trackH = ty1 - ty0;
+
+    const t = listNavTarget(w);
+    const total = t.total || 0;
+    const visible = t.visible || 1;
+    const ratio = maxScroll > 0 ? (t.scroll / maxScroll) : 0;
+    const visRatio = total > 0 ? Math.min(1, visible / total) : 1;
+
+    /* 轨道 */
+    g.fillStyle = 'rgba(255,255,255,0.09)';
+    roundRect(g, tx, ty0, trackW, trackH, trackW/2); g.fill();
+
+    /* 滑块（高度 = 可见比例，位置 = 滚动比例）*/
+    const kh = Math.max(0.34*P, trackH * visRatio);
+    const ky = ty0 + (trackH - kh) * ratio;
+    g.fillStyle = 'rgba(198,214,232,0.80)';
+    roundRect(g, tx - 0.025*P, ky, trackW + 0.05*P, kh, trackW/2); g.fill();
+    g.strokeStyle = 'rgba(226,238,250,0.45)'; g.lineWidth = 1.2;
+    roundRect(g, tx - 0.025*P, ky, trackW + 0.05*P, kh, trackW/2); g.stroke();
+
+    /* 位置数字：当前第几 / 共几 */
+    if(total > 0){
+      const first = Math.floor(t.scroll) + 1;
+      const lastN = Math.min(total, Math.floor(t.scroll) + visible);
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillStyle = 'rgba(232,238,246,0.90)';
+      g.font = '500 ' + Math.round(0.15*P) + 'px ' + FONT;
+      g.fillText(first + '-' + lastN, W/2, ty0 - 0.20*P > 0 ? ty0 - 0.20*P : 0.10*P);
+      g.fillStyle = 'rgba(150,158,170,0.72)';
+      g.font = '400 ' + Math.round(0.13*P) + 'px ' + FONT;
+      g.fillText('共 ' + total, W/2, ty1 + 0.20*P);
+    }
+
+    /* 整条轨道可点/可拖 */
+    R.push({ x:0, y:0, w:1, h:1, kind:'navtrack', target:w.target });
+    return R;
+  },
+
+  /* 统计大数 */
+  stat(g, W, H, w, st, idx){
+    const P = W/5;
+    const pad = 0.32*P;
+    g.textAlign='left'; g.textBaseline='alphabetic';
+
+    g.fillStyle = 'rgba(243,247,252,0.96)';
+    g.font = '600 ' + Math.round(0.80*P) + 'px ' + FONT;
+    g.fillText(w.value, pad, 1.02*P);
+    const vw = g.measureText(w.value).width;
+
+    g.fillStyle = 'rgba(168,178,192,0.85)';
+    g.font = '400 ' + Math.round(0.26*P) + 'px ' + FONT;
+    g.fillText(w.unit, pad + vw + 0.14*P, 0.98*P);
+
+    label(g, w.label, pad, 1.40*P, P, 0.75);
+
+    if(w.bars){
+      const n = w.bars.length;
+      const bw = (W - 2*pad) / n;
+      const base = H - 0.26*P;
+      const maxH = 0.42*P;
+      w.bars.forEach((v,i) => {
+        const bh = Math.max(2, maxH*v);
+        const bx = pad + i*bw;
+        const last = (i === n-1);
+        g.fillStyle = last ? 'rgba(198,214,232,0.85)' : 'rgba(255,255,255,0.16)';
+        roundRect(g, bx, base-bh, bw*0.5, bh, bw*0.25); g.fill();
+      });
+    }
+    return [];
+  },
+
+  /* 横向排行条 */
+  bars(g, W, H, w, st, idx){
+    const P = W/5;
+    const pad = 0.32*P;
+    let y = 0;
+    if(w.label){ label(g, w.label, pad, 0.48*P, P); y = 0.68*P; }
+    const rowH = 0.72*P;
+
+    w.items.forEach((it, i) => {
+      const ry = y + i*rowH;
+      g.textAlign='left'; g.textBaseline='alphabetic';
+      g.fillStyle = 'rgba(228,234,242,0.9)';
+      g.font = '400 ' + Math.round(0.24*P) + 'px ' + FONT;
+      g.fillText(it.t, pad, ry + 0.28*P);
+
+      if(it.s){
+        g.fillStyle = 'rgba(150,158,170,0.72)';
+        g.font = '400 ' + Math.round(0.20*P) + 'px ' + FONT;
+        g.textAlign = 'right';
+        g.fillText(it.s, W - pad, ry + 0.28*P);
+        g.textAlign = 'left';
+      }
+      const by = ry + 0.42*P, bh = 0.09*P;
+      g.fillStyle = 'rgba(255,255,255,0.07)';
+      roundRect(g, pad, by, W-2*pad, bh, bh*0.5); g.fill();
+      g.fillStyle = 'rgba(178,196,216,0.72)';
+      roundRect(g, pad, by, (W-2*pad)*it.v, bh, bh*0.5); g.fill();
+    });
+    return [];
+  },
+
+  /* 开关列表 */
+  toggle(g, W, H, w, st, idx){
+    const P = W/5, R = [];
+    const pad = 0.32*P;
+    let y = 0;
+    if(w.label){ label(g, w.label, pad, 0.48*P, P); y = 0.68*P; }
+    const rowH = 0.82*P;
+
+    w.items.forEach((it, i) => {
+      const ry = y + i*rowH;
+      g.textAlign='left'; g.textBaseline='alphabetic';
+      g.fillStyle = 'rgba(232,237,244,0.92)';
+      g.font = '400 ' + Math.round(0.26*P) + 'px ' + FONT;
+      g.fillText(it.t, pad, ry + rowH*0.62);
+
+      const sw = 0.94*P, sh = 0.54*P;
+      const sx = W - pad - sw, sy = ry + rowH*0.5 - sh/2;
+      const on = st.items[i].v;
+
+      g.fillStyle = on ? 'rgba(154,176,200,0.85)' : 'rgba(255,255,255,0.11)';
+      roundRect(g, sx, sy, sw, sh, sh*0.5); g.fill();
+      if(on){
+        g.strokeStyle = 'rgba(200,216,236,0.35)'; g.lineWidth = 1.5;
+        roundRect(g, sx, sy, sw, sh, sh*0.5); g.stroke();
+      }
+      const kr = sh*0.36;
+      const kx = on ? (sx + sw - sh*0.5) : (sx + sh*0.5);
+      g.fillStyle = on ? 'rgba(18,20,24,0.92)' : 'rgba(196,204,216,0.8)';
+      g.beginPath(); g.arc(kx, sy + sh/2, kr, 0, Math.PI*2); g.fill();
+
+      if(i < w.items.length-1) hairline(g, pad, ry+rowH, W-pad, 0.05);
+
+      R.push({ x:(sx-0.12*P)/W, y:(sy-0.1*P)/H, w:(sw+0.24*P)/W, h:(sh+0.2*P)/H, kind:'toggle', index:i, title:it.t });
+    });
+    return R;
+  },
+
+  /* 正在播放 */
+  now(g, W, H, w, st, idx){
+    const P = W/5, R = [];
+    const pad = 0.32*P;
+    const art = 1.20*P;
+
+    g.fillStyle = 'rgba(255,255,255,0.07)';
+    roundRect(g, pad, 0.36*P, art, art, 0.20*P); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.10)'; g.lineWidth = 1.5;
+    roundRect(g, pad, 0.36*P, art, art, 0.20*P); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.14)'; g.lineWidth = 1.5;
+    g.beginPath(); g.arc(pad+art/2, 0.36*P+art/2, art*0.30, 0, Math.PI*2); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.10)';
+    g.beginPath(); g.arc(pad+art/2, 0.36*P+art/2, art*0.10, 0, Math.PI*2); g.fill();
+
+    const tx = pad + art + 0.34*P;
+    g.textAlign='left'; g.textBaseline='alphabetic';
+    g.fillStyle = 'rgba(242,246,252,0.96)';
+    g.font = '500 ' + Math.round(0.34*P) + 'px ' + FONT;
+    g.fillText(w.title, tx, 0.92*P);
+    g.fillStyle = 'rgba(150,158,170,0.82)';
+    g.font = '400 ' + Math.round(0.23*P) + 'px ' + FONT;
+    g.fillText(w.artist, tx, 1.24*P);
+
+    const py = 0.36*P + art + 0.34*P, ph = 0.08*P;
+    g.fillStyle = 'rgba(255,255,255,0.10)';
+    roundRect(g, pad, py, W-2*pad, ph, ph*0.5); g.fill();
+    g.fillStyle = 'rgba(198,214,232,0.88)';
+    roundRect(g, pad, py, (W-2*pad)*w.progress, ph, ph*0.5); g.fill();
+    g.beginPath(); g.arc(pad + (W-2*pad)*w.progress, py+ph/2, ph*0.95, 0, Math.PI*2);
+    g.fillStyle = 'rgba(226,238,250,0.95)'; g.fill();
+
+    const cy = py + 0.40*P, cx0 = W/2, gap = 0.86*P;
+    g.strokeStyle = 'rgba(230,238,248,0.85)';
+    g.lineWidth = Math.max(1.5, 0.04*P); g.lineCap='round';
+    g.beginPath(); g.moveTo(cx0-gap-0.09*P, cy-0.11*P); g.lineTo(cx0-gap-0.09*P, cy+0.11*P); g.stroke();
+    g.beginPath(); g.moveTo(cx0-gap+0.09*P, cy); g.lineTo(cx0-gap-0.08*P, cy-0.11*P); g.lineTo(cx0-gap-0.08*P, cy+0.11*P); g.closePath();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
+
+    g.fillStyle = 'rgba(255,255,255,0.10)';
+    g.beginPath(); g.arc(cx0, cy, 0.30*P, 0, Math.PI*2); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth=1.5;
+    g.beginPath(); g.arc(cx0, cy, 0.30*P, 0, Math.PI*2); g.stroke();
+    g.fillStyle = 'rgba(242,248,255,0.95)';
+    if(st.playing){
+      g.beginPath(); g.moveTo(cx0-0.07*P, cy-0.13*P); g.lineTo(cx0+0.13*P, cy); g.lineTo(cx0-0.07*P, cy+0.13*P); g.closePath(); g.fill();
+    } else {
+      roundRect(g, cx0-0.12*P, cy-0.13*P, 0.08*P, 0.26*P, 0.02*P); g.fill();
+      roundRect(g, cx0+0.04*P, cy-0.13*P, 0.08*P, 0.26*P, 0.02*P); g.fill();
+    }
+    g.strokeStyle = 'rgba(230,238,248,0.85)';
+    g.beginPath(); g.moveTo(cx0+gap+0.09*P, cy-0.11*P); g.lineTo(cx0+gap+0.09*P, cy+0.11*P); g.stroke();
+    g.beginPath(); g.moveTo(cx0+gap-0.09*P, cy); g.lineTo(cx0+gap+0.08*P, cy-0.11*P); g.lineTo(cx0+gap+0.08*P, cy+0.11*P); g.closePath();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
+
+    R.push({ x:(cx0-0.34*P)/W, y:(cy-0.34*P)/H, w:0.68*P/W, h:0.68*P/H, kind:'play' });
+    return R;
+  },
+
+  /* 大播放器（子页面用）*/
+  player(g, W, H, w, st, idx){
+    const P = W/5, R = [];
+    const pad = 0.30*P;
+    const art = 1.90*P;
+    const ax = (W-art)/2, ay = 0.35*P;
+
+    miniCover(g, ax, ay, art, art, '#4E5868', '#232830', true);
+
+    g.textAlign='center'; g.textBaseline='alphabetic';
+    g.fillStyle='rgba(242,246,252,0.96)';
+    g.font='500 '+Math.round(0.32*P)+'px '+FONT;
+    g.fillText(w.title, W/2, ay+art+0.42*P);
+    g.fillStyle='rgba(150,158,170,0.82)';
+    g.font='400 '+Math.round(0.20*P)+'px '+FONT;
+    g.fillText(w.artist, W/2, ay+art+0.72*P);
+
+    const py = ay+art+1.00*P, ph = 0.07*P, prog = w.progress||0.34;
+    g.fillStyle='rgba(255,255,255,0.10)';
+    roundRect(g,pad,py,W-2*pad,ph,ph*0.5); g.fill();
+    g.fillStyle='rgba(198,214,232,0.88)';
+    roundRect(g,pad,py,(W-2*pad)*prog,ph,ph*0.5); g.fill();
+    g.beginPath(); g.arc(pad+(W-2*pad)*prog, py+ph/2, ph*0.95, 0, Math.PI*2);
+    g.fillStyle='rgba(226,238,250,0.95)'; g.fill();
+
+    g.textAlign='left';
+    g.fillStyle='rgba(150,158,170,0.72)';
+    g.font='400 '+Math.round(0.16*P)+'px '+FONT;
+    g.fillText('01:14', pad, py+0.28*P);
+    g.textAlign='right';
+    g.fillText('03:37', W-pad, py+0.28*P);
+    g.textAlign='left';
+
+    const cy = py+0.62*P, cx0 = W/2, gap = 1.10*P;
+    g.strokeStyle='rgba(230,238,248,0.85)';
+    g.lineWidth=Math.max(1.5,0.05*P); g.lineCap='round';
+    /* 上一首 */
+    g.beginPath(); g.moveTo(cx0-gap-0.11*P, cy-0.15*P); g.lineTo(cx0-gap-0.11*P, cy+0.15*P); g.stroke();
+    g.beginPath(); g.moveTo(cx0-gap+0.12*P, cy); g.lineTo(cx0-gap-0.10*P, cy-0.15*P); g.lineTo(cx0-gap-0.10*P, cy+0.15*P); g.closePath();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
+    /* 播放 / 暂停 */
+    g.fillStyle='rgba(255,255,255,0.10)';
+    g.beginPath(); g.arc(cx0,cy,0.30*P,0,Math.PI*2); g.fill();
+    g.strokeStyle='rgba(255,255,255,0.16)'; g.lineWidth=1.5;
+    g.beginPath(); g.arc(cx0,cy,0.30*P,0,Math.PI*2); g.stroke();
+    g.fillStyle='rgba(242,248,255,0.95)';
+    if(st.playing){
+      g.beginPath(); g.moveTo(cx0-0.08*P,cy-0.14*P); g.lineTo(cx0+0.14*P,cy); g.lineTo(cx0-0.08*P,cy+0.14*P); g.closePath(); g.fill();
+    } else {
+      roundRect(g,cx0-0.13*P,cy-0.14*P,0.09*P,0.28*P,0.02*P); g.fill();
+      roundRect(g,cx0+0.04*P,cy-0.14*P,0.09*P,0.28*P,0.02*P); g.fill();
+    }
+    /* 下一首 */
+    g.strokeStyle='rgba(230,238,248,0.85)';
+    g.beginPath(); g.moveTo(cx0+gap+0.11*P, cy-0.15*P); g.lineTo(cx0+gap+0.11*P, cy+0.15*P); g.stroke();
+    g.beginPath(); g.moveTo(cx0+gap-0.12*P, cy); g.lineTo(cx0+gap+0.10*P, cy-0.15*P); g.lineTo(cx0+gap+0.10*P, cy+0.15*P); g.closePath();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
+
+    R.push({ x:(cx0-0.38*P)/W, y:(cy-0.38*P)/H, w:0.76*P/W, h:0.76*P/H, kind:'play' });
+    return R;
+  },
+
+  /* 歌词（当前句高亮）*/
+  lyrics(g, W, H, w, st, idx){
+    const P = W/5, pad = 0.30*P;
+    label(g, w.label || '歌词', pad, 0.48*P, P);
+    const lines = w.lines || [];
+    const cur = w.current || 0;
+    let y = 1.00*P;
+    const lh = 0.44*P;
+    lines.forEach((t,i)=>{
+      const on = (i === cur);
+      g.textAlign='left'; g.textBaseline='alphabetic';
+      g.fillStyle = on ? 'rgba(236,242,250,0.95)' : 'rgba(140,148,162,0.60)';
+      g.font = (on?'500 ':'400 ') + Math.round((on?0.27:0.23)*P) + 'px ' + FONT;
+      g.fillText(t, pad, y);
+      y += lh;
+    });
+    return [];
+  },
+
+  /* ============================================================
+     空间播放器的「裸元素」（无卡片底板，直接浮在空间里）
+  ============================================================ */
+
+  /* 封面：圆角方形专辑图 */
+  cover(g,W,H,w,st,idx){
+    const P = W/5;
+    const r = H*0.13;
+    const a = track().accent.split(',').map(Number);
+    const c1 = 'rgb(' + Math.min(255,a[0]+40) + ',' + Math.min(255,a[1]+40) + ',' + Math.min(255,a[2]+44) + ')';
+    const c2 = 'rgb(' + Math.max(0,a[0]-52) + ',' + Math.max(0,a[1]-50) + ',' + Math.max(0,a[2]-46) + ')';
+
+    g.save();
+    roundRect(g,0,0,W,H,r); g.clip();
+    const grd = g.createLinearGradient(0,0,W,H);
+    grd.addColorStop(0,c1); grd.addColorStop(1,c2);
+    g.fillStyle = grd; g.fillRect(0,0,W,H);
+
+    const rg = g.createRadialGradient(W*0.30,H*0.24,10,W*0.30,H*0.24,W*0.95);
+    rg.addColorStop(0,'rgba(198,204,212,0.18)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle = rg; g.fillRect(0,0,W,H);
+
+    g.strokeStyle = 'rgba(255,255,255,0.20)'; g.lineWidth = Math.max(2,0.018*P);
+    for(let i=0;i<3;i++){
+      g.beginPath(); g.arc(W*0.44,H*0.44,W*(0.15+i*0.10), Math.PI*0.10, Math.PI*0.92); g.stroke();
+    }
+    g.strokeStyle = 'rgba(255,255,255,0.09)'; g.lineWidth = 2;
+    g.beginPath(); g.arc(W*0.44,H*0.44,W*0.44,0,Math.PI*2); g.stroke();
+
+    const hg = g.createLinearGradient(0,0,0,H*0.35);
+    hg.addColorStop(0,'rgba(198,204,212,0.14)'); hg.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle = hg; g.fillRect(0,0,W,H*0.35);
+    g.restore();
+
+    g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = 2;
+    roundRect(g,1,1,W-2,H-2,r-1); g.stroke();
+    return [];
+  },
+
+  /* 歌词：整首歌画进一张长图，靠 tex.offset 平滑滚动 */
+  lyric3d(g,W,H,w,st,idx){
+    const P = wp(W,w);
+    const lines = track().lyrics;
+    const cur = NP.lyricIdx || 0;
+    const lh = 0.62*P;
+    const top = lh*1.3;
+    const padX = 0.10*P;
+    const maxW = W - padX*2;          // 可用宽度
+
+    g.textAlign='center'; g.textBaseline='middle';
+    lines.forEach((l,i)=>{
+      const d = Math.abs(i-cur);
+      let alpha, size, weight;
+      if(d === 0){      alpha = 0.97; size = 0.33*P; weight = 500; }
+      else if(d === 1){ alpha = 0.44; size = 0.27*P; weight = 400; }
+      else if(d === 2){ alpha = 0.22; size = 0.25*P; weight = 400; }
+      else {            alpha = 0.10; size = 0.24*P; weight = 400; }
+
+      /* ⚠️ 自适应：这一行太长就自动缩小字号，保证完整显示、绝不截断 */
+      g.font = weight + ' ' + Math.round(size) + 'px ' + FONT;
+      const tw = g.measureText(l.s).width;
+      if(tw > maxW){
+        size = size * maxW / tw;
+        g.font = weight + ' ' + Math.round(size) + 'px ' + FONT;
+      }
+
+      g.fillStyle = 'rgba(240,246,254,' + alpha + ')';
+      g.fillText(l.s, W/2, top + i*lh);
+    });
+    return [];
+  },
+
+  /* 歌曲信息（裸）*/
+  meta(g,W,H,w,st,idx){
+    const P = wp(W,w);
+    const t = track();
+    g.textAlign='center'; g.textBaseline='alphabetic';
+    g.fillStyle='rgba(242,246,252,0.97)';
+    g.font='600 '+Math.round(0.28*P)+'px '+FONT;
+    g.fillText(t.title, W/2, H*0.40);
+    g.fillStyle='rgba(154,162,176,0.9)';
+    g.font='400 '+Math.round(0.16*P)+'px '+FONT;
+    g.fillText(t.artist + ' · ' + t.album, W/2, H*0.66);
+    g.fillStyle='rgba(150,158,170,0.5)';
+    g.font='400 '+Math.round(0.12*P)+'px '+FONT;
+    g.fillText('LOSSLESS · 44.1 kHz', W/2, H*0.88);
+    return [];
+  },
+
+  /* 作者 · 专辑（夹在封面与进度条之间的一行）*/
+  nowinfo(g,W,H,w,st,idx){
+    const P = wp(W,w);
+    const t = track();
+    g.textAlign='center'; g.textBaseline='middle';
+    g.fillStyle='rgba(188,198,214,0.92)';
+    g.font='400 '+Math.round(0.30*P)+'px '+FONT;
+    g.fillText(t.artist + ' · ' + t.album, W/2, H*0.5);
+    return [];
+  },
+
+  /* 播放控制（裸）：进度可拖 + 上一首/播放/下一首 */
+  transport(g,W,H,w,st,idx){
+    const P = wp(W,w), R = [];
+    const pad = 0.18*P;
+    const t = track();
+    const prog = t.dur ? Math.min(1, NP.cur/t.dur) : 0;
+
+    const py = H*0.20, ph = 0.06*P;
+    g.fillStyle='rgba(255,255,255,0.14)';
+    roundRect(g,pad,py,W-2*pad,ph,ph*0.5); g.fill();
+    g.fillStyle='rgba(198,214,232,0.92)';
+    roundRect(g,pad,py,(W-2*pad)*prog,ph,ph*0.5); g.fill();
+    g.beginPath(); g.arc(pad+(W-2*pad)*prog, py+ph/2, ph*0.95,0,Math.PI*2);
+    g.fillStyle='#EAF2FB'; g.fill();
+
+    /* 时间数字：放大、提亮，确保一眼可见 */
+    g.fillStyle='rgba(190,200,216,0.92)';
+    g.font='500 '+Math.round(0.30*P)+'px '+FONT;
+    g.textAlign='left'; g.textBaseline='alphabetic';
+    g.fillText(fmt(NP.cur), pad, py+0.42*P);
+    g.textAlign='right'; g.fillText(fmt(t.dur), W-pad, py+0.42*P);
+    g.textAlign='left';
+
+    const cy = H*0.70, cx0 = W/2, gap = 0.80*P;
+    g.lineCap='round';
+    g.strokeStyle='rgba(230,238,248,0.85)'; g.lineWidth=Math.max(1.5,0.038*P);
+    g.beginPath(); g.moveTo(cx0-gap-0.08*P, cy-0.11*P); g.lineTo(cx0-gap-0.08*P, cy+0.11*P); g.stroke();
+    g.beginPath(); g.moveTo(cx0-gap+0.09*P, cy); g.lineTo(cx0-gap-0.07*P, cy-0.11*P); g.lineTo(cx0-gap-0.07*P, cy+0.11*P); g.closePath();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
+
+    g.fillStyle='rgba(255,255,255,0.09)';
+    g.beginPath(); g.arc(cx0,cy,0.26*P,0,Math.PI*2); g.fill();
+    g.strokeStyle='rgba(255,255,255,0.16)'; g.lineWidth=1.5;
+    g.beginPath(); g.arc(cx0,cy,0.26*P,0,Math.PI*2); g.stroke();
+    g.fillStyle='rgba(242,248,255,0.95)';
+    if(NP.playing){
+      g.beginPath(); g.moveTo(cx0-0.06*P,cy-0.12*P); g.lineTo(cx0+0.12*P,cy); g.lineTo(cx0-0.06*P,cy+0.12*P); g.closePath(); g.fill();
+    } else {
+      roundRect(g,cx0-0.11*P,cy-0.12*P,0.08*P,0.24*P,0.02*P); g.fill();
+      roundRect(g,cx0+0.03*P,cy-0.12*P,0.08*P,0.24*P,0.02*P); g.fill();
+    }
+
+    g.strokeStyle='rgba(230,238,248,0.85)';
+    g.beginPath(); g.moveTo(cx0+gap+0.08*P, cy-0.11*P); g.lineTo(cx0+gap+0.08*P, cy+0.11*P); g.stroke();
+    g.beginPath(); g.moveTo(cx0+gap-0.09*P, cy); g.lineTo(cx0+gap+0.07*P, cy-0.11*P); g.lineTo(cx0+gap+0.07*P, cy+0.11*P); g.closePath();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
+
+    R.push({ x:pad/W, y:(py-0.16*P)/H, w:(W-2*pad)/W, h:(ph+0.32*P)/H, kind:'seek' });
+    R.push({ x:(cx0-0.34*P)/W, y:(cy-0.34*P)/H, w:0.68*P/W, h:0.68*P/H, kind:'play' });
+    R.push({ x:(cx0-gap-0.32*P)/W, y:(cy-0.32*P)/H, w:0.64*P/W, h:0.64*P/H, kind:'prev' });
+    R.push({ x:(cx0+gap-0.32*P)/W, y:(cy-0.32*P)/H, w:0.64*P/W, h:0.64*P/H, kind:'next' });
+    return R;
+  },
+
+  /* 播放队列（裸）*/
+  queue(g,W,H,w,st,idx){
+    const P = wp(W,w), pad = 0.18*P;
+    g.textAlign='left'; g.textBaseline='alphabetic';
+    g.fillStyle='rgba(150,158,170,0.6)';
+    g.font='400 '+Math.round(0.13*P)+'px '+FONT;
+    g.fillText('接下来播放', pad, 0.40*P);
+    const items = w.items || [];
+    const rh = 0.52*P;
+    let y = 0.86*P;
+    items.forEach((it,i)=>{
+      g.fillStyle='rgba(232,238,246,0.9)';
+      g.font='400 '+Math.round(0.17*P)+'px '+FONT;
+      g.textAlign='left';
+      g.fillText(it.t, pad, y);
+      g.fillStyle='rgba(146,154,168,0.7)';
+      g.font='400 '+Math.round(0.13*P)+'px '+FONT;
+      g.textAlign='right'; g.fillText(it.s, W-pad, y); g.textAlign='left';
+      y += rh;
+    });
+    return [];
+  },
+
+  /* 纯文本 */
+  text(g, W, H, w, st, idx){
+    const P = W/5;
+    const pad = 0.32*P;
+    let y = 0;
+    if(w.label){ label(g, w.label, pad, 0.52*P, P); y = 0.72*P; }
+    g.fillStyle = 'rgba(198,206,218,0.85)';
+    g.font = '400 ' + Math.round(0.25*P) + 'px ' + FONT;
+    g.textAlign='left'; g.textBaseline='alphabetic';
+    g.fillText(w.text, pad, y + 0.28*P);
+    return [];
+  }
+};
+
+/* 控件高度（世界单位）*/
+const _mc = document.createElement('canvas').getContext('2d');
+
+/* 估算 chips 需要几行（按实际文字宽度换行）*/
+function chipsRows(items, canvasW){
+  const P = canvasW/5;
+  _mc.font = '400 ' + Math.round(0.26*P) + 'px ' + FONT;
+  const pad = 0.28*P;
+  const avail = canvasW - 2*pad;
+  const gap = 0.18*P;
+  let x = 0, rows = 1;
+  items.forEach(t => {
+    const cw = _mc.measureText(t).width + 0.52*P;
+    if(x > 0 && x + cw > avail){ rows++; x = cw + gap; }
+    else x += cw + gap;
+  });
+  return rows;
+}
+
+function widgetHeight(w){
+  const ww = w.w || PAGE_W;
+  const PX = ww * PPM;          // 该控件画布宽度（像素）
+  const P  = PX/5;              // 排版基准
+  switch(w.type){
+    case 'search': return 1.45;
+    case 'chips': {
+      const rows = chipsRows(w.items, PX);
+      const top = 0.34*P + (w.label ? 0.46*P : 0);
+      return (top + rows*0.54*P + (rows-1)*0.18*P + 0.30*P) / PPM;
+    }
+    case 'list':   return (0.64*P*(w.label?1:0) + 0.85*P*w.items.length + 0.30*P) / PPM;
+    case 'tabs':   return (0.52*P + 0.48*P) / PPM;
+    case 'grid': {
+      const pad = 0.30*P, gap = 0.26*P;
+      const cw = (PX - 2*pad - gap) / 2;
+      const artH = cw * 0.74;
+      const rows = Math.ceil(w.items.length / 2);
+      return (0.74*P + rows*(artH + 0.90*P) + 0.36*P) / PPM;
+    }
+    case 'songrow': return (0.74*P*(w.label?1:0) + 0.78*P*w.items.length + 0.40*P) / PPM;
+    case 'stat':   return 2.05;
+    case 'bars':   return (0.68*P*(w.label?1:0) + 0.72*P*w.items.length + 0.28*P) / PPM;
+    case 'toggle': return (0.68*P*(w.label?1:0) + 0.82*P*w.items.length + 0.26*P) / PPM;
+    case 'now':    return 2.95;
+    case 'player': return 4.20;
+    case 'lyrics': return 2.60;
+    case 'text':   return (0.72*P*(w.label?1:0) + 0.28*P + 0.42*P) / PPM;
+    default:       return 1.5;
+  }
+}
+
+/* ---------------- 主页卡片贴图（每张卡内容各不相同）---------------- */
+const CARD_PPM = 200;   // 每世界单位 200 像素
+
+/* 卡片底板：圆角裁切（真圆角）+ 冷暖分级 */
+function drawCardBg(g, W, H, i){
+  const [a,b] = PALETTES[i % PALETTES.length];
+  const r = H*0.11;
+  g.save();
+  roundRect(g,0,0,W,H,r); g.clip();
+
+  const grd = g.createLinearGradient(0,0,W*0.85,H);
+  grd.addColorStop(0,a); grd.addColorStop(1,b);
+  g.fillStyle = grd; g.fillRect(0,0,W,H);
+
+  const sg = g.createLinearGradient(0,H,0,H*0.35);
+  sg.addColorStop(0,'rgba(38,72,94,0.20)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = sg; g.fillRect(0,0,W,H);
+
+  const hg = g.createRadialGradient(W*0.88,H*0.10,4,W*0.88,H*0.10,W*0.75);
+  hg.addColorStop(0,'rgba(198,204,212,0.10)'); hg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = hg; g.fillRect(0,0,W,H);
+
+  g.fillStyle = 'rgba(208,213,220,0.30)';
+  g.fillRect(W*0.07, H*0.075, W*0.86, 1.4);
+  g.restore();
+
+  g.strokeStyle = 'rgba(255,255,255,0.14)';
+  g.lineWidth = 2;
+  roundRect(g,1,1,W-2,H-2,r-1); g.stroke();
+}
+
+/* 小工具 */
+function cardEn(g, text, x, y, size){
+  g.fillStyle = 'rgba(158,166,178,0.80)';
+  g.font = '400 ' + Math.round(size||23) + 'px ' + FONT;
+  if('letterSpacing' in g) g.letterSpacing = '5px';
+  g.textAlign='left'; g.textBaseline='alphabetic';
+  g.fillText(text, x, y);
+  if('letterSpacing' in g) g.letterSpacing = '0px';
+}
+function cardCn(g, text, x, y, size){
+  g.fillStyle = 'rgba(240,243,247,0.95)';
+  g.font = '500 ' + Math.round(size||46) + 'px ' + FONT;
+  g.textAlign='left'; g.textBaseline='alphabetic';
+  g.fillText(text, x, y);
+}
+function miniToggle(g, x, y, w, h, on){
+  g.fillStyle = on ? 'rgba(154,176,200,0.85)' : 'rgba(255,255,255,0.11)';
+  roundRect(g, x, y, w, h, h*0.5); g.fill();
+  const kr = h*0.36, kx = on ? (x+w-h*0.5) : (x+h*0.5);
+  g.fillStyle = on ? 'rgba(18,20,24,0.92)' : 'rgba(196,204,216,0.8)';
+  g.beginPath(); g.arc(kx, y+h/2, kr, 0, Math.PI*2); g.fill();
+}
+function miniCover(g, x, y, w, h, c1, c2, disc){
+  const grd = g.createLinearGradient(x,y,x+w,y+h);
+  grd.addColorStop(0,c1); grd.addColorStop(1,c2);
+  g.fillStyle = grd;
+  roundRect(g, x, y, w, h, w*0.12); g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.10)'; g.lineWidth = 1.5;
+  roundRect(g, x, y, w, h, w*0.12); g.stroke();
+  if(disc){
+    g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = 1.5;
+    g.beginPath(); g.arc(x+w/2, y+h/2, w*0.28, 0, Math.PI*2); g.stroke();
+    g.beginPath(); g.arc(x+w/2, y+h/2, w*0.16, 0, Math.PI*2); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.14)';
+    g.beginPath(); g.arc(x+w/2, y+h/2, w*0.055, 0, Math.PI*2); g.fill();
+  }
+}
+
+const CARD = {
+
+  /* 搜索：搜索框 + 热门标签 */
+  search(g,W,H,f){
+    const P = CARD_PPM, pad = 0.22*P;
+    cardEn(g, f.sub, pad, 0.35*P);
+    cardCn(g, f.title, pad, 0.63*P, 0.21*P);
+
+    const bx=pad, by=0.82*P, bw=W-2*pad, bh=0.40*P;
+    g.fillStyle='rgba(255,255,255,0.055)';
+    roundRect(g,bx,by,bw,bh,bh*0.5); g.fill();
+    g.strokeStyle='rgba(255,255,255,0.10)'; g.lineWidth=1.5;
+    roundRect(g,bx,by,bw,bh,bh*0.5); g.stroke();
+    const icx=bx+bh*0.55, icy=by+bh*0.5, ir=bh*0.15;
+    g.strokeStyle='rgba(198,208,222,0.7)'; g.lineWidth=3; g.lineCap='round';
+    g.beginPath(); g.arc(icx,icy,ir,0,Math.PI*2); g.stroke();
+    g.beginPath(); g.moveTo(icx+ir*0.72,icy+ir*0.72); g.lineTo(icx+ir*1.7,icy+ir*1.7); g.stroke();
+    g.fillStyle='rgba(146,154,168,0.7)';
+    g.font='400 '+Math.round(0.15*P)+'px '+FONT;
+    g.textAlign='left'; g.textBaseline='middle';
+    g.fillText('搜索歌曲 · 歌手 · 专辑', bx+bh*1.0, icy+1);
+
+    const chips=['周杰伦','深夜电台','纯音乐'];
+    let cx=pad; const cy=1.40*P, chh=0.27*P;
+    g.font='400 '+Math.round(0.14*P)+'px '+FONT;
+    g.textBaseline='middle';
+    chips.forEach(t=>{
+      const tw=g.measureText(t).width, cwid=tw+0.26*P;
+      g.fillStyle='rgba(255,255,255,0.05)';
+      roundRect(g,cx,cy,cwid,chh,chh*0.5); g.fill();
+      g.strokeStyle='rgba(255,255,255,0.09)'; g.lineWidth=1.5;
+      roundRect(g,cx,cy,cwid,chh,chh*0.5); g.stroke();
+      g.fillStyle='rgba(202,210,222,0.85)'; g.textAlign='center';
+      g.fillText(t,cx+cwid/2,cy+chh/2+1);
+      g.textAlign='left';
+      cx+=cwid+0.12*P;
+    });
+
+    g.fillStyle='rgba(150,158,170,0.55)';
+    g.font='400 '+Math.round(0.12*P)+'px '+FONT;
+    g.textAlign='left'; g.textBaseline='alphabetic';
+    g.fillText('最近：in my feelings', pad, H-0.20*P);
+  },
+
+  /* 我的歌单：封面缩略图墙 */
+  playlist(g,W,H,f){
+    const P = CARD_PPM, pad = 0.22*P;
+    cardEn(g, f.sub, pad, 0.35*P);
+    cardCn(g, f.title, pad, 0.63*P, 0.21*P);
+
+    const cols=[['#4A5464','#2A3038'],['#544A5E','#2E2836'],['#3E4E58','#242C32'],['#565044','#302B22']];
+    const n=4, gap=0.08*P;
+    const cw=(W-2*pad-(n-1)*gap)/n, cy=0.84*P;
+    for(let i=0;i<n;i++){
+      miniCover(g, pad+i*(cw+gap), cy, cw, cw, cols[i][0], cols[i][1], true);
+    }
+    g.textAlign='left'; g.textBaseline='alphabetic';
+    g.fillStyle='rgba(240,243,247,0.95)';
+    g.font='500 '+Math.round(0.22*P)+'px '+FONT;
+    g.fillText('深夜', pad, cy+cw+0.32*P);
+    g.fillStyle='rgba(150,158,170,0.85)';
+    g.font='400 '+Math.round(0.14*P)+'px '+FONT;
+    g.fillText('12 首 · 2 小时前更新', pad, cy+cw+0.54*P);
+  },
+
+  /* 听歌统计：大数字 + 7 日柱状图 */
+  stats(g,W,H,f){
+    const P = CARD_PPM, pad = 0.22*P;
+    cardEn(g, f.sub, pad, 0.35*P);
+    cardCn(g, f.title, pad, 0.63*P, 0.21*P);
+
+    g.textAlign='left'; g.textBaseline='alphabetic';
+    g.fillStyle='rgba(243,247,252,0.96)';
+    g.font='600 '+Math.round(0.33*P)+'px '+FONT;
+    g.fillText('12.5', pad, 1.18*P);
+    const vw=g.measureText('12.5').width;
+    g.fillStyle='rgba(168,178,192,0.85)';
+    g.font='400 '+Math.round(0.15*P)+'px '+FONT;
+    g.fillText('小时', pad+vw+0.08*P, 1.14*P);
+    g.fillStyle='rgba(150,158,170,0.8)';
+    g.font='400 '+Math.round(0.14*P)+'px '+FONT;
+    g.fillText('本周听歌时长', pad, 1.38*P);
+
+    const bars=[0.42,0.68,0.31,0.92,0.57,0.48,0.79];
+    const base=1.90*P, maxH=0.44*P, bw=(W-2*pad)/bars.length;
+    bars.forEach((v,i)=>{
+      const bh=Math.max(2,maxH*v), x=pad+i*bw;
+      g.fillStyle = (i===bars.length-1) ? 'rgba(198,214,232,0.85)' : 'rgba(255,255,255,0.16)';
+      roundRect(g,x,base-bh,bw*0.5,bh,bw*0.25); g.fill();
+    });
+    g.fillStyle='rgba(150,158,170,0.65)';
+    g.font='400 '+Math.round(0.12*P)+'px '+FONT;
+    g.fillText('最爱 · 梁博 38 次', pad, H-0.20*P);
+  },
+
+  /* 当前播放：封面 + 进度 + 控制 + 歌词预览（重点卡）*/
+  now(g,W,H,f){
+    const P = CARD_PPM, pad = 0.22*P;
+    cardEn(g, f.sub, pad, 0.31*P);
+
+    const art=0.90*P, ax=pad, ay=0.50*P;
+    miniCover(g, ax, ay, art, art, '#4E5868', '#232830', true);
+
+    const tx=ax+art+0.22*P;
+    g.textAlign='left'; g.textBaseline='alphabetic';
+    g.fillStyle='rgba(242,246,252,0.96)';
+    g.font='500 '+Math.round(0.22*P)+'px '+FONT;
+    g.fillText('In My Feelings', tx, ay+0.40*P);
+    g.fillStyle='rgba(154,162,176,0.88)';
+    g.font='400 '+Math.round(0.14*P)+'px '+FONT;
+    g.fillText('Drake · Scorpion', tx, ay+0.68*P);
+
+    const py=1.52*P, ph=0.045*P, prog=0.34;
+    g.fillStyle='rgba(255,255,255,0.10)';
+    roundRect(g,pad,py,W-2*pad,ph,ph*0.5); g.fill();
+    g.fillStyle='rgba(198,214,232,0.88)';
+    roundRect(g,pad,py,(W-2*pad)*prog,ph,ph*0.5); g.fill();
+    g.beginPath(); g.arc(pad+(W-2*pad)*prog, py+ph/2, ph*0.95, 0, Math.PI*2);
+    g.fillStyle='rgba(226,238,250,0.95)'; g.fill();
+
+    g.fillStyle='rgba(190,200,216,0.85)';
+    g.font='400 '+Math.round(0.12*P)+'px '+FONT;
+    g.fillText('01:14', pad, py+0.30*P);
+    g.textAlign='right';
+    g.fillText('03:37', W-pad, py+0.30*P);
+    g.textAlign='left';
+
+    const cy=2.04*P, cx0=W/2, gap=0.62*P;
+    g.strokeStyle='rgba(230,238,248,0.85)';
+    g.lineWidth=Math.max(1.5,0.035*P); g.lineCap='round';
+    g.beginPath(); g.moveTo(cx0-gap-0.07*P, cy-0.10*P); g.lineTo(cx0-gap-0.07*P, cy+0.10*P); g.stroke();
+    g.beginPath(); g.moveTo(cx0-gap+0.08*P, cy); g.lineTo(cx0-gap-0.06*P, cy-0.10*P); g.lineTo(cx0-gap-0.06*P, cy+0.10*P); g.closePath();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
+
+    g.fillStyle='rgba(255,255,255,0.10)';
+    g.beginPath(); g.arc(cx0,cy,0.28*P,0,Math.PI*2); g.fill();
+    g.strokeStyle='rgba(255,255,255,0.16)'; g.lineWidth=1.5;
+    g.beginPath(); g.arc(cx0,cy,0.28*P,0,Math.PI*2); g.stroke();
+    g.fillStyle='rgba(242,248,255,0.95)';
+    g.beginPath(); g.moveTo(cx0-0.07*P,cy-0.12*P); g.lineTo(cx0+0.12*P,cy); g.lineTo(cx0-0.07*P,cy+0.12*P); g.closePath(); g.fill();
+
+    g.strokeStyle='rgba(230,238,248,0.85)';
+    g.beginPath(); g.moveTo(cx0+gap+0.07*P, cy-0.10*P); g.lineTo(cx0+gap+0.07*P, cy+0.10*P); g.stroke();
+    g.beginPath(); g.moveTo(cx0+gap-0.08*P, cy); g.lineTo(cx0+gap+0.06*P, cy-0.10*P); g.lineTo(cx0+gap+0.06*P, cy+0.10*P); g.closePath();
+    g.fillStyle='rgba(230,238,248,0.85)'; g.fill();
+
+    g.textAlign='center';
+    g.fillStyle='rgba(226,236,248,0.88)';
+    g.font='400 '+Math.round(0.125*P)+'px '+FONT;
+    g.fillText('Kiki, do you love me?', W/2, 2.44*P);
+    g.fillStyle='rgba(140,148,162,0.62)';
+    g.font='400 '+Math.round(0.105*P)+'px '+FONT;
+    g.fillText('Are you riding?', W/2, 2.62*P);
+    g.textAlign='left';
+  },
+
+  /* 播放历史：最近听的歌 */
+  history(g,W,H,f){
+    const P = CARD_PPM, pad = 0.22*P;
+    cardEn(g, f.sub, pad, 0.35*P);
+    cardCn(g, f.title, pad, 0.63*P, 0.20*P);
+
+    /* 时钟小图标 */
+    const cx = W - pad - 0.34*P, cy = 0.72*P, r = 0.20*P;
+    g.strokeStyle = 'rgba(230,238,250,0.55)'; g.lineWidth = Math.max(1.5,0.025*P); g.lineCap='round';
+    g.beginPath(); g.arc(cx,cy,r,0,Math.PI*2); g.stroke();
+    g.beginPath(); g.moveTo(cx,cy-r*0.4); g.lineTo(cx,cy); g.lineTo(cx+r*0.45,cy); g.stroke();
+
+    const rows = [['夜里的风','Drake'],['消愁','毛不易'],['黑夜中','梁博']];
+    let y = 1.05*P;
+    rows.forEach(([t,a])=>{
+      g.fillStyle = 'rgba(232,238,246,0.92)';
+      g.font = '500 ' + Math.round(0.16*P) + 'px ' + FONT;
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+      g.fillText(t, pad, y);
+      g.fillStyle = 'rgba(154,162,176,0.82)';
+      g.font = '400 ' + Math.round(0.12*P) + 'px ' + FONT;
+      g.textAlign = 'right'; g.fillText(a, W-pad, y); g.textAlign = 'left';
+      y += 0.30*P;
+    });
+
+    g.fillStyle = 'rgba(150,158,170,0.6)';
+    g.font = '400 ' + Math.round(0.11*P) + 'px ' + FONT;
+    g.fillText('查看全部 ›', pad, H - 0.18*P);
+    return [];
+  },
+
+  /* 我的收藏：心形 + 我的歌 */
+  love(g,W,H,f){
+    const P = CARD_PPM, pad = 0.22*P;
+    cardEn(g, f.sub, pad, 0.35*P);
+    cardCn(g, f.title, pad, 0.63*P, 0.20*P);
+
+    /* 心形 */
+    const cx = W - pad - 0.34*P, cy = 0.72*P, s = 0.22*P;
+    g.strokeStyle = 'rgba(236,120,130,0.75)'; g.lineWidth = Math.max(2,0.03*P); g.lineCap='round'; g.lineJoin='round';
+    g.beginPath();
+    g.moveTo(cx, cy+s*0.30);
+    g.quadraticCurveTo(cx-s, cy-s*0.7, cx-s*0.3, cy-s*0.7);
+    g.quadraticCurveTo(cx, cy-s*0.15, cx, cy+s*0.45);
+    g.quadraticCurveTo(cx, cy-s*0.15, cx+s*0.3, cy-s*0.7);
+    g.quadraticCurveTo(cx+s, cy-s*0.7, cx, cy+s*0.30);
+    g.stroke();
+
+    const rows = [['In My Feelings','Drake'],['夜空中最亮的星','逃跑计划'],['Lonely','Akon']];
+    let y = 1.05*P;
+    rows.forEach(([t,a])=>{
+      g.fillStyle = 'rgba(232,238,246,0.92)';
+      g.font = '500 ' + Math.round(0.13*P) + 'px ' + FONT;
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+      g.fillText(t, pad, y);
+      g.fillStyle = 'rgba(150,158,170,0.7)';
+      g.font = '400 ' + Math.round(0.10*P) + 'px ' + FONT;
+      g.textAlign = 'right'; g.fillText(a, W-pad, y); g.textAlign = 'left';
+      y += 0.28*P;
+    });
+
+    g.fillStyle = 'rgba(150,158,170,0.55)';
+    g.font = '400 ' + Math.round(0.09*P) + 'px ' + FONT;
+    g.fillText('查看全部 ›', pad, H - 0.18*P);
+    return [];
+  },
+
+  /* 下载管理：环形进度 */
+  download(g,W,H,f){
+    const P = CARD_PPM, pad = 0.22*P;
+    cardEn(g, f.sub, pad, 0.35*P);
+    cardCn(g, f.title, pad, 0.63*P, 0.21*P);
+
+    const cx=pad+0.42*P, cy=1.34*P, r=0.28*P;
+    g.strokeStyle='rgba(255,255,255,0.10)'; g.lineWidth=0.075*P; g.lineCap='round';
+    g.beginPath(); g.arc(cx,cy,r,0,Math.PI*2); g.stroke();
+    g.strokeStyle='rgba(186,206,228,0.85)';
+    g.beginPath(); g.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+Math.PI*2*0.66); g.stroke();
+    g.fillStyle='rgba(240,246,252,0.95)';
+    g.font='500 '+Math.round(0.16*P)+'px '+FONT;
+    g.textAlign='center'; g.textBaseline='middle';
+    g.fillText('66%', cx, cy+1);
+    g.textAlign='left'; g.textBaseline='alphabetic';
+
+    const tx=pad+0.92*P;
+    g.fillStyle='rgba(243,247,252,0.96)';
+    g.font='600 '+Math.round(0.26*P)+'px '+FONT;
+    g.fillText('128', tx, 1.28*P);
+    const vw=g.measureText('128').width;
+    g.fillStyle='rgba(178,188,202,0.9)';
+    g.font='400 '+Math.round(0.13*P)+'px '+FONT;
+    g.fillText('首', tx+vw+0.06*P, 1.26*P);
+    g.fillStyle='rgba(150,158,170,0.8)';
+    g.font='400 '+Math.round(0.12*P)+'px '+FONT;
+    g.fillText('已下载 · 占用 1.2 GB', tx, 1.50*P);
+
+    hairline(g, pad, 1.80*P, W-pad, 0.06);
+    g.fillStyle='rgba(232,238,246,0.92)';
+    g.font='400 '+Math.round(0.14*P)+'px '+FONT;
+    g.fillText('正在下载 3 首', pad, 2.00*P);
+    g.fillStyle='rgba(255,255,255,0.08)';
+    roundRect(g,pad,2.04*P,W-2*pad,0.05*P,0.025*P); g.fill();
+    g.fillStyle='rgba(178,196,216,0.75)';
+    roundRect(g,pad,2.04*P,(W-2*pad)*0.42,0.05*P,0.025*P); g.fill();
+  },
+
+  /* 设置：开关预览 */
+  settings(g,W,H,f){
+    const P = CARD_PPM, pad = 0.22*P;
+    cardEn(g, f.sub, pad, 0.35*P);
+    cardCn(g, f.title, pad, 0.63*P, 0.21*P);
+
+    const rows=[['深色模式',true],['动态背景',true],['无损音质',false]];
+    const rh=0.30*P; let y=0.88*P;
+    g.font='400 '+Math.round(0.15*P)+'px '+FONT;
+    rows.forEach(([t,on],i)=>{
+      g.fillStyle='rgba(232,237,244,0.92)';
+      g.textAlign='left'; g.textBaseline='middle';
+      g.fillText(t, pad, y+rh/2);
+      const sw=0.30*P, sh=0.17*P;
+      miniToggle(g, W-pad-sw, y+rh/2-sh/2, sw, sh, on);
+      if(i<rows.length-1) hairline(g, pad, y+rh, W-pad, 0.05);
+      y+=rh;
+    });
+    g.fillStyle='rgba(150,158,170,0.6)';
+    g.font='400 '+Math.round(0.12*P)+'px '+FONT;
+    g.textAlign='left'; g.textBaseline='alphabetic';
+    g.fillText('Hoper Music · 0.1.0', pad, H-0.20*P);
+  }
+};
+
+function makeMainCardTexture(f, i){
+  const cw = f.w || 3.4, ch = f.h || 2.2;
+  const c = document.createElement('canvas');
+  c.width  = Math.round(cw * CARD_PPM);
+  c.height = Math.round(ch * CARD_PPM);
+  const g = c.getContext('2d');
+  drawCardBg(g, c.width, c.height, i);
+  const fn = CARD[f.key];
+  if(fn) fn(g, c.width, c.height, f);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function makeHaloTexture(){
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(128,128,8,128,128,128);
+  rg.addColorStop(0,'rgba(186,200,218,0.85)');
+  rg.addColorStop(0.42,'rgba(120,138,160,0.30)');
+  rg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = rg; g.fillRect(0,0,256,256);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+const HALO_TEX = makeHaloTexture();
+
+function makeSoftDotTexture(){
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(32,32,0,32,32,32);
+  rg.addColorStop(0,'rgba(255,255,255,0.95)');
+  rg.addColorStop(0.32,'rgba(206,222,240,0.30)');
+  rg.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle = rg; g.fillRect(0,0,64,64);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/* ---------------- 主页卡片 ---------------- */
+const mainGroup = new THREE.Group(); scene.add(mainGroup);
+const subGroup  = new THREE.Group(); subGroup.visible = false; scene.add(subGroup);
+
+const R = 6.5;
+const mainPanels = [];
+
+FEATURES.forEach((f, i) => {
+  const spot = SPOTS[i];
+  const az = spot.az*Math.PI/180, el = spot.el*Math.PI/180;
+  const px = Math.cos(el)*Math.sin(az), py = Math.sin(el), pz = -Math.cos(el)*Math.cos(az);
+  const radius = R*(0.92 + Math.random()*0.16);
+
+  /* 每张卡片尺寸可以不同（如"当前播放"是更大的重点卡）*/
+  const cw = f.w || 3.4, ch = f.h || 2.2;
+  const geo = new THREE.BoxGeometry(cw, ch, 0.08);
+
+  const tex = makeMainCardTexture(f, i);
+  const faceMat = new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:1, toneMapped:false, fog:false });
+  const sideMat = new THREE.MeshBasicMaterial({ color:0x22262E, transparent:true, opacity:1, fog:false });
+  const mesh = new THREE.Mesh(geo, [sideMat,sideMat,sideMat,sideMat,faceMat,sideMat]);
+
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+    map:HALO_TEX, color:0xA8BACF, transparent:true, opacity:0.3,
+    blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+  halo.scale.set(cw*1.85, ch*2.15, 1);
+  halo.position.z = -0.2;
+  mesh.add(halo);
+
+  mesh.position.set(px*radius, py*radius, pz*radius);
+  mesh.userData = {
+    feature:f, faceMat, sideMat, halo,
+    home: mesh.position.clone(),
+    floatDir: new THREE.Vector3(px,py,pz).normalize(),
+    phase: Math.random()*Math.PI*2,
+    hl:0, enterT:0, enterK:0, enterDelay:0
+  };
+  mainGroup.add(mesh);
+  mainPanels.push(mesh);
+});
+
+/* ============================================================
+   环绕菜单墙（14 项）
+   · 沿「左后弧」排列（az ≈ -42°），转动视角即可看到
+   · ☰ 按钮 = 把视角快速转过去的快捷键
+============================================================ */
+const MENUS = [
+  { key:'home',       name:'主页',     to:'home' },
+  { key:'search',     name:'搜索',     to:'search' },
+  { key:'history',    name:'播放历史', to:'history' },
+  { key:'love',       name:'我的收藏', to:'love' },
+  { key:'myplaylist', name:'我的歌单', to:'playlist' },
+  { key:'stats',      name:'听歌统计', to:'stats' },
+  { key:'settings',   name:'设置',     to:'settings' }
+];
+
+/* 菜单图标：简洁线性 glyph */
+function drawMenuGlyph(g, key, cx, cy, s){
+  const sw = Math.max(1.5, s*0.12);
+  g.strokeStyle = 'rgba(232,240,250,0.92)';
+  g.lineWidth = sw; g.lineCap = 'round'; g.lineJoin = 'round';
+  const p = s*0.9, q = s*0.28;
+  switch(key){
+    case 'home':
+      g.beginPath(); g.moveTo(cx,cy-q); g.lineTo(cx-p,cy+s*0.28); g.lineTo(cx-p,cy+q);
+      g.moveTo(cx,cy-q); g.lineTo(cx+p,cy+s*0.28); g.lineTo(cx+p,cy+q); g.stroke();
+      break;
+    case 'search':
+      g.beginPath(); g.arc(cx-q,cy-q,q,0,Math.PI*2); g.stroke();
+      g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+q*0.7,cy+q*0.7); g.stroke();
+      break;
+    case 'history':
+      g.beginPath(); g.arc(cx,cy,q,0,Math.PI*2); g.stroke();
+      g.beginPath(); g.moveTo(cx,cy-q); g.lineTo(cx,cy); g.lineTo(cx+q,cy); g.stroke();
+      break;
+    case 'songlist':
+      g.beginPath();
+      g.moveTo(cx-p,cy-q); g.lineTo(cx+p,cy-q);
+      g.moveTo(cx-p,cy); g.lineTo(cx+p*0.6,cy);
+      g.moveTo(cx-p,cy+q); g.lineTo(cx,cy+q); g.stroke();
+      g.beginPath(); g.arc(cx+q,cy+q,q*0.6,0,Math.PI*2); g.stroke();
+      break;
+    case 'leaderboard':
+      g.beginPath();
+      g.moveTo(cx-p,cy+q); g.lineTo(cx-p,cy-q);
+      g.moveTo(cx,cy+q); g.lineTo(cx,cy-q);
+      g.moveTo(cx+p,cy+q); g.lineTo(cx+p,cy+q*0.2); g.stroke();
+      break;
+    case 'love':
+      g.beginPath();
+      g.moveTo(cx,cy+q*0.3);
+      g.quadraticCurveTo(cx-p,cy-q, cx-q*0.3,cy-q);
+      g.quadraticCurveTo(cx,cy-q*0.2, cx,cy+q*0.5);
+      g.quadraticCurveTo(cx,cy-q*0.2, cx+q*0.3,cy-q);
+      g.quadraticCurveTo(cx+p,cy-q, cx,cy+q*0.3); g.stroke();
+      break;
+    case 'daily':
+      g.strokeRect(cx-p, cy-q, p*2, q*1.8);
+      g.beginPath(); g.moveTo(cx-p,cy-q+q*0.6); g.lineTo(cx+p,cy-q+q*0.6); g.stroke();
+      g.beginPath(); g.moveTo(cx-p*0.5,cy-q*1.2); g.lineTo(cx-p*0.5,cy-q*0.6);
+      g.moveTo(cx+p*0.5,cy-q*1.2); g.lineTo(cx+p*0.5,cy-q*0.6); g.stroke();
+      break;
+    case 'artists':
+      g.beginPath(); g.arc(cx,cy-q,q*0.55,0,Math.PI*2); g.stroke();
+      g.beginPath(); g.arc(cx,cy+q*0.4,q*0.9,Math.PI,0); g.stroke();
+      break;
+    case 'albums':
+      g.beginPath(); g.arc(cx,cy,q*0.95,0,Math.PI*2); g.stroke();
+      g.beginPath(); g.arc(cx,cy,q*0.55,0,Math.PI*2); g.stroke();
+      break;
+    case 'myplaylist':
+      g.beginPath();
+      g.moveTo(cx-p,cy-q); g.lineTo(cx+p,cy-q);
+      g.moveTo(cx-p,cy); g.lineTo(cx+p,cy);
+      g.moveTo(cx-p,cy+q); g.lineTo(cx+p*0.5,cy+q); g.stroke();
+      break;
+    case 'onedrive':
+    case 'webdav':
+      g.beginPath();
+      g.arc(cx,cy,q*0.4,q*0.7,Math.PI*1.9);
+      g.arc(cx,cy,q*0.4,q*1.05,Math.PI*1.65);
+      g.stroke();
+      break;
+    case 'stats':
+      g.beginPath();
+      g.moveTo(cx-p,cy+q); g.lineTo(cx-p,cy);
+      g.moveTo(cx-p*0.35,cy+q); g.lineTo(cx-p*0.35,cy-q*0.6);
+      g.moveTo(cx+p*0.35,cy+q); g.lineTo(cx+p*0.35,cy-q*0.2);
+      g.moveTo(cx+p,cy+q); g.lineTo(cx+p,cy+q*0.4); g.stroke();
+      break;
+    case 'settings':
+      g.beginPath(); g.arc(cx,cy,q*0.5,0,Math.PI*2); g.stroke();
+      for(let i=0;i<8;i++){
+        const a = i*Math.PI/4;
+        g.beginPath();
+        g.moveTo(cx+Math.cos(a)*q, cy+Math.sin(a)*q);
+        g.lineTo(cx+Math.cos(a)*(q*1.4), cy+Math.sin(a)*(q*1.4)); g.stroke();
+      }
+      break;
+  }
+}
+
+const menuCards = [];
+const MENU_W = 2.2, MENU_H = 1.0;
+
+function makeMenuCard(m, i){
+  const c = document.createElement('canvas');
+  c.width = Math.round(MENU_W*200); c.height = Math.round(MENU_H*200);
+  const g = c.getContext('2d');
+  drawCardBg(g, c.width, c.height, (i+3) % PALETTES.length);
+
+  g.save(); g.translate(c.width*0.17, c.height*0.5);
+  drawMenuGlyph(g, m.key, 0, 0, c.height*0.62); g.restore();
+
+  g.fillStyle = 'rgba(240,243,247,0.95)';
+  g.font = '500 ' + Math.round(c.height*0.36) + 'px ' + FONT;
+  g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.fillText(m.name, c.width*0.40, c.height*0.5);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshBasicMaterial({ map:tex, transparent:true, toneMapped:false, fog:false });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(MENU_W, MENU_H), mat);
+  mesh.userData = {
+    isMenu: true, menu: m,
+    feature: { key: m.to, title: m.name, sub: String(m.name).toUpperCase() },
+    w: MENU_W, h: MENU_H,
+    home: new THREE.Vector3(),
+    faceMat: mat          // 让转场飞行时也能设置透明度
+  };
+  return mesh;
+}
+
+/* 布局：7 项 → 2 列 × 4 行，沿「左后弧」（az≈-42°）排列 */
+function buildMenuWall(){
+  const Rm = 9, az0 = -42;
+  MENUS.forEach((m, i) => {
+    const col = i % 2, row = Math.floor(i / 2);
+    const azR = (az0 + (col === 0 ? -12 : 12)) * Math.PI/180;
+    const el  = 30 - row * 20;              // +30° → -30°
+    const elR = el * Math.PI/180;
+
+    const mesh = makeMenuCard(m, i);
+    mesh.position.set(
+      Math.cos(elR)*Math.sin(azR)*Rm,
+      Math.sin(elR)*Rm,
+      -Math.cos(elR)*Math.cos(azR)*Rm
+    );
+    mesh.userData.home.copy(mesh.position);
+    mainGroup.add(mesh);
+    menuCards.push(mesh);
+  });
+}
+/* 菜单墙已废弃：功能入口直接散布在主页球面上 */
+// buildMenuWall();
+
+/* ---------------- 子页面控件面板 ---------------- */
+/* 列表窗口上下缓冲行数：滚动时不立即重画，超出缓冲才重画 */
+const LIST_BUF = 2;
+const pageByKey = {};
+let subPanels = [];
+const PPM = 130;
+const PAGE_W = 5.0;
+const PAGE_R = 8.4;
+
+function redrawWidget(mesh){
+  const u = mesh.userData;
+  const c = u.canvas, g = c.getContext('2d');
+  g.clearRect(0,0,c.width,c.height);
+  if(!u.widget.bare) drawPanelBg(g, c.width, c.height, u.idx || 0);
+  const fn = DRAW[u.widget.type];
+  u.regions = fn ? fn(g, c.width, c.height, u.widget, u.state, u.idx || 0) : [];
+  u.tex.needsUpdate = true;
+  /* 列表：重画后把窗口偏移对齐到当前滚动位置 */
+  if(u.listMeta) syncListWindow(mesh);
+}
+
+/* ============================================================
+   长列表滚动（窗口化虚拟列表，2026-09-22）
+   · 贴图只画「可见窗口 + 缓冲」→ 内存与总条数无关
+   · 滚动 = 改 tex.offset.y（GPU 采样）→ 不重画
+   · 滚出缓冲才重画（把窗口搬到新位置）
+   · 交互：在列表上纵向拖动 = 滚动该列表（不转相机）
+============================================================ */
+const LIST_PX_PER_SCREEN = 1.6;    /* 纵向拖一屏 = 滚 1.6 屏内容（手感）*/
+
+/* ============================================================
+   最近访问置顶（2026-09-22）
+   40 个歌单里，常用的其实就那几个 → 访问过就提到前面，
+   避免每次都在长列表里翻找。
+============================================================ */
+const RECENT_MAX = 8;
+const recentPlaylists = [];          /* 最近访问的歌单名，最新的在前 */
+
+function touchRecent(name){
+  const i = recentPlaylists.indexOf(name);
+  if(i >= 0) recentPlaylists.splice(i, 1);
+  recentPlaylists.unshift(name);
+  if(recentPlaylists.length > RECENT_MAX) recentPlaylists.pop();
+}
+
+/* 把「最近访问」排到前面（稳定：其余保持原顺序）*/
+function orderByRecent(items){
+  if(!recentPlaylists.length) return items;
+  const rank = new Map(recentPlaylists.map((n, i) => [n, i]));
+  return items.slice().sort((a, b) => {
+    const ra = rank.has(a.t) ? rank.get(a.t) : 999;
+    const rb = rank.has(b.t) ? rank.get(b.t) : 999;
+    return ra - rb;
+  });
+}
+
+/* 查导航条关联的列表控件（按 type 匹配同空间里的列表）*/
+function listNavTarget(w){
+  const want = w.target || 'songrow';
+  const list = pageByKey[curPageKey] || [];
+  const m = list.find(x => x.userData.widget.type === want && x.userData.listMeta);
+  if(!m || !m.userData.state.view) return { total:0, visible:1, scroll:0, mesh:null };
+  const r = listRows(m.userData);
+  return { total:r.total, visible:r.visible,
+           scroll:m.userData.state.view.scrollPx, maxScroll:r.maxScrollPx, mesh:m };
+}
+
+/* 列表度量：行数 / 可见行数 / 内容总高（像素）
+   ⚠️ 像素模型（2026-09-22）：标题作为「内容的第一段」参与滚动
+      （标准列表行为：滚上去标题就滚走，不需要"钉住"）。
+      tex.offset 是整体平移，贴图内无法钉住任何元素，故采用此模型。*/
+function listRows(u){
+  const n = (u.widget.items || []).length;
+  const isGrid = u.widget.type === 'grid';
+  const total = isGrid ? Math.ceil(n / 2) : n;
+  const m = u.listMeta;
+  const labelPx = m.labelPx || 0;
+  const contentPx = labelPx + total * m.rowH;          /* 含标题的内容总高 */
+  const maxScrollPx = Math.max(0, contentPx - m.winPx);
+  const visible = Math.max(1, Math.floor((m.winPx - labelPx) / m.rowH));
+  return { total, visible, contentPx, maxScrollPx, labelPx, rowH:m.rowH };
+}
+
+/* 把 tex.offset.y 对齐到当前滚动位置（GPU 侧，零重绘）
+   支持亚像素 → 拖动顺滑 */
+function syncListWindow(mesh){
+  const u = mesh.userData, m = u.listMeta, v = u.state.view;
+  if(!m || !v) return;
+  /* ⚠️ 贴图内容以 firstPx 为起点，贴图内 y = 内容像素 - firstPx
+     要显示 scrollPx 处的内容，贴图内偏移 = scrollPx - firstPx
+     （此前误用 firstPx → 缓冲内滚动时画面完全不动，只在重画时跳一下）*/
+  const innerPx = v.scrollPx - v.firstPx;
+  const raw = 1 - m.repeatY - innerPx / m.ch;
+  u.tex.offset.y = Math.max(0, Math.min(1 - m.repeatY, raw));
+}
+
+/* 重画窗口：把贴图内容搬到 scrollPx 附近 */
+function rebuildListWindow(mesh){
+  const u = mesh.userData, m = u.listMeta, v = u.state.view;
+  if(!m || !v) return;
+  const { maxScrollPx } = listRows(u);
+  v.scrollPx = Math.max(0, Math.min(maxScrollPx, v.scrollPx));
+  /* 窗口起点：向上留 BUF 行缓冲，但不早于内容起点 */
+  const winContentPx = m.ch;                            /* 贴图覆盖的内容高度 */
+  v.firstPx = Math.max(0, Math.min(Math.max(0, listRows(u).contentPx - winContentPx),
+                                   v.scrollPx - LIST_BUF*m.rowH));
+  u.widget.__firstPx = v.firstPx;
+  u.widget.__winPx   = winContentPx;
+  redrawWidget(mesh);          /* 末尾会调 syncListWindow */
+  syncNavFor(mesh);
+}
+
+/* 滚动（像素）*/
+function scrollList(mesh, deltaPx){
+  const u = mesh.userData, v = u.state.view;
+  if(!u.listMeta || !v) return;
+  const { maxScrollPx, rowH } = listRows(u);
+  const before = v.scrollPx;
+  v.scrollPx = Math.max(0, Math.min(maxScrollPx, v.scrollPx + deltaPx));
+  if(Math.abs(v.scrollPx - before) < 0.01) return;
+
+  /* 可见区是否仍完整落在贴图覆盖范围内？是 → 只改 offset；否 → 重画 */
+  const safeLo = v.firstPx;
+  const safeHi = v.firstPx + u.listMeta.ch - u.listMeta.winPx;
+  if(v.scrollPx >= safeLo && v.scrollPx <= safeHi) syncListWindow(mesh);
+  else rebuildListWindow(mesh);
+  syncNavFor(mesh);
+}
+
+/* 跳转到指定「条目」行（搜索直达 / 导航条用）
+   注意：item 行号 ≠ 像素；标题占 labelPx */
+function scrollListTo(mesh, itemRow){
+  const u = mesh.userData, v = u.state.view;
+  if(!u.listMeta || !v) return;
+  const { maxScrollPx, labelPx, rowH } = listRows(u);
+  v.scrollPx = Math.max(0, Math.min(maxScrollPx, labelPx + itemRow*rowH));
+  rebuildListWindow(mesh);
+}
+
+/* 松手吸附：把滚动位置缓动到整行（角度吸附）
+   ⚠️ 像素模型：吸附到「条目行」的像素位置 */
+function tickListSnap(dt){
+  const list = pageByKey[curPageKey];
+  if(!list) return;
+  for(const m of list){
+    const v = m.userData.state && m.userData.state.view;
+    if(!v || v.snapTo === undefined) continue;
+    const d = v.snapTo - v.scrollPx;
+    if(Math.abs(d) < 0.5){
+      v.scrollPx = v.snapTo;
+      v.snapTo = undefined;
+      syncListWindow(m);
+      syncNavFor(m);
+      continue;
+    }
+    const step = d * Math.min(1, dt*14);
+    v.scrollPx += step;
+    /* 对齐过程优先只改 offset，滑出安全区才重画 */
+    const m2 = m.userData.listMeta;
+    const lo = v.firstPx, hi = v.firstPx + m2.ch - m2.winPx;
+    if(v.scrollPx >= lo && v.scrollPx <= hi) syncListWindow(m);
+    else rebuildListWindow(m);
+    syncNavFor(m);
+  }
+}
+
+/* 滚动后刷新关联的导航条（位置数字/滑块要跟着动）*/
+function syncNavFor(mesh){
+  const list = pageByKey[curPageKey] || [];
+  const type = mesh.userData.widget.type;
+  list.forEach(m => {
+    const wd = m.userData.widget;
+    if(wd.type === 'listnav' && (wd.target || 'songrow') === type){
+      if(m.userData._navSkip) return;
+      m.userData._navSkip = true;
+      redrawWidget(m);
+      m.userData._navSkip = false;
+    }
+  });
+}
+
+/* 按「最近访问」重排网格，并把当前项选中（保持视窗不跳）*/
+function reorderGrid(mesh){
+  const u = mesh.userData, v = u.state.view;
+  const cur = u.state.sel;
+  const curName = u.state.items[cur] && u.state.items[cur].t;
+  const ordered = orderByRecent(u.state.items);
+  u.state.items = ordered;
+  u.widget.items = ordered;
+  u.state.sel = ordered.findIndex(x => x.t === curName);
+  if(v){
+    /* 当前项若不在第一屏，把滚动位置带到它那里 */
+    const row = Math.floor(Math.max(0, u.state.sel) / 2);
+    const { visible, labelPx, rowH, maxScrollPx } = listRows(u);
+    const rowTop = labelPx + row*rowH;
+    if(rowTop < v.scrollPx || rowTop >= v.scrollPx + visible*rowH)
+      v.scrollPx = Math.max(0, Math.min(maxScrollPx, rowTop - labelPx));
+  }
+  rebuildListWindow(mesh);
+}
+
+/* 导航条：按纵向比例（fy: 0=顶 1=底）跳转到对应行 */
+function navSeek(navMesh, fy, targetType){
+  const list = pageByKey[curPageKey] || [];
+  const lm = list.find(x => x.userData.widget.type === (targetType || 'songrow') && x.userData.listMeta);
+  if(!lm) return;
+  const u = lm.userData, v = u.state.view;
+  const { maxScrollPx } = listRows(u);
+  if(maxScrollPx <= 0) return;
+
+  /* 面板内上下留 pad（与 DRAW.listnav 一致：pad = 0.14*P）*/
+  const P = navMesh.userData.canvas.width / 5;
+  const padR = (0.14*P) / navMesh.userData.canvas.height;
+  const t = Math.max(0, Math.min(1, (fy - padR) / Math.max(1e-6, 1 - 2*padR)));
+  v.scrollPx = t * maxScrollPx;
+  rebuildListWindow(lm);
+}
+
+function makeWidgetMesh(w, idx, wwOv, hhOv){
+  const ww = wwOv || w.w || PAGE_W;
+  const hh = hhOv || w.h || widgetHeight(w);
+  /* 小控件用更高像素密度，保证清晰 */
+  const ppm = Math.max(PPM, Math.round(620 / ww));
+  const P = ww * ppm / 5 * (w.pscale || 1);
+
+  let cw = Math.round(ww*ppm);
+  let ch = Math.round(hh*ppm);
+  let lyricMeta = null;
+  let listMeta  = null;
+
+  if(w.type === 'lyric3d'){
+    /* 画布按「最多行数」定高，避免切歌时重建贴图 */
+    const maxLines = Math.max.apply(null, TRACKS.map(t => t.lyrics.length));
+    const lh = 0.62*P;
+    ch = Math.round(lh * (maxLines + 1.8));
+    lyricMeta = { lh, top: lh*1.3, ch, repeatY: 1 };
+  }
+
+  /* ⚠️ 列表类控件：窗口化虚拟列表（2026-09-22）
+     真实规模可达数百上千首，绝不能整列画进贴图
+     （500 首需 ~48400px 高 → 撞 canvas 16384 上限 + 114MB 内存）。
+     做法：画布只画「可见窗口 + 上下各 LIST_BUF 行」，滚动改 tex.offset.y。 */
+  if(w.type === 'songrow' || w.type === 'list' || w.type === 'grid'){
+    const Pp = cw/5;                       /* 与 DRAW 里的 P 一致（不含 pscale）*/
+    let rowH;
+    if(w.type === 'grid'){
+      const padPx = 0.30*Pp, gapPx = 0.26*Pp;
+      const cwv = (cw - 2*padPx - gapPx) / 2;
+      rowH = cwv*0.74 + 0.90*Pp;
+    } else if(w.type === 'list'){
+      rowH = 0.85*Pp;
+    } else {
+      rowH = 0.78*Pp;
+    }
+    const winPx = hh * ppm;                /* 面板可见高度（像素）*/
+    const labelPx = w.label ? 0.74*Pp : 0; /* 顶部固定标题带（不参与滚动）*/
+    ch = Math.round(winPx + 2*LIST_BUF*rowH);
+    listMeta = { rowH, winPx, labelPx, ch, repeatY: winPx/ch };
+  }
+
+  const c = document.createElement('canvas');
+  c.width = cw; c.height = ch;
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const faceMat = new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:1, toneMapped:false, fog:false });
+  const sideMat = new THREE.MeshBasicMaterial({ color:0x1C2026, transparent:true, opacity:1, fog:false });
+
+  let mesh;
+  if(w.bare){
+    /* 裸元素：纯平面，没有底板、没有厚度 */
+    mesh = new THREE.Mesh(new THREE.PlaneGeometry(ww, hh), faceMat);
+  } else {
+    const geo = new THREE.BoxGeometry(ww, hh, 0.06);
+    mesh = new THREE.Mesh(geo, [sideMat,sideMat,sideMat,sideMat,faceMat,sideMat]);
+  }
+
+  if(lyricMeta){
+    const winPx = hh * ppm;                    // 面板可见高度 = 多少像素
+    lyricMeta.repeatY = Math.min(1, winPx / ch);
+    tex.repeat.set(1, lyricMeta.repeatY);
+    tex.offset.set(0, 1 - lyricMeta.repeatY);
+  }
+  if(listMeta){
+    /* 裁剪出「窗口」——与 lyric3d 同一套 offset 机制 */
+    tex.repeat.set(1, listMeta.repeatY);
+    tex.offset.set(0, 1 - listMeta.repeatY);
+  }
+
+  /* ⚠️ 不能用 JSON 深拷贝（2026-09-22）：真实规模下 items 可达 523 条，
+     每个控件深拷贝一遍纯属浪费（内存 + 启动时间）。
+     改为浅拷贝一层，items 共享只读引用；可变状态（sel/scrollPx）单独放。 */
+  const view = listMeta
+    ? { scrollPx:0, firstPx:0, winPx:listMeta.winPx, rowH:listMeta.rowH }
+    : null;
+
+  mesh.userData = {
+    widget: w, idx, w: ww, h: hh, canvas: c, tex, faceMat, sideMat,
+    state: Object.assign({}, w, { view }),
+    regions: [], hl:0, enterT:0, enterK:0, enterDelay:0,
+    phase: Math.random()*Math.PI*2,
+    floatDir: new THREE.Vector3(0,1,0),
+    lyricMeta, listMeta
+  };
+  redrawWidget(mesh);
+  return mesh;
+}
+
+function buildPage(key){
+  if(pageByKey[key]) return;
+  const page = PAGES[key];
+  const list = [];
+
+  /* ---- 自由摆放模式（屏幕比例 sf/sv，或球面 az/el）---- */
+  if(page.widgets.some(w => w.az !== undefined || w.sf !== undefined)){
+    const R2 = page.radius || 8;
+    const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov/2)) * R2;
+    const halfW = halfH * (innerWidth/innerHeight);
+
+    page.widgets.forEach((w, i) => {
+      /* 尺寸：优先按「屏幕比例」算，保证各种屏幕观感一致 */
+      let ww = w.w || PAGE_W;
+      let hh = w.h || widgetHeight(w);
+      if(w.fw){
+        ww = w.fw * 2 * halfW;
+        hh = w.square ? ww : (w.fh ? w.fh * 2 * halfH : hh);
+      }
+
+      const mesh = makeWidgetMesh(w, i, ww, hh);
+
+      let pos;
+      if(w.sf !== undefined){
+        /* 屏幕比例 → 世界坐标 */
+        pos = new THREE.Vector3(
+          (w.sf*2 - 1) * halfW,
+          (1 - w.sv*2) * halfH,
+          -R2
+        );
+      } else {
+        const az = (w.az || 0) * Math.PI/180;
+        const el = (w.el || 0) * Math.PI/180;
+        pos = new THREE.Vector3(
+          Math.cos(el)*Math.sin(az)*R2,
+          Math.sin(el)*R2,
+          -Math.cos(el)*Math.cos(az)*R2
+        );
+      }
+      mesh.position.copy(pos);
+      mesh.userData.home = pos.clone();
+      mesh.userData.tilt = w.tilt;      // 有值=固定倾斜（不跟随相机）
+      mesh.userData.floatAmp = w.float; // 0=不漂浮（保持间距稳定）
+      mesh.visible = false;
+      subGroup.add(mesh);
+      list.push(mesh);
+    });
+    pageByKey[key] = list;
+    return;
+  }
+
+  /* ---- 竖列模式 ---- */
+  const gap = 0.55;
+  const hs = page.widgets.map(w => widgetHeight(w));
+  let total = 0;
+  hs.forEach((h,i) => { total += h + (i ? gap : 0); });
+
+  let y = total/2;
+  page.widgets.forEach((w, i) => {
+    const h = hs[i];
+    const cy = y - h/2;
+    y -= h + gap;
+
+    const mesh = makeWidgetMesh(w, i);
+    mesh.position.set(0, cy, -(PAGE_R + (Math.random()-0.5)*0.5));
+    mesh.userData.home = mesh.position.clone();
+    mesh.visible = false;
+    subGroup.add(mesh);
+    list.push(mesh);
+  });
+  pageByKey[key] = list;
+}
+
+function activatePage(key){
+  for(const k in pageByKey){
+    const on = (k === key);
+    pageByKey[k].forEach(m => { m.visible = on; });
+  }
+  subPanels = pageByKey[key];
+}
+
+/* ============================================================
+   沉浸式歌曲页
+   · 3D 黑胶唱片（自由漂浮，非卡片）
+   · 歌词自由滚动，当前句高亮
+   · 进度条可拖动
+============================================================ */
+const TRACKS = [
+  {
+    title:'In My Feelings', artist:'Drake', album:'Scorpion', dur:217, accent:'96,126,158',
+    lyrics:[
+      {t:0,s:'♪'}, {t:7,s:'夜里的风停在窗边'}, {t:14,s:'我把声音调到最小'},
+      {t:21,s:'Kiki, do you love me?'}, {t:28,s:'Are you riding?'},
+      {t:35,s:'说不出口的那句话'}, {t:42,s:'还留在歌里'},
+      {t:49,s:'城市睡着以后'}, {t:56,s:'只剩下这一首歌'},
+      {t:63,s:'循环着 循环着'}, {t:70,s:'♪'},
+      {t:78,s:'你说过的我都记得'}, {t:85,s:'只是没再提起'},
+      {t:92,s:'Kiki, do you love me?'}, {t:99,s:'Are you riding?'},
+      {t:106,s:'我把音量又调大一点'}, {t:113,s:'盖过心里那点声音'},
+      {t:120,s:'♪'}, {t:128,s:'夜深了'}, {t:136,s:'再听一遍就好'}, {t:145,s:'♪'}
+    ]
+  },
+  {
+    title:'黑夜中', artist:'梁博', album:'出现又离开', dur:318, accent:'90,96,124',
+    lyrics:[
+      {t:0,s:'♪'}, {t:9,s:'黑夜中 我看见一道光'}, {t:18,s:'它不刺眼 却很亮'},
+      {t:27,s:'我朝着那个方向走'}, {t:36,s:'走了很久 很久'}, {t:45,s:'♪'},
+      {t:54,s:'风从耳边过去'}, {t:63,s:'带走了一些话'},
+      {t:72,s:'留下来的 我都记得'}, {t:81,s:'黑夜中 我不怕'},
+      {t:90,s:'♪'}, {t:100,s:'天快亮了'}, {t:110,s:'再等一会儿就好'}, {t:120,s:'♪'}
+    ]
+  },
+  {
+    title:'后来', artist:'刘若英', album:'我等你', dur:292, accent:'122,106,106',
+    lyrics:[
+      {t:0,s:'♪'}, {t:10,s:'后来 我总算学会了'}, {t:20,s:'如何去爱'},
+      {t:30,s:'可惜你早已远去'}, {t:40,s:'消失在人海'}, {t:50,s:'♪'},
+      {t:62,s:'后来 终于在眼泪中明白'}, {t:74,s:'有些人 一旦错过就不在'},
+      {t:86,s:'♪'}, {t:98,s:'栀子花 白花瓣'}, {t:110,s:'落在我蓝色百褶裙上'},
+      {t:122,s:'♪'}, {t:134,s:'那时候的爱情'}, {t:146,s:'为什么就能那样简单'}, {t:158,s:'♪'}
+    ]
+  }
+];
+
+/* ---------- 贴图 ---------- */
+function makeVinylTexture(){
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const g = c.getContext('2d');
+  const rg = g.createRadialGradient(256,256,20,256,256,256);
+  rg.addColorStop(0,'#2B2F35'); rg.addColorStop(.5,'#1B1E23'); rg.addColorStop(1,'#131518');
+  g.fillStyle = rg; g.beginPath(); g.arc(256,256,256,0,Math.PI*2); g.fill();
+
+  for(let i=0;i<78;i++){
+    const r = 62 + i*2.5;
+    g.strokeStyle = 'rgba(255,255,255,' + (0.016 + Math.random()*0.022) + ')';
+    g.lineWidth = 1;
+    g.beginPath(); g.arc(256,256,r,0,Math.PI*2); g.stroke();
+  }
+  const hg = g.createLinearGradient(0,0,512,512);
+  hg.addColorStop(0,'rgba(255,255,255,0.11)');
+  hg.addColorStop(.45,'rgba(255,255,255,0)');
+  hg.addColorStop(.56,'rgba(255,255,255,0.055)');
+  hg.addColorStop(1,'rgba(255,255,255,0)');
+  g.globalCompositeOperation = 'overlay';
+  g.fillStyle = hg; g.beginPath(); g.arc(256,256,256,0,Math.PI*2); g.fill();
+  g.globalCompositeOperation = 'source-over';
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function makeLabelTexture(track){
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const g = c.getContext('2d');
+  const a = track.accent.split(',').map(Number);
+  const c1 = 'rgb(' + Math.min(255,a[0]+34) + ',' + Math.min(255,a[1]+34) + ',' + Math.min(255,a[2]+38) + ')';
+  const c2 = 'rgb(' + Math.max(0,a[0]-46) + ',' + Math.max(0,a[1]-44) + ',' + Math.max(0,a[2]-40) + ')';
+
+  const grd = g.createLinearGradient(0,0,512,512);
+  grd.addColorStop(0,c1); grd.addColorStop(1,c2);
+  g.fillStyle = grd; g.beginPath(); g.arc(256,256,256,0,Math.PI*2); g.fill();
+
+  const rg = g.createRadialGradient(170,160,10,170,160,320);
+  rg.addColorStop(0,'rgba(198,204,212,0.18)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = rg; g.beginPath(); g.arc(256,256,256,0,Math.PI*2); g.fill();
+
+  g.strokeStyle = 'rgba(255,255,255,0.20)'; g.lineWidth = 3;
+  for(let i=0;i<3;i++){
+    g.beginPath(); g.arc(256,256,96+i*48, Math.PI*0.12, Math.PI*0.94); g.stroke();
+  }
+  g.strokeStyle = 'rgba(255,255,255,0.10)'; g.lineWidth = 2;
+  g.beginPath(); g.arc(256,256,236,0,Math.PI*2); g.stroke();
+
+  /* 中心孔 */
+  g.fillStyle = 'rgba(9,10,12,0.96)';
+  g.beginPath(); g.arc(256,256,20,0,Math.PI*2); g.fill();
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/* ---------- 3D 黑胶 ---------- */
+const coverGroup = new THREE.Group();
+coverGroup.visible = false;
+scene.add(coverGroup);
+
+const spinner = new THREE.Group();
+coverGroup.add(spinner);
+
+const glowSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: HALO_TEX, color: 0x9FB6CF, transparent:true, opacity:0.5,
+  blending: THREE.AdditiveBlending, depthWrite:false, fog:false }));
+glowSprite.scale.set(3.2,3.2,1);
+glowSprite.position.z = -0.5;
+coverGroup.add(glowSprite);
+
+const vinylDisc = new THREE.Mesh(
+  new THREE.CircleGeometry(1, 96),
+  new THREE.MeshBasicMaterial({ map: makeVinylTexture(), transparent:true, toneMapped:false, fog:false })
+);
+spinner.add(vinylDisc);
+
+const labelMat = new THREE.MeshBasicMaterial({
+  map: makeLabelTexture(TRACKS[0]), transparent:true, toneMapped:false, fog:false });
+const vinylLabel = new THREE.Mesh(new THREE.CircleGeometry(0.48, 64), labelMat);
+vinylLabel.position.z = 0.012;
+spinner.add(vinylLabel);
+
+let vinylBaseY = 3.0;
+
+/* 按屏幕尺寸把黑胶放到"上方居中"的位置 */
+function layoutVinyl(){
+  const d = 8;
+  const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov/2)) * d;
+  const aspect = innerWidth / innerHeight;
+  const halfW = halfH * aspect;
+  const r = halfW * 0.62;          // 直径约占屏宽 62%
+  vinylBaseY = halfH * 0.56;       // 屏幕纵向约 22%
+  coverGroup.position.set(0, vinylBaseY, -d);
+  coverGroup.scale.setScalar(r);
+}
+layoutVinyl();
+
+/* ---------- 播放状态 ---------- */
+const NP = { idx:0, cur:0, playing:true, dragging:false, autoFollow:true, followTimer:null, lyricIdx:0 };
+
+function track(){ return TRACKS[NP.idx]; }
+function fmt(s){ s = Math.max(0, Math.floor(s)); return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); }
+
+const npLyricsEl = document.getElementById('npLyrics');
+const npFill = document.getElementById('npFill');
+const npKnob = document.getElementById('npKnob');
+const npCurEl = document.getElementById('npCur');
+const npDurEl = document.getElementById('npDur');
+const npTitleEl = document.getElementById('npTitle');
+const npArtistEl = document.getElementById('npArtist');
+const npPlayIcon = document.getElementById('npPlayIcon');
+const npBar = document.getElementById('npBar');
+const npWash = document.getElementById('npWash');
+
+let lyEls = [];
+let lastLy = -1;
+let progScrollUntil = 0;
+
+function buildLyrics(){
+  npLyricsEl.innerHTML = '';
+  lyEls = [];
+  track().lyrics.forEach(l => {
+    const d = document.createElement('div');
+    d.className = 'np-ly';
+    d.textContent = l.s;
+    npLyricsEl.appendChild(d);
+    lyEls.push(d);
+  });
+  lastLy = -1;
+}
+
+function curLyricIndex(){
+  const L = track().lyrics;
+  let k = 0;
+  for(let i=0;i<L.length;i++){ if(NP.cur >= L[i].t) k = i; else break; }
+  return k;
+}
+
+function updateLyrics(force){
+  const k = curLyricIndex();
+  if(!force && k === lastLy) return;
+  lastLy = k;
+  lyEls.forEach((el,i)=>{
+    el.classList.toggle('on', i === k);
+    el.classList.toggle('near', Math.abs(i-k) === 1);
+  });
+  if(NP.autoFollow && lyEls[k]){
+    const el = lyEls[k];
+    const target = el.offsetTop - npLyricsEl.clientHeight*0.42 + el.offsetHeight/2;
+    progScrollUntil = Date.now() + 700;
+    npLyricsEl.scrollTo({ top: Math.max(0, target), behavior:'smooth' });
+  }
+}
+
+function updateProgressUI(){
+  const ratio = track().dur ? Math.min(1, NP.cur / track().dur) : 0;
+  npFill.style.width = (ratio*100) + '%';
+  npKnob.style.left  = (ratio*100) + '%';
+  npCurEl.textContent = fmt(NP.cur);
+}
+
+function setPlaying(v){
+  NP.playing = v;
+  npPlayIcon.innerHTML = v
+    ? '<path d="M8 5v14l11-7z"/>'
+    : '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>';
+  /* 同步底部迷你播放条 */
+  const mi = document.getElementById('playIcon');
+  if(mi) mi.innerHTML = npPlayIcon.innerHTML;
+  const disc = document.querySelector('.mini .disc');
+  if(disc) disc.style.animationPlayState = v ? 'running' : 'paused';
+}
+
+/* 同步底部迷你播放条文案（曲名 / 作者·专辑）*/
+function syncMini(){
+  const t = track();
+  const mt = document.querySelector('.mini .info .t');
+  const ma = document.querySelector('.mini .info .a');
+  if(mt) mt.textContent = t.title;
+  if(ma) ma.textContent = t.artist + ' · ' + t.album;
+}
+
+function loadTrack(i){
+  NP.idx = (i + TRACKS.length) % TRACKS.length;
+  NP.cur = 0;
+  const t = track();
+
+  npTitleEl.textContent  = t.title;
+  npArtistEl.textContent = t.artist + ' · ' + t.album;
+  npDurEl.textContent    = fmt(t.dur);
+  npWash.style.setProperty('--wash', 'rgba(' + t.accent + ',0.26)');
+
+  labelMat.map = makeLabelTexture(t);
+  labelMat.needsUpdate = true;
+
+  buildLyrics();
+  updateProgressUI();
+  updateLyrics(true);
+  setPlaying(true);
+
+  syncMini();
+}
+
+function openPlayer(){
+  coverGroup.visible = true;
+  layoutVinyl();
+  document.body.classList.add('playing');
+  loadTrack(NP.idx);
+  pokeNP();
+}
+
+function closePlayer(){
+  coverGroup.visible = false;
+  document.body.classList.remove('playing');
+  document.body.classList.remove('np-idle');
+}
+
+/* ============================================================
+   空间播放器：状态推进 / 歌词滚动
+============================================================ */
+let lastSec = -1;
+
+function nowWidgets(type){
+  const list = pageByKey.now;
+  if(!list) return [];
+  /* ⚠️ m 是 mesh，控件配置在 m.userData.widget 里 */
+  return type ? list.filter(m => m.userData.widget.type === type) : list;
+}
+function redrawNowType(type){ nowWidgets(type).forEach(m => redrawWidget(m)); }
+function redrawNowPage(){ nowWidgets().forEach(m => redrawWidget(m)); }
+
+function lyricTargetOffset(){
+  const ly = nowWidgets('lyric3d')[0];
+  if(!ly) return 0;
+  const meta = ly.userData.lyricMeta;
+  const raw = 1 - (meta.top + NP.lyricIdx * meta.lh) / meta.ch - meta.repeatY/2;
+  return Math.max(0, Math.min(1 - meta.repeatY, raw));
+}
+function snapLyrics(){
+  const ly = nowWidgets('lyric3d')[0];
+  if(ly) ly.userData.tex.offset.y = lyricTargetOffset();
+}
+
+function switchTrack(delta){
+  NP.idx = (NP.idx + delta + TRACKS.length) % TRACKS.length;
+  NP.cur = 0;
+  NP.lyricIdx = 0;
+  lastSec = -1;
+  setPlaying(true);
+  redrawNowPage();
+  snapLyrics();
+  syncMini();
+}
+
+function nowTick(dt){
+  if(!(mode === 'sub' && curPageKey === 'now')) return;
+  const t = track();
+
+  if(NP.playing && !seekDrag){
+    NP.cur += dt;
+    if(NP.cur >= t.dur){ NP.cur = t.dur; setPlaying(false); }
+  }
+
+  /* 当前歌词句变化 → 重画歌词（高亮）*/
+  const k = curLyricIndex();
+  if(k !== NP.lyricIdx){
+    NP.lyricIdx = k;
+    redrawNowType('lyric3d');
+  }
+
+  /* 歌词平滑滚动 */
+  const ly = nowWidgets('lyric3d')[0];
+  if(ly){
+    const target = lyricTargetOffset();
+    ly.userData.tex.offset.y += (target - ly.userData.tex.offset.y) * Math.min(1, dt*4.5);
+  }
+
+  /* 每秒刷新一次控制面板（时间 / 进度）*/
+  const sec = Math.floor(NP.cur);
+  if(sec !== lastSec){
+    lastSec = sec;
+    redrawNowType('transport');
+  }
+}
+
+/* ---------- 歌词滚动：用户拖动时暂停自动跟随 ---------- */
+npLyricsEl.addEventListener('scroll', ()=>{
+  if(Date.now() < progScrollUntil) return;      // 程序滚动，忽略
+  NP.autoFollow = false;
+  clearTimeout(NP.followTimer);
+  NP.followTimer = setTimeout(()=>{ NP.autoFollow = true; updateLyrics(true); }, 4000);
+  pokeNP();
+}, {passive:true});
+
+/* ---------- 进度条拖动 ---------- */
+function seekFromEvent(e){
+  const r = npBar.getBoundingClientRect();
+  const x = Math.min(Math.max(e.clientX - r.left, 0), r.width);
+  NP.cur = (r.width ? x / r.width : 0) * track().dur;
+  updateProgressUI();
+  updateLyrics(true);
+}
+npBar.addEventListener('pointerdown', e=>{
+  NP.dragging = true;
+  npBar.classList.add('drag');
+  try{ npBar.setPointerCapture(e.pointerId); }catch(err){}
+  seekFromEvent(e);
+  pokeNP();
+});
+npBar.addEventListener('pointermove', e=>{ if(NP.dragging) seekFromEvent(e); });
+npBar.addEventListener('pointerup', ()=>{ NP.dragging=false; npBar.classList.remove('drag'); });
+npBar.addEventListener('pointercancel', ()=>{ NP.dragging=false; npBar.classList.remove('drag'); });
+
+/* ---------- 控件 ---------- */
+document.getElementById('npPlay').addEventListener('click', ()=>{ setPlaying(!NP.playing); pokeNP(); });
+document.getElementById('npPrev').addEventListener('click', ()=>{ loadTrack(NP.idx-1); pokeNP(); });
+document.getElementById('npNext').addEventListener('click', ()=>{ loadTrack(NP.idx+1); pokeNP(); });
+document.getElementById('npBack').addEventListener('click', ()=> exitSection());
+
+/* ---------- 沉浸：闲置隐去控件 ---------- */
+let npIdleT = 0;
+function pokeNP(){
+  npIdleT = 0;
+  document.body.classList.remove('np-idle');
+}
+const npEl = document.getElementById('np');
+['pointerdown','touchstart','wheel'].forEach(ev =>
+  npEl.addEventListener(ev, pokeNP, {passive:true}));
+
+/* ---------------- 星空 + 尘埃 ---------------- */
+const starGeo = new THREE.BufferGeometry();
+const STAR_COUNT = 2200;
+const spos = new Float32Array(STAR_COUNT*3), scol = new Float32Array(STAR_COUNT*3);
+for(let i = 0; i < STAR_COUNT; i++){
+  const u = Math.random()*2-1, ph = Math.random()*Math.PI*2, rr = Math.sqrt(1-u*u);
+  const dist = 30 + Math.random()*60;
+  spos[i*3]=Math.cos(ph)*rr*dist; spos[i*3+1]=u*dist; spos[i*3+2]=Math.sin(ph)*rr*dist;
+  const t = Math.random();
+  const c = new THREE.Color().setHSL(0.6+t*0.08, 0.12+t*0.12, 0.5+Math.random()*0.4);
+  scol[i*3]=c.r; scol[i*3+1]=c.g; scol[i*3+2]=c.b;
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(spos,3));
+starGeo.setAttribute('color', new THREE.BufferAttribute(scol,3));
+scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
+  size:0.45, vertexColors:true, transparent:true, opacity:0.8,
+  sizeAttenuation:true, depthWrite:false, blending:THREE.AdditiveBlending })));
+
+const MOTE_N = 150;
+const moteGeo = new THREE.BufferGeometry();
+const motePos = new Float32Array(MOTE_N*3);
+for(let i = 0; i < MOTE_N; i++){
+  const u = Math.random()*2-1, ph = Math.random()*Math.PI*2, rr = Math.sqrt(1-u*u);
+  const dist = 4.5 + Math.random()*9;
+  motePos[i*3]=Math.cos(ph)*rr*dist; motePos[i*3+1]=u*dist; motePos[i*3+2]=Math.sin(ph)*rr*dist;
+}
+moteGeo.setAttribute('position', new THREE.BufferAttribute(motePos,3));
+const motes = new THREE.Points(moteGeo, new THREE.PointsMaterial({
+  map: makeSoftDotTexture(), size:0.55, color:0xC2D2E6, transparent:true, opacity:0.42,
+  sizeAttenuation:true, depthWrite:false, blending:THREE.AdditiveBlending, fog:false }));
+scene.add(motes);
+
+/* ============================================================
+   状态 / 相机
+============================================================ */
+let mode = 'main';
+let busy = false;
+let flyCard = null;
+
+/* 主页：自由环视（不限角度，可以一直转圈）；
+   子页面：横向锁死、纵向可浏览（内容是一列）
+   ⚠️ 主页 yawMax 必须是 Infinity：
+      卡片是环形排列，"当前播放"在 180°，
+      若限制 ±π，拖动会卡在 180°（正好是当前播放），
+      且索引栏跳转会被夹回同一位置。*/
+const CAM = {
+  main: { yawMax: Infinity, pitchMax: 1.30, sensX: 0.012, sensY: 0.008 },
+  sub:  { yawMax: 0.22,     pitchMax: 0.72, sensX: 0.003, sensY: 0.006 }
+};
+
+let dragging=false, lastX=0, lastY=0, downX=0, downY=0, moved=false;
+let yaw=0, pitch=0, curYaw=0, curPitch=0;
+
+/* 角度归一化：yaw 可无限增长，把它和 curYaw 同时减去相同的 2π 倍数，
+   画面完全不变，但数值回到 ±π 附近，避免进子页面时"回卷"转一大圈。*/
+function normalizeYaw(){
+  const k = Math.round(yaw / (Math.PI*2));
+  if(k !== 0){
+    yaw    -= k * Math.PI * 2;
+    curYaw -= k * Math.PI * 2;
+    savedYaw -= k * Math.PI * 2;
+  }
+}
+
+let idleT = 0;
+function pokeUI(){ idleT = 0; document.body.classList.remove('idle'); }
+['touchstart','touchmove','mousedown','mousemove','wheel','keydown']
+  .forEach(ev => addEventListener(ev, pokeUI, {passive:true}));
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+function currentList(){
+  if(mode === 'main') return mainPanels;
+  if(mode === 'sub')  return subPanels;
+  return [];
+}
+
+/* 当前子页面可以自定义相机行为（如空间播放器转动范围更大）*/
+let curPageKey = null;
+function camCfg(){
+  if(mode === 'main') return CAM.main;
+  if(mode === 'sub' && curPageKey && PAGES[curPageKey] && PAGES[curPageKey].cam)
+    return PAGES[curPageKey].cam;
+  return CAM.sub;
+}
+
+/* 射线拾取 & 区域命中（3D 空间里的控件交互）*/
+function raycastWidget(x,y){
+  const rect = canvas.getBoundingClientRect();
+  pointer.x = ((x-rect.left)/rect.width)*2-1;
+  pointer.y = -((y-rect.top)/rect.height)*2+1;
+  scene.updateMatrixWorld(true);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(currentList(), false);
+  return hits.length ? hits[0] : null;
+}
+function hitRegion(hit){
+  if(!hit || !hit.uv) return null;
+  const u = hit.object.userData;
+  const fx = hit.uv.x, fy = 1 - hit.uv.y;
+  for(const r of u.regions){
+    if(fx >= r.x && fx <= r.x + r.w && fy >= r.y && fy <= r.y + r.h)
+      return { r, mesh: hit.object, fx };
+  }
+  return null;
+}
+
+/* 拖动进度条 */
+let seekDrag = false;
+/* 拖动长列表 / 导航条（2026-09-22）*/
+let listDrag = null;
+let navDrag  = null;
+function seekTo(mesh, fx, r){
+  const ratio = Math.max(0, Math.min(1, (fx - r.x) / r.w));
+  NP.cur = ratio * track().dur;
+  lastSec = -1;
+  redrawNowType('transport');
+  redrawNowType('lyric3d');
+}
+
+/* ============================================================
+   交互
+============================================================ */
+function onDown(x,y){
+  dragging=true; lastX=x; lastY=y; downX=x; downY=y; moved=false;
+  seekDrag = false; listDrag = null;
+  if(mode === 'sub'){
+    const hit = raycastWidget(x,y);
+    const g = hitRegion(hit);
+    if(g && g.r.kind === 'seek'){
+      seekDrag = true;
+      seekTo(g.mesh, g.fx, g.r);
+      return;
+    }
+    /* ⚠️ 长列表滚动（2026-09-22）：
+       在列表控件上纵向拖动 = 滚动列表，而不是转相机。
+       否则 523 首歌永远看不到第 100 首之后的。
+       （列表内部无法塞 DOM，所以走「拖动=滚动」这条路）*/
+    if(hit && hit.object.userData.listMeta){
+      const u = hit.object.userData;
+      const { total, visible } = listRows(u);
+      if(total > visible){                 /* 只有内容超出可视区才接管手势 */
+        listDrag = { mesh: hit.object, y0: y, px0: u.state.view.scrollPx };
+        return;
+      }
+    }
+    /* 导航条：按下即按位置跳转，之后可继续拖 */
+    if(g && g.r.kind === 'navtrack'){
+      navDrag = { mesh: hit.object, target: g.r.target };
+      navSeek(hit.object, g.fy, g.r.target);
+      return;
+    }
+  }
+}
+function onMove(x,y){
+  if(!dragging) return;
+  if(Math.abs(x-downX)>6 || Math.abs(y-downY)>6) moved=true;
+
+  /* 正在拖动进度条 */
+  if(seekDrag){
+    const g = hitRegion(raycastWidget(x,y));
+    if(g && g.r.kind === 'seek') seekTo(g.mesh, g.fx, g.r);
+    lastX=x; lastY=y;
+    return;
+  }
+
+  /* 正在滚动长列表：手指上移 = 看后面的行 */
+  if(listDrag){
+    /* 手指上移 dy<0 → 内容上移 → scrollPx 增大 */
+    const dy = y - listDrag.y0;
+    const target = listDrag.px0 - dy * LIST_PX_PER_SCREEN;
+    scrollList(listDrag.mesh, target - listDrag.mesh.userData.state.view.scrollPx);
+    lastX=x; lastY=y;
+    return;
+  }
+
+  /* 正在拖导航条：按纵向位置直接跳 */
+  if(navDrag){
+    const h = hitRegion(raycastWidget(x,y));
+    if(h && h.r.kind === 'navtrack') navSeek(navDrag.mesh, h.fy, navDrag.target);
+    lastX=x; lastY=y;
+    return;
+  }
+
+  if(!busy){
+    const cfg = camCfg();
+    yaw   -= (x-lastX)*cfg.sensX;
+    pitch -= (y-lastY)*cfg.sensY;
+    yaw   = Math.max(-cfg.yawMax, Math.min(cfg.yawMax, yaw));
+    pitch = Math.max(-cfg.pitchMax, Math.min(cfg.pitchMax, pitch));
+  }
+  lastX=x; lastY=y;
+}
+function onUp(x,y){
+  dragging=false;
+  seekDrag=false;
+  navDrag=null;
+  /* ⚠️ 角度吸附（2026-09-22）：松手后把列表对齐到整行。
+     否则会停在半行上，看着像"没对齐"的廉价感。缓动在 animate 里做。*/
+  if(listDrag){
+    const m = listDrag.mesh, v = m.userData.state.view;
+    if(m.userData.listMeta){
+      /* 吸附到最近的「条目行」像素位置 */
+      const mm = m.userData.listMeta;
+      const { labelPx, rowH } = listRows(m.userData);
+      const rel = Math.max(0, v.scrollPx - labelPx);
+      v.snapTo = labelPx + Math.round(rel / rowH) * rowH;
+    }
+    listDrag=null;
+  }
+  if(!moved) pick(x,y);
+}
+function pick(x,y){
+  if(busy) return;
+  const hit = raycastWidget(x,y);
+  if(!hit) return;
+  if(mode === 'main'){ enterSection(hit.object); return; }
+  const g = hitRegion(hit);
+  if(g) handleRegion(g.mesh, g.r);
+}
+
+/* ⚠️ 关键：手机上 touchend 之后系统还会补发一次合成 mouseup，
+   若两者都处理，点击会被执行两次（开关翻转两次=弹回原样）。
+   用一个时间戳，在触摸后的一小段时间内忽略所有鼠标事件。*/
+let lastTouchTs = 0;
+const MOUSE_AFTER_TOUCH = 800;   // ms
+function mouseIsSynthetic(){ return (Date.now() - lastTouchTs) < MOUSE_AFTER_TOUCH; }
+
+canvas.addEventListener('touchstart', e=>{
+  lastTouchTs = Date.now();
+  onDown(e.touches[0].clientX, e.touches[0].clientY);
+},{passive:true});
+canvas.addEventListener('touchmove', e=>{
+  lastTouchTs = Date.now();
+  onMove(e.touches[0].clientX, e.touches[0].clientY);
+},{passive:true});
+canvas.addEventListener('touchend', e=>{
+  lastTouchTs = Date.now();
+  const t = e.changedTouches[0];
+  onUp(t.clientX, t.clientY);
+},{passive:true});
+canvas.addEventListener('touchcancel', ()=>{ lastTouchTs = Date.now(); dragging = false; },{passive:true});
+
+canvas.addEventListener('mousedown', e=>{ if(mouseIsSynthetic()) return; onDown(e.clientX,e.clientY); });
+canvas.addEventListener('mousemove', e=>{ if(mouseIsSynthetic()) return; onMove(e.clientX,e.clientY); });
+canvas.addEventListener('mouseup',   e=>{ if(mouseIsSynthetic()) return; onUp(e.clientX,e.clientY); });
+canvas.addEventListener('mouseleave', ()=>{ dragging=false; });
+
+/* ============================================================
+   控件行为
+============================================================ */
+let searchMesh = null;
+
+/* 我的歌单：tabs / grid / songrow 三者联动 */
+function updateSongList(songs, title){
+  const list = pageByKey[curPageKey] || [];
+  list.filter(m => m.userData.widget.type === 'songrow').forEach(m => {
+    m.userData.widget.label = title;
+    /* ⚠️ 浅拷贝（2026-09-22）：523 首深拷贝是纯浪费，items 共享只读引用 */
+    m.userData.widget.items = songs;
+    m.userData.state.items = songs;
+    m.userData.state.sel = -1;
+    /* 换歌单 → 滚动位置归零（否则会停在上一个歌单的中间）*/
+    if(m.userData.state.view){ m.userData.state.view.scrollPx = 0; m.userData.state.view.firstPx = 0; }
+    redrawWidget(m);
+  });
+}
+function syncPlaylistSet(setKey){
+  const data = PLAYLIST_DATA[setKey] || [];
+  const list = pageByKey[curPageKey] || [];
+  const gm = list.find(m => m.userData.widget.type === 'grid');
+  if(gm){
+    const items = data.map(pl => ({ t:pl.t, sub:pl.sub, g:pl.g, songs:pl.songs }));
+    gm.userData.widget.items = items;
+    gm.userData.state.items = items;
+    gm.userData.state.sel = 0;
+    if(gm.userData.state.view){ gm.userData.state.view.scrollPx = 0; gm.userData.state.view.firstPx = 0; }
+    redrawWidget(gm);
+  }
+  if(data[0]) updateSongList(data[0].songs, data[0].t);
+}
+
+function handleRegion(mesh, r){
+  const u = mesh.userData;
+  switch(r.kind){
+    case 'searchInput':
+    case 'searchGo':
+      searchMesh = mesh;
+      openSheet();
+      break;
+    case 'chip':
+      u.state.sel = (u.state.sel === r.index) ? -1 : r.index;
+      redrawWidget(mesh);
+      u.hl = 0.8;
+      toast('已选择：' + r.value);
+      break;
+    case 'row':
+      u.state.sel = r.index;
+      redrawWidget(mesh);
+      u.hl = 0.8;
+      toast(r.title + ' · ' + r.sub);
+      break;
+    case 'tab': {
+      u.state.sel = r.index;
+      redrawWidget(mesh);
+      u.hl = 0.7;
+      const setKey = (u.widget.sets || [])[r.index];
+      if(setKey) syncPlaylistSet(setKey);
+      toast('已切换：' + r.value);
+      break;
+    }
+    case 'cell': {
+      const it = u.state.items[r.index];
+      u.state.sel = r.index;
+      redrawWidget(mesh);
+      u.hl = 0.8;
+      if(it && it.songs){
+        updateSongList(it.songs, it.t);
+        /* 记入最近访问，并把它排到网格前面（40 个歌单里快速回访）*/
+        touchRecent(it.t);
+        reorderGrid(mesh);
+        toast('已打开：' + it.t + '（' + it.songs.length + ' 首）');
+      }
+      break;
+    }
+    case 'song': {
+      u.state.sel = r.index;
+      redrawWidget(mesh);
+      u.hl = 0.7;
+      toast(r.title + ' · ' + r.sub);
+      break;
+    }
+    case 'toggle': {
+      const it = u.state.items[r.index];
+      it.v = !it.v;
+      redrawWidget(mesh);
+      u.hl = 0.6;
+      toast(it.t + '：' + (it.v ? '已开启' : '已关闭'));
+      break;
+    }
+    case 'play':
+      setPlaying(!NP.playing);
+      redrawWidget(mesh);
+      u.hl = 0.6;
+      break;
+    case 'prev': switchTrack(-1); break;
+    case 'next': switchTrack(1);  break;
+    case 'seek': break;   /* 由拖动处理 */
+  }
+}
+
+/* ============================================================
+   搜索输入面板
+============================================================ */
+const sheetEl = document.getElementById('sheet');
+const sheetInput = document.getElementById('sheetInput');
+
+function openSheet(){
+  sheetEl.classList.add('on');
+  setTimeout(() => sheetInput.focus(), 260);
+}
+function closeSheet(){ sheetEl.classList.remove('on'); sheetInput.blur(); }
+
+document.getElementById('sheetGo').addEventListener('click', submitSearch);
+sheetInput.addEventListener('keydown', e => { if(e.key === 'Enter') submitSearch(); });
+sheetEl.addEventListener('click', e => { if(e.target === sheetEl) closeSheet(); });
+
+function submitSearch(){
+  const v = sheetInput.value.trim();
+  closeSheet();
+  if(!v) return;
+  if(searchMesh){
+    searchMesh.userData.state.value = v;
+    redrawWidget(searchMesh);
+    searchMesh.userData.hl = 1;
+  }
+
+  /* ⚠️ 搜索直达（2026-09-22）：
+     当前空间有长列表时，搜索 = 在列表里找 + 直接跳过去。
+     这是几百首歌曲里最快找到目标的方式（不用一屏屏转）。*/
+  const lm = (pageByKey[curPageKey] || []).find(
+    m => m.userData.listMeta && m.userData.widget.type === 'songrow');
+  if(lm){
+    const items = lm.userData.widget.items || [];
+    const q = v.toLowerCase();
+    const hit = items.findIndex(it => (it.t + ' ' + it.a).toLowerCase().includes(q));
+    if(hit >= 0){
+      scrollListTo(lm, hit);
+      lm.userData.state.sel = hit;
+      lm.userData.hl = 1;
+      redrawWidget(lm);
+      toast('已定位：' + items[hit].t + ' · ' + items[hit].a + '（第 ' + (hit+1) + ' 首）');
+    } else {
+      toast('「' + v + '」没找到（该歌单共 ' + items.length + ' 首）');
+    }
+    return;
+  }
+  toast('搜索：' + v);
+}
+
+/* ============================================================
+   转场
+============================================================ */
+const wipeEl = document.getElementById('wipe');
+const backBtn = document.getElementById('backBtn');
+const crumbEn = document.getElementById('crumbEn');
+const crumbCn = document.getElementById('crumbCn');
+
+function wipe(on){ wipeEl.classList.toggle('on', on); }
+
+function playEnter(list){
+  list.forEach((m,i) => {
+    m.userData.enterT = 0;
+    m.userData.enterK = 0;
+    m.userData.enterDelay = i * 0.055;
+  });
+}
+
+/* 记住进入子页面前的视角，返回时还原 */
+let savedYaw = 0, savedPitch = 0;
+
+function enterSection(mesh){
+  if(busy) return;
+  busy = true;
+  const key = mesh.userData.feature.key;
+  document.body.classList.add('busy');
+
+  /* 记录当前视角（先归一化，避免数值过大）*/
+  normalizeYaw();
+  savedYaw = yaw; savedPitch = pitch;
+
+  flyCard = { mesh, t:0, dur:0.40 };
+  setTimeout(() => wipe(true), 300);
+
+  setTimeout(() => {
+    mesh.position.copy(mesh.userData.home);
+    mesh.scale.set(1,1,1);
+    flyCard = null;
+
+    mainGroup.visible = false;
+    buildPage(key);
+    activatePage(key);
+    subGroup.visible = true;
+
+    mode = 'sub';
+    curPageKey = key;
+    yaw = 0; pitch = 0;
+
+    playEnter(subPanels);
+    rebuildIndex(subPanels);
+
+    /* 空间播放器：初始化歌词高亮与滚动位置 */
+    if(key === 'now'){
+      NP.lyricIdx = curLyricIndex();
+      lastSec = -1;
+      redrawNowPage();
+      snapLyrics();
+    }
+
+    crumbEn.textContent = PAGES[key].en;
+    crumbCn.textContent = PAGES[key].cn;
+    document.body.classList.add('sub');
+    backBtn.classList.add('on');
+
+    wipe(false);
+    busy = false;
+    document.body.classList.remove('busy');
+  }, 470);
+}
+
+function exitSection(){
+  if(busy || mode !== 'sub') return;
+  busy = true;
+  document.body.classList.add('busy');
+  closeSheet();
+  wipe(true);
+
+  setTimeout(() => {
+    subGroup.visible = false;
+    mainGroup.visible = true;
+    mode = 'main';
+
+    /* 还原进入前的视角（回到原来那张卡片的方向）*/
+    yaw = savedYaw; pitch = savedPitch;
+
+    playEnter(mainPanels);
+    rebuildIndex(mainPanels);
+
+    document.body.classList.remove('sub');
+    backBtn.classList.remove('on');
+
+    wipe(false);
+    busy = false;
+    document.body.classList.remove('busy');
+  }, 260);
+}
+backBtn.addEventListener('click', exitSection);
+
+/* ============================================================
+   定位 / 索引栏 / 边缘指示
+============================================================ */
+function lookAtCard(mesh){
+  if(busy) return;
+  const cfg = camCfg();
+  const d = mesh.position.clone().normalize();
+  const targetPitch = Math.asin(THREE.MathUtils.clamp(d.y,-1,1));
+  let targetYaw = Math.atan2(-d.x, -d.z);
+  while(targetYaw - yaw >  Math.PI) targetYaw -= Math.PI*2;
+  while(targetYaw - yaw < -Math.PI) targetYaw += Math.PI*2;
+  yaw   = THREE.MathUtils.clamp(targetYaw,  -cfg.yawMax,   cfg.yawMax);
+  pitch = THREE.MathUtils.clamp(targetPitch,-cfg.pitchMax, cfg.pitchMax);
+  mesh.userData.hl = 1;
+}
+
+const indexBar = document.getElementById('indexBar');
+function rebuildIndex(list){
+  indexBar.innerHTML = '';
+  list.forEach(m => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.textContent = m.userData.feature
+      ? m.userData.feature.title
+      : (m.userData.widget.label || m.userData.widget.type);
+    chip.addEventListener('click', () => lookAtCard(m));
+    indexBar.appendChild(chip);
+  });
+}
+
+const indicators = document.getElementById('indicators');
+const indPool = [];
+function getInd(i){
+  if(!indPool[i]){
+    const el = document.createElement('div');
+    el.className = 'ind';
+    indicators.appendChild(el);
+    indPool[i] = el;
+  }
+  return indPool[i];
+}
+
+const _v = new THREE.Vector3();
+const _invQ = new THREE.Quaternion();
+
+function updateIndicators(list){
+  const tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov*0.5));
+  const aspect = innerWidth/innerHeight;
+  _invQ.copy(camera.quaternion).invert();
+
+  for(let i = 0; i < list.length; i++){
+    const el = getInd(i);
+    const m = list[i];
+    if(!m.visible){ el.style.opacity = 0; continue; }
+    _v.copy(m.position).sub(camera.position).applyQuaternion(_invQ);
+
+    let nx, ny, visible;
+    if(_v.z < -0.01){
+      const d = -_v.z;
+      nx = (_v.x/d)/(tanHalf*aspect);
+      ny = (_v.y/d)/tanHalf;
+      visible = Math.abs(nx) < 0.86 && Math.abs(ny) < 0.86;
+    } else {
+      const d = Math.max(0.01, _v.z);
+      nx = -(_v.x/d)/(tanHalf*aspect);
+      ny = -(_v.y/d)/tanHalf;
+      visible = false;
+    }
+    if(visible){ el.style.opacity = 0; continue; }
+
+    let mx = Math.abs(nx), my = Math.abs(ny);
+    if(mx < 0.001 && my < 0.001){ nx = 0; ny = -1.5; mx = 0; my = 1.5; }
+    const k = 1/Math.max(mx,my);
+    const ex = THREE.MathUtils.clamp(nx*k, -0.93, 0.93);
+    const ey = THREE.MathUtils.clamp(ny*k, -0.93, 0.93);
+    el.style.left = ((ex*0.5+0.5)*100)+'%';
+    el.style.top  = ((-ey*0.5+0.5)*100)+'%';
+    el.style.transform = 'translate(-50%,-50%) rotate(' + (Math.atan2(ex,ey)*180/Math.PI) + 'deg)';
+    el.style.opacity = 1;
+  }
+  for(let i = list.length; i < indPool.length; i++) indPool[i].style.opacity = 0;
+}
+
+/* ============================================================
+   动画循环
+============================================================ */
+const clock = new THREE.Clock();
+const _dir = new THREE.Vector3();
+const _target = new THREE.Vector3();
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.elapsedTime;
+
+  curYaw   += (yaw   - curYaw)   * Math.min(1, dt*6);
+  curPitch += (pitch - curPitch) * Math.min(1, dt*6);
+
+  camera.position.set(
+    Math.sin(t*0.4)*0.12,
+    Math.cos(t*0.31)*0.10,
+    Math.sin(t*0.11)*0.55
+  );
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = curYaw;
+  camera.rotation.x = curPitch;
+  camera.rotation.z = Math.sin(t*0.2)*0.005;
+
+  motes.rotation.y += dt*0.012;
+  motes.rotation.x += dt*0.004;
+
+  idleT += dt;
+  if(idleT > 6 && !busy) document.body.classList.add('idle');
+
+  const list = currentList();
+  for(const m of list){
+    if(!m.visible) continue;
+    const u = m.userData;
+
+    if(u.enterK < 1){
+      u.enterT += dt;
+      const k = Math.min(1, Math.max(0, (u.enterT - u.enterDelay)/0.5));
+      u.enterK = 1 - Math.pow(1-k, 3);
+    }
+    const ek = u.enterK;
+
+    if(u.hl > 0.002) u.hl *= Math.pow(0.06, dt); else u.hl = 0;
+
+    /* 漂浮：默认轻微呼吸；float:0 的控件完全不漂（保持间距稳定）*/
+    const amp = (u.floatAmp === undefined) ? 0.14 : u.floatAmp;
+    const off = Math.sin(t*0.5 + u.phase) * amp * ek;
+    m.position.copy(u.home).multiplyScalar(1 + 1.7*(1-ek)).addScaledVector(u.floatDir, off);
+    m.scale.setScalar((0.45 + 0.55*ek) * (1 + u.hl*0.16));
+
+    /* 朝向：默认始终正对镜头；标了 tilt 的则「固定倾斜」不跟随相机 */
+    if(u.tilt === undefined){
+      m.lookAt(camera.position);
+    } else {
+      const baseYaw = Math.atan2(-m.position.x, -m.position.z);
+      m.rotation.order = 'YXZ';
+      m.rotation.set(0, baseYaw + u.tilt, 0);
+    }
+
+    const dist = camera.position.distanceTo(m.position);
+    const dof = THREE.MathUtils.clamp(1 - (dist-7)/34, 0.5, 1);
+    const isFly = (flyCard && flyCard.mesh === m);
+    const targetOp = isFly ? 1 : (busy ? 0 : dof*ek);
+    u.faceMat.opacity += (targetOp - u.faceMat.opacity) * Math.min(1, dt*9);
+    u.sideMat.opacity = u.faceMat.opacity;
+    if(u.halo) u.halo.material.opacity = u.faceMat.opacity * (0.30 + u.hl*1.5);
+  }
+
+  if(flyCard){
+    flyCard.t += dt;
+    const k = Math.min(1, flyCard.t/flyCard.dur);
+    const e = k*k;
+    _dir.set(0,0,-1).applyQuaternion(camera.quaternion);
+    _target.copy(camera.position).addScaledVector(_dir, 9 - 7.5*e);
+    flyCard.mesh.position.copy(_target);
+    flyCard.mesh.scale.setScalar(1 + e*8);
+    flyCard.mesh.lookAt(camera.position);
+    const fu = flyCard.mesh.userData;
+    if(fu.faceMat) fu.faceMat.opacity = 1;
+    if(fu.sideMat) fu.sideMat.opacity = 1;
+    if(fu.halo)    fu.halo.material.opacity = 0.3;
+  }
+
+  /* 空间播放器：推进播放 / 歌词滚动 */
+  nowTick(dt);
+
+  /* 列表吸附缓动（松手后对齐整行）*/
+  tickListSnap(dt);
+
+  updateIndicators(list);
+  renderer.render(scene, camera);
+}
+
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* ---------------- 启动 ---------------- */
+rebuildIndex(mainPanels);
+playEnter(mainPanels);
+animate();
+
+/* ============================================================
+   UI
+============================================================ */
+(function(){
+  var h = new Date().getHours();
+  var greet, mood;
+  if(h < 5){        greet='Late night.';     mood='夜里还醒着的人，不止你一个。'; }
+  else if(h < 11){  greet='Good morning.';   mood='早安。先放一首，慢慢醒过来。'; }
+  else if(h < 14){  greet='Noon.';           mood='午后的光，有点懒。'; }
+  else if(h < 18){  greet='Good afternoon.'; mood='这个点，适合听点旧的歌。'; }
+  else if(h < 23){  greet='Good evening.';   mood='今晚也想听点安静的吗？'; }
+  else {            greet='Late night.';     mood='夜深了，把声音调小一点。'; }
+  document.getElementById('greet').textContent = greet;
+  document.getElementById('mood').innerHTML = '<span class="dot"></span>' + mood;
+})();
+
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('on'), 1600);
+}
+
+/* 底部迷你播放条：与歌曲页共用播放状态 */
+document.getElementById('playBtn').addEventListener('click', function(){
+  setPlaying(!NP.playing);
+});
+document.getElementById('miniNext').addEventListener('click', function(){
+  switchTrack(1);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#070709">
+<title>Hoper Music · 深空漂移</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    width:100%;height:100%;overflow:hidden;
+    background:#070709;
+    font-family:-apple-system,"PingFang SC","HarmonyOS Sans",sans-serif;
+    color:#EDEDED;
+    -webkit-font-smoothing:antialiased;
+    user-select:none;
+  }
+  #scene{ position:fixed; inset:0; display:block; }
+
+  /* ===== 玻璃 UI 叠加层 ===== */
+  .ui{
+    position:fixed; inset:0; z-index:10;
+    pointer-events:none;
+    display:flex; flex-direction:column;
+    padding:calc(env(safe-area-inset-top,0px) + 20px) 22px calc(env(safe-area-inset-bottom,0px) + 16px);
+  }
+  .ui .grow{ flex:1; }
+
+  /* 顶部问候 */
+  .hero .t{
+    font-size:26px; font-weight:700; letter-spacing:.5px;
+    background:linear-gradient(180deg,#F4F4F6,#8C8C92);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    text-shadow:0 2px 30px rgba(0,0,0,.6);
+  }
+  .hero .s{ margin-top:6px; font-size:12.5px; color:#8A8A8E; letter-spacing:.3px; }
+  .hero .s .dot{
+    display:inline-block;width:5px;height:5px;border-radius:50%;
+    background:#6E7A8A;box-shadow:0 0 10px rgba(110,122,138,.9);
+    vertical-align:middle;margin-right:7px;animation:pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+
+  /* 底部信息 + 进度 */
+  .bottom{ pointer-events:auto; }
+  .now{ display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+  .now .art{
+    width:54px;height:54px;border-radius:14px;flex:0 0 auto;
+    background:conic-gradient(from 40deg,#2A2E38,#3A3F4A,#1A1D23,#2A2E38);
+    box-shadow:0 10px 30px rgba(0,0,0,.6), 0 0 24px -6px rgba(110,122,138,.5);
+    border:1px solid rgba(255,255,255,.08);
+    animation:spin 24s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .now .info{ flex:1; min-width:0; }
+  .now .info .tt{ font-size:15px;font-weight:500;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .now .info .aa{ font-size:11.5px;color:#8A8A8E;margin-top:3px; }
+
+  .progress{ height:2px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden; }
+  .progress i{ display:block;height:100%;width:34%;
+    background:linear-gradient(90deg,#4A5464,#8A97A8);
+    box-shadow:0 0 12px rgba(110,122,138,.8); }
+
+  .hint{
+    text-align:center;font-size:10.5px;color:#4A4A4E;letter-spacing:1px;
+    margin-top:14px;
+  }
+
+  /* 加载 */
+  .loading{
+    position:fixed;inset:0;z-index:30;background:#070709;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;
+    transition:opacity .8s ease;
+  }
+  .loading.hide{ opacity:0; pointer-events:none; }
+  .loading .ring{
+    width:34px;height:34px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.1);border-top-color:#6E7A8A;
+    animation:spin 1s linear infinite;
+  }
+  .loading p{ font-size:11px;color:#4A4A4E;letter-spacing:2px; }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div class="ui">
+  <div class="hero">
+    <div class="t">Good evening.</div>
+    <div class="s"><span class="dot"></span>今晚也想听点安静的吗？</div>
+  </div>
+  <div class="grow"></div>
+  <div class="bottom">
+    <div class="now">
+      <div class="art"></div>
+      <div class="info">
+        <div class="tt">In My Feelings</div>
+        <div class="aa">Drake · Scorpion</div>
+      </div>
+    </div>
+    <div class="progress"><i></i></div>
+    <div class="hint">拖动屏幕 · 转动视角</div>
+  </div>
+</div>
+
+<div class="loading" id="loading">
+  <div class="ring"></div>
+  <p>ENTERING SPACE</p>
+</div>
+
+<script src="../three.min.js"></script>
+<script>
+/* ============================================================
+   深空漂移 · 真 3D 空间
+   - 相机在真实三维空间中沿 -Z 方向飞行
+   - 封面面板悬浮在 Z 轴不同深度，近大远小（真透视）
+   - 雾效 Fog 制造无限纵深
+   - 星空粒子分布在空间各处
+   - 手指拖拽 → 相机绕 Y 轴转动视角
+============================================================ */
+
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x070709, 1);
+
+const scene = new THREE.Scene();
+// 雾：远处被黑暗吞没，形成纵深
+scene.fog = new THREE.FogExp2(0x070709, 0.055);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 400);
+camera.position.set(0, 0, 0);
+
+/* ---------- 光照（让面板有明暗立体感）---------- */
+scene.add(new THREE.AmbientLight(0x8891a0, 0.55));
+const key = new THREE.DirectionalLight(0xaeb8c8, 0.9); key.position.set(3, 6, 4); scene.add(key);
+const rim = new THREE.PointLight(0x5B5468, 1.2, 60); rim.position.set(-8, 4, -10); scene.add(rim);
+const fill = new THREE.PointLight(0x3D4A5C, 1.0, 60); fill.position.set(8, -5, -6); scene.add(fill);
+
+/* ============================================================
+   1. 封面面板 —— 悬浮在空间中的立体物件
+============================================================ */
+const covers = [];
+const palettes = [
+  ['#2A2E38','#101216'], ['#312B3A','#100D15'], ['#232C33','#0B0F12'],
+  ['#2E2A24','#12100C'], ['#26313A','#0E1317'], ['#2C2A34','#0E0C12'],
+  ['#233038','#0B1114'], ['#332B2E','#120D0F']
+];
+const labels = ['深夜','雨天','独处','失眠','迷失','心事','夜行','空白'];
+
+// 用 Canvas 生成"专辑封面"贴图（渐变色 + 文字）
+function makeCoverTexture(i){
+  const c = document.createElement('canvas');
+  c.width = c.height = 512;
+  const g = c.getContext('2d');
+  const [a,b] = palettes[i % palettes.length];
+  const grd = g.createLinearGradient(0,0,512,512);
+  grd.addColorStop(0, a); grd.addColorStop(1, b);
+  g.fillStyle = grd; g.fillRect(0,0,512,512);
+  // 微光晕
+  const rg = g.createRadialGradient(256,180,20,256,180,320);
+  rg.addColorStop(0,'rgba(160,175,195,0.20)');
+  rg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = rg; g.fillRect(0,0,512,512);
+  // 文字
+  g.fillStyle = 'rgba(237,237,237,0.92)';
+  g.font = 'bold 58px -apple-system,"PingFang SC",sans-serif';
+  g.fillText(labels[i % labels.length], 52, 300);
+  g.fillStyle = 'rgba(138,138,142,0.85)';
+  g.font = '28px -apple-system,"PingFang SC",sans-serif';
+  g.fillText((8 + i) + ' 首 · Hoper', 52, 348);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// 几何：带厚度的立方体（真立体，不是平面）
+const COVER_GEO = new THREE.BoxGeometry(3.2, 3.2, 0.22);
+
+const coverGroup = new THREE.Group();
+scene.add(coverGroup);
+
+const TOTAL = 26;
+for(let i = 0; i < TOTAL; i++){
+  const tex = makeCoverTexture(i);
+  const faceMat = new THREE.MeshStandardMaterial({
+    map: tex, roughness: 0.72, metalness: 0.12,
+    emissive: 0x1a1f28, emissiveIntensity: 0.6
+  });
+  const sideMat = new THREE.MeshStandardMaterial({
+    color: 0x14161b, roughness: 0.9, metalness: 0.2
+  });
+  // 立方体六面：正反面用封面贴图，侧面用暗色
+  const mats = [sideMat, sideMat, sideMat, sideMat, faceMat, sideMat];
+  const mesh = new THREE.Mesh(COVER_GEO, mats);
+
+  // 随机分布在空间中（真实的 x/y/z 坐标）
+  const angle = Math.random() * Math.PI * 2;
+  const radius = 6 + Math.random() * 16;
+  mesh.position.set(
+    Math.cos(angle) * radius,
+    (Math.random() - 0.5) * 22,
+    -8 - Math.random() * 150          // Z 轴纵深分布
+  );
+  mesh.rotation.y = (Math.random() - 0.5) * 1.2;
+  mesh.rotation.z = (Math.random() - 0.5) * 0.25;
+
+  mesh.userData = {
+    baseY: mesh.position.y,
+    floatAmp: 0.6 + Math.random() * 1.4,
+    floatSpeed: 0.3 + Math.random() * 0.6,
+    phase: Math.random() * Math.PI * 2,
+    spin: (Math.random() - 0.5) * 0.06
+  };
+  coverGroup.add(mesh);
+  covers.push(mesh);
+}
+
+/* ============================================================
+   2. 星空粒子 —— 分布在整片空间
+============================================================ */
+const starGeo = new THREE.BufferGeometry();
+const STAR_COUNT = 2600;
+const pos = new Float32Array(STAR_COUNT * 3);
+const col = new Float32Array(STAR_COUNT * 3);
+for(let i = 0; i < STAR_COUNT; i++){
+  pos[i*3]   = (Math.random() - 0.5) * 120;
+  pos[i*3+1] = (Math.random() - 0.5) * 120;
+  pos[i*3+2] = -Math.random() * 320;
+  // 冷灰蓝 / 雾紫 色调
+  const t = Math.random();
+  const c = new THREE.Color().setHSL(0.6 + t*0.08, 0.12 + t*0.12, 0.45 + Math.random()*0.4);
+  col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+starGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+const starMat = new THREE.PointsMaterial({
+  size: 0.5, vertexColors: true, transparent: true, opacity: 0.85,
+  sizeAttenuation: true, depthWrite: false, blending: THREE.AdditiveBlending
+});
+const stars = new THREE.Points(starGeo, starMat);
+scene.add(stars);
+
+// 近处大一点的尘埃粒子
+const dustGeo = new THREE.BufferGeometry();
+const DUST = 500;
+const dpos = new Float32Array(DUST * 3);
+for(let i = 0; i < DUST; i++){
+  dpos[i*3]   = (Math.random() - 0.5) * 40;
+  dpos[i*3+1] = (Math.random() - 0.5) * 40;
+  dpos[i*3+2] = -Math.random() * 120;
+}
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dpos, 3));
+const dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({
+  size: 0.9, color: 0x8a97a8, transparent: true, opacity: 0.35,
+  sizeAttenuation: true, depthWrite: false, blending: THREE.AdditiveBlending
+}));
+scene.add(dust);
+
+/* ============================================================
+   3. 交互 —— 手指拖拽转动视角
+============================================================ */
+let dragging = false, lastX = 0, lastY = 0;
+let yaw = 0, pitch = 0;            // 目标朝向
+let curYaw = 0, curPitch = 0;      // 平滑当前朝向
+
+function onDown(x, y){ dragging = true; lastX = x; lastY = y; }
+function onMove(x, y){
+  if(!dragging) return;
+  yaw   -= (x - lastX) * 0.005;
+  pitch -= (y - lastY) * 0.003;
+  yaw   = Math.max(-0.9, Math.min(0.9, yaw));
+  pitch = Math.max(-0.5, Math.min(0.5, pitch));
+  lastX = x; lastY = y;
+}
+function onUp(){ dragging = false; }
+
+canvas.addEventListener('touchstart', e => onDown(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+canvas.addEventListener('touchmove',  e => onMove(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+canvas.addEventListener('touchend', onUp, {passive:true});
+canvas.addEventListener('mousedown', e => onDown(e.clientX, e.clientY));
+canvas.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+canvas.addEventListener('mouseup', onUp);
+canvas.addEventListener('mouseleave', onUp);
+
+/* ============================================================
+   4. 动画循环
+============================================================ */
+const clock = new THREE.Clock();
+let camZ = 0;
+const MAX_ADVANCE = 150;
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t = clock.elapsedTime;
+
+  /* 相机沿 -Z 缓慢飞行（深空漂移）*/
+  camZ -= dt * 2.2;
+  if(camZ < -MAX_ADVANCE) camZ = 0;     // 循环
+
+  // 平滑朝向
+  curYaw   += (yaw   - curYaw)   * Math.min(1, dt * 4);
+  curPitch += (pitch - curPitch) * Math.min(1, dt * 4);
+
+  camera.position.z = camZ;
+  camera.position.x = curYaw * 2.5;
+  camera.position.y = curPitch * 3.0;
+  camera.rotation.y = curYaw * 0.5;
+  camera.rotation.x = curPitch * 0.35;
+
+  /* 面板浮动 + 自转；穿过相机后回收到远处 */
+  for(const m of covers){
+    const u = m.userData;
+    m.position.y = u.baseY + Math.sin(t * u.floatSpeed + u.phase) * u.floatAmp;
+    m.rotation.y += u.spin * dt;
+    // 让面板轻微朝向相机（billboard 效果）
+    const dz = m.position.z - camera.position.z;
+    if(dz > 3){                       // 被相机越过 → 循环回远处
+      m.position.z = camera.position.z - 150 - Math.random() * 40;
+    }
+  }
+
+  /* 星空随相机反向漂移（增强飞行感）*/
+  stars.position.z = camera.position.z * 0.35;
+  dust.position.z  = camera.position.z * 0.7;
+  starMat.opacity = 0.85;
+
+  renderer.render(scene, camera);
+}
+
+/* 自适应 */
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* 启动 */
+animate();
+setTimeout(()=> document.getElementById('loading').classList.add('hide'), 700);
+</script>
+</body>
+</html>

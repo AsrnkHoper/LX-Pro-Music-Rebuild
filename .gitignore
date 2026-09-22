@@ -1,0 +1,16 @@
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+*.log
+
+# Python（本地起 http.server 时可能产生）
+__pycache__/
+*.py[cod]
+
+# 临时文件
+/tmp/
+*.tmp
