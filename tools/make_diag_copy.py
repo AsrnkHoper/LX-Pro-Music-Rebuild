@@ -29,9 +29,15 @@ marker = "/* ---------------- 启动 ---------------- */"
 export = '''/* 调试导出（临时副本专用）*/
 try{ window.__LXP = {
   get LIQUID(){return LIQUID}, get BLOOM(){return BLOOM},
-  get LIQUID_FAILED(){return LIQUID_FAILED}, get GLASS_ON(){return GLASS_ON},
+  get LIQUID_FAILED(){return LIQUID_FAILED}, get BLOOM_FAILED(){return BLOOM_FAILED},
+  get GLASS_ON(){return GLASS_ON},
   get mainPanels(){return mainPanels}, get mode(){return mode},
-  get scene(){return scene}, get renderer(){return renderer}
+  get scene(){return scene}, get renderer(){return renderer},
+  get camera(){return camera},
+  gotoSpace: (typeof gotoSpace !== 'undefined') ? gotoSpace : null,
+  enterSection: (typeof enterSection !== 'undefined') ? enterSection : null,
+  nowWidgets: (typeof nowWidgets !== 'undefined') ? nowWidgets : null,
+  PAGES: (typeof PAGES !== 'undefined') ? PAGES : null
 }; }catch(e){ window.__LXP = {err:e.message}; }
 '''
 assert marker in src, 'marker 未找到'
