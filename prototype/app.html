@@ -378,28 +378,30 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.setClearColor(0x08090C, 1);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x08090C, 0.03);
+scene.fog = new THREE.FogExp2(0x08090C, 0.018);   /* 2026-09-22 减弱：原 0.03 让远处卡片过暗 */
 const camera = new THREE.PerspectiveCamera(68, innerWidth/innerHeight, 0.1, 500);
 
 /* ---------------- 主页 6 卡 ---------------- */
+/* ⚠️ 6 张卡（2026-09-22 按用户要求删除「播放历史」）：
+   只保留 当前播放 / 搜索 / 我的歌单 / 听歌统计 / 下载管理 / 设置。
+   360° / 6 = 60° 均匀环绕。 */
 const FEATURES = [
   { key:'now',      title:'当前播放', sub:'NOW PLAYING', desc:'正在播放的歌曲',     w:4.0, h:2.85 },
   { key:'search',   title:'搜索',     sub:'SEARCH',      desc:'歌曲 · 歌手 · 专辑', w:3.9, h:2.5 },
   { key:'playlist', title:'我的歌单', sub:'PLAYLISTS',   desc:'收藏与自建歌单',     w:3.9, h:2.5 },
   { key:'stats',    title:'听歌统计', sub:'STATS',       desc:'时长 · 排行 · 习惯', w:3.9, h:2.5 },
   { key:'download', title:'下载管理', sub:'DOWNLOADS',   desc:'已下载的歌曲与歌词', w:3.9, h:2.5 },
-  { key:'settings', title:'设置',     sub:'SETTINGS',    desc:'主题 · 音质 · 关于', w:3.9, h:2.5 },
-  { key:'history',  title:'播放历史', sub:'HISTORY',     desc:'最近听过的歌',       w:3.6, h:2.25 }
+  { key:'settings', title:'设置',     sub:'SETTINGS',    desc:'主题 · 音质 · 关于', w:3.9, h:2.5 }
 ];
 /* 7 张卡：水平均匀环绕（约 51° 一张），上下轻微错落（±5°）*/
+/* 6 张卡：水平均匀环绕（60° 一张），上下轻微错落（±4°）*/
 const SPOTS = [
   { az:   0, el:  0 },   // 当前播放 ← 正前方
-  { az:  51, el:  4 },   // 搜索
-  { az: 103, el: -4 },   // 我的歌单
-  { az: 154, el:  4 },   // 听歌统计
-  { az: 206, el: -3 },   // 下载管理
-  { az: 257, el:  3 },   // 设置
-  { az: 309, el: -4 }    // 播放历史
+  { az:  60, el:  4 },   // 搜索
+  { az: 120, el: -4 },   // 我的歌单
+  { az: 180, el:  4 },   // 听歌统计
+  { az: 240, el: -3 },   // 下载管理
+  { az: 300, el:  3 }    // 设置
 ];
 
 /* ---------------- 我的歌单：数据 ---------------- */
@@ -564,8 +566,8 @@ const PAGES = {
        · 正面右：选中歌单的歌曲列表（最多 523 首，窗口化虚拟滚动）
        · 最右：导航条（拖它直接跳到任意位置）
        ⚠️ 真实规模下「找不到目标」是最大痛点，故必须同屏给出定位手段。*/
-    cam: { yawMax: 1.08, pitchMax: 0.55, sensX: 0.0055, sensY: 0.005 },
-    radius: 7,
+    cam: { yawMax: 1.15, pitchMax: 0.60, sensX: 0.0075, sensY: 0.007 },   /* 2026-09-22 提高灵敏度 */
+    radius: 6.2,   /* 2026-09-22 拉近 */
     widgets: [
       /* 搜索直达：几百首里输入即跳（比一屏屏转快得多）*/
       { type:'search', label:'搜索', placeholder:'搜歌名 · 歌手',
@@ -611,8 +613,8 @@ const PAGES = {
        · 封面：屏幕右半边，斜对镜头
        · 进度/控制：封面正下方，正对镜头（方便交互）
        · 左右转动：歌曲信息 / 播放队列 */
-    cam: { yawMax: 0.95, pitchMax: 0.55, sensX: 0.0055, sensY: 0.005 },
-    radius: 7,
+    cam: { yawMax: 1.00, pitchMax: 0.60, sensX: 0.0075, sensY: 0.007 },   /* 2026-09-22 提高灵敏度 */
+    radius: 6.2,   /* 2026-09-22 拉近 */
     widgets: [
       /* 歌词：左半屏 + 斜置，字更大
          ⚠️ sv 决定「高亮行」的位置（高亮行在面板正中）→ 0.47 = 屏幕中央 */
@@ -674,20 +676,7 @@ const PAGES = {
   },
 
   /* ---- 精简菜单后的空间（按实际使用保留）---- */
-  history: {
-    en:'HISTORY', cn:'播放历史',
-    widgets: [
-      { type:'list', label:'今天', items:[
-        { t:'夜里的风', s:'Drake · 02:12' },
-        { t:'后来',     s:'刘若英 · 04:52' },
-        { t:'消愁',     s:'毛不易 · 03:19' }
-      ]},
-      { type:'list', label:'昨天', items:[
-        { t:'黑夜中', s:'梁博 · 05:18' },
-        { t:'Ghost',  s:'Justin Bieber · 03:20' }
-      ]}
-    ]
-  }
+
 };
 
 /* ---------------- 配色 ---------------- */
@@ -727,8 +716,10 @@ function hairline(g, x1,y,x2, alpha){
   g.beginPath(); g.moveTo(x1,y); g.lineTo(x2,y); g.stroke();
 }
 function label(g, text, x, y, P, alpha){
-  g.fillStyle = 'rgba(152,160,172,' + (alpha||0.78) + ')';
-  g.font = '400 ' + Math.round(0.23*P) + 'px ' + FONT;
+  /* ⚠️ 提亮 + 放大（2026-09-22 用户反馈「灰色字看不清」）：
+     原 rgba(152,160,172,0.78) / 0.23P → 现更亮更大 */
+  g.fillStyle = 'rgba(186,196,212,' + (alpha||0.92) + ')';
+  g.font = '500 ' + Math.round(0.28*P) + 'px ' + FONT;
   g.textAlign = 'left'; g.textBaseline = 'alphabetic';
   g.fillText(text, x, y);
 }
@@ -893,7 +884,7 @@ const DRAW = {
     const cols = 2, gap = 0.26*P;
     const cw = (W - 2*pad - (cols-1)*gap) / cols;
     const artH = cw * 0.74;
-    const rowH = artH + 0.90*P;
+    const rowH = artH + 1.06*P;   /* 行高 +18%（字号放大）*/
     const items = w.items || [];
     const n = items.length;
     const totalRows = Math.ceil(n / cols);
@@ -935,12 +926,12 @@ const DRAW = {
         }
 
         g.textAlign = 'left'; g.textBaseline = 'alphabetic';
-        g.fillStyle = sel ? 'rgba(246,250,254,0.98)' : 'rgba(232,238,246,0.92)';
-        g.font = '500 ' + Math.round(0.25*P) + 'px ' + FONT;
-        g.fillText(it.t, cx + 0.05*P, cy + artH + 0.38*P, cw - 0.1*P);
-        g.fillStyle = 'rgba(150,158,170,0.75)';
-        g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
-        g.fillText(it.sub, cx + 0.05*P, cy + artH + 0.70*P, cw - 0.1*P);
+        g.fillStyle = sel ? 'rgba(248,251,255,1)' : 'rgba(240,244,250,0.98)';
+        g.font = '600 ' + Math.round(0.30*P) + 'px ' + FONT;
+        g.fillText(it.t, cx + 0.05*P, cy + artH + 0.42*P, cw - 0.1*P);
+        g.fillStyle = 'rgba(178,188,204,0.90)';
+        g.font = '400 ' + Math.round(0.24*P) + 'px ' + FONT;
+        g.fillText(it.sub, cx + 0.05*P, cy + artH + 0.76*P, cw - 0.1*P);
 
         R.push({ x:cx/W, y:cy/H, w:cw/W, h:(artH+0.90*P)/H, kind:'cell', index:i, title:it.t });
       }
@@ -961,7 +952,7 @@ const DRAW = {
   songrow(g, W, H, w, st, idx){
     const P = W/5, R = [];
     const pad = 0.26*P;
-    const rowH = 0.78*P;
+    const rowH = 0.96*P;          /* 行高 +23%（2026-09-22：字号放大后行距要跟上）*/
     const items = w.items || [];
     const n = items.length;
     const v = st.view || (st.view = { start:0, count:Math.max(1, Math.floor(H/rowH)) });
@@ -969,7 +960,7 @@ const DRAW = {
     /* 像素模型（2026-09-22）：贴图起点 = __firstPx（内容坐标）
        标题作为「第 0 段内容」参与滚动（标准列表行为）*/
     const firstPx = w.__firstPx || 0;
-    const labelH = w.label ? 0.74*P : 0;
+    const labelH = w.label ? 0.90*P : 0;
     /* 贴图首行对应的内容像素 = firstPx；行 i 的内容像素 = labelH + i*rowH */
     const first = Math.max(0, Math.floor((firstPx - labelH) / rowH));
     const last  = Math.min(n, first + Math.ceil(H/rowH) + 2*LIST_BUF + 2);
@@ -1065,11 +1056,11 @@ const DRAW = {
       const first = Math.floor(t.scroll) + 1;
       const lastN = Math.min(total, Math.floor(t.scroll) + visible);
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillStyle = 'rgba(232,238,246,0.90)';
-      g.font = '500 ' + Math.round(0.15*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(240,246,254,0.98)';
+      g.font = '600 ' + Math.round(0.21*P) + 'px ' + FONT;
       g.fillText(first + '-' + lastN, W/2, ty0 - 0.20*P > 0 ? ty0 - 0.20*P : 0.10*P);
-      g.fillStyle = 'rgba(150,158,170,0.72)';
-      g.font = '400 ' + Math.round(0.13*P) + 'px ' + FONT;
+      g.fillStyle = 'rgba(178,188,204,0.92)';
+      g.font = '400 ' + Math.round(0.17*P) + 'px ' + FONT;
       g.fillText('共 ' + total, W/2, ty1 + 0.20*P);
     }
 
@@ -1964,7 +1955,7 @@ function makeSoftDotTexture(){
 const mainGroup = new THREE.Group(); scene.add(mainGroup);
 const subGroup  = new THREE.Group(); subGroup.visible = false; scene.add(subGroup);
 
-const R = 6.5;
+const R = 5.6;   /* 2026-09-22 用户反馈「卡片离得太远」→ 6.5 拉近到 5.6 */
 const mainPanels = [];
 
 FEATURES.forEach((f, i) => {
@@ -2163,7 +2154,7 @@ const pageByKey = {};
 let subPanels = [];
 const PPM = 130;
 const PAGE_W = 5.0;
-const PAGE_R = 8.4;
+const PAGE_R = 7.4;   /* 2026-09-22 拉近（原 8.4 太远）*/
 
 function redrawWidget(mesh){
   const u = mesh.userData;
@@ -2194,7 +2185,7 @@ function redrawWidget(mesh){
    · 滚出缓冲才重画（把窗口搬到新位置）
    · 交互：在列表上纵向拖动 = 滚动该列表（不转相机）
 ============================================================ */
-const LIST_PX_PER_SCREEN = 1.6;    /* 纵向拖一屏 = 滚 1.6 屏内容（手感）*/
+const LIST_PX_PER_SCREEN = 2.2;    /* 纵向拖一屏 = 滚 2.2 屏内容（2026-09-22 用户反馈：原 1.6 太钝）*/
 
 /* ============================================================
    最近访问置顶（2026-09-22）
@@ -2254,6 +2245,7 @@ function listRows(u){
 function syncListWindow(mesh){
   const u = mesh.userData, m = u.listMeta, v = u.state.view;
   if(!m || !v) return;
+  if(!isFinite(v.scrollPx) || !isFinite(v.firstPx)) return;   /* 防 NaN 扩散 */
   /* ⚠️ 贴图内容以 firstPx 为起点，贴图内 y = 内容像素 - firstPx
      要显示 scrollPx 处的内容，贴图内偏移 = scrollPx - firstPx
      （此前误用 firstPx → 缓冲内滚动时画面完全不动，只在重画时跳一下）*/
@@ -2267,6 +2259,10 @@ function rebuildListWindow(mesh){
   const u = mesh.userData, m = u.listMeta, v = u.state.view;
   if(!m || !v) return;
   const { maxScrollPx } = listRows(u);
+  /* ⚠️ 防 NaN（2026-09-22）：NaN 一旦进入 scrollPx，
+     Math.min/max 都无法纠正 → firstPx=NaN → DRAW 循环不执行 → 贴图全空。
+     这是「列表突然啥都没有」的根因之一。 */
+  if(!isFinite(v.scrollPx)) v.scrollPx = 0;
   v.scrollPx = Math.max(0, Math.min(maxScrollPx, v.scrollPx));
   /* 窗口起点：向上留 BUF 行缓冲，但不早于内容起点 */
   const winContentPx = m.ch;                            /* 贴图覆盖的内容高度 */
@@ -2282,6 +2278,8 @@ function rebuildListWindow(mesh){
 function scrollList(mesh, deltaPx){
   const u = mesh.userData, v = u.state.view;
   if(!u.listMeta || !v) return;
+  if(!isFinite(v.scrollPx)) v.scrollPx = 0;
+  if(!isFinite(deltaPx)) return;
   const { maxScrollPx, rowH } = listRows(u);
   const before = v.scrollPx;
   v.scrollPx = Math.max(0, Math.min(maxScrollPx, v.scrollPx + deltaPx));
@@ -2305,6 +2303,34 @@ function scrollListTo(mesh, itemRow){
   rebuildListWindow(mesh);
 }
 
+/* ⚠️ 惯性滑动（2026-09-22 用户要求）：
+   松手后按速度继续滚动，每帧衰减（摩擦系数 0.94/帧 @60fps）。
+   速度降到阈值以下 → 转为吸附对齐整行。
+   与 tickListSnap 互斥：有 vel 时不吸附，vel 归零后由 onUp 逻辑接管。 */
+const LIST_FRICTION = 0.955;   /* 每帧保留 95.5%（越大滑越远）*/
+const LIST_MIN_VEL  = 0.15;    /* px/ms：低于此值停止惯性 */
+const LIST_MAX_VEL  = 6;       /* px/ms：速度上限（防异常大速度导致狂滑）*/
+function tickListInertia(dt){
+  const list = pageByKey[curPageKey];
+  if(!list) return;
+  for(const m of list){
+    const v = m.userData.state && m.userData.state.view;
+    if(!v || !v.vel) continue;
+    /* 按帧归一化衰减（60fps 基准），保证不同帧率手感一致 */
+    const decay = Math.pow(LIST_FRICTION, dt * 60);
+    v.vel *= decay;
+    /* ⚠️ vel 单位 px/ms → 本帧位移 = vel × dt(ms)（2026-09-22 修正量纲）*/
+    scrollList(m, v.vel * dt * 1000);
+    if(Math.abs(v.vel) < LIST_MIN_VEL){
+      v.vel = 0;
+      /* 惯性结束 → 吸附对齐整行 */
+      const { labelPx, rowH } = listRows(m.userData);
+      const rel = Math.max(0, v.scrollPx - labelPx);
+      v.snapTo = labelPx + Math.round(rel / rowH) * rowH;
+    }
+  }
+}
+
 /* 松手吸附：把滚动位置缓动到整行（角度吸附）
    ⚠️ 像素模型：吸附到「条目行」的像素位置 */
 function tickListSnap(dt){
@@ -2314,8 +2340,10 @@ function tickListSnap(dt){
     const v = m.userData.state && m.userData.state.view;
     if(!v || v.snapTo === undefined) continue;
     const d = v.snapTo - v.scrollPx;
-    if(Math.abs(d) < 0.5){
-      v.scrollPx = v.snapTo;
+    /* ⚠️ NaN 会让 Math.abs(d)<0.5 永远为 false → snapTo 永不清除
+       → 每帧无限重画（性能崩溃）。必须显式判 NaN 并清除。 */
+    if(!isFinite(d) || Math.abs(d) < 0.5){
+      v.scrollPx = isFinite(v.snapTo) ? v.snapTo : 0;
       v.snapTo = undefined;
       syncListWindow(m);
       syncNavFor(m);
@@ -2379,8 +2407,11 @@ function navSeek(navMesh, fy, targetType){
   /* 面板内上下留 pad（与 DRAW.listnav 一致：pad = 0.14*P）*/
   const P = navMesh.userData.canvas.width / 5;
   const padR = (0.14*P) / navMesh.userData.canvas.height;
-  const t = Math.max(0, Math.min(1, (fy - padR) / Math.max(1e-6, 1 - 2*padR)));
+  /* ⚠️ fy 可能是 undefined（若调用方没传）→ 必须兜底，否则 NaN 污染整条链路 */
+  const safeFy = (typeof fy === 'number' && isFinite(fy)) ? fy : 0;
+  const t = Math.max(0, Math.min(1, (safeFy - padR) / Math.max(1e-6, 1 - 2*padR)));
   v.scrollPx = t * maxScrollPx;
+  if(!isFinite(v.scrollPx)) v.scrollPx = 0;
   rebuildListWindow(lm);
 }
 
@@ -2459,7 +2490,7 @@ function makeWidgetMesh(w, idx, wwOv, hhOv){
      每个控件深拷贝一遍纯属浪费（内存 + 启动时间）。
      改为浅拷贝一层，items 共享只读引用；可变状态（sel/scrollPx）单独放。 */
   const view = listMeta
-    ? { scrollPx:0, firstPx:0, winPx:listMeta.winPx, rowH:listMeta.rowH }
+    ? { scrollPx:0, firstPx:0, winPx:listMeta.winPx, rowH:listMeta.rowH, vel:0 }
     : null;
 
   mesh.userData = {
@@ -2978,7 +3009,7 @@ let flyCard = null;
       且索引栏跳转会被夹回同一位置。*/
 const CAM = {
   main: { yawMax: Infinity, pitchMax: 1.30, sensX: 0.012, sensY: 0.008 },
-  sub:  { yawMax: 0.22,     pitchMax: 0.72, sensX: 0.003, sensY: 0.006 }
+  sub:  { yawMax: 0.22,     pitchMax: 0.72, sensX: 0.005, sensY: 0.008 }   /* 2026-09-22 提高灵敏度 */
 };
 
 let dragging=false, lastX=0, lastY=0, downX=0, downY=0, moved=false;
@@ -3034,7 +3065,10 @@ function hitRegion(hit){
   const fx = hit.uv.x, fy = 1 - hit.uv.y;
   for(const r of u.regions){
     if(fx >= r.x && fx <= r.x + r.w && fy >= r.y && fy <= r.y + r.h)
-      return { r, mesh: hit.object, fx };
+      /* ⚠️ fy 必须返回（2026-09-22 修）：导航条 navSeek 需要纵向比例，
+         此前只返回 fx → navSeek 收到 undefined → t=NaN → scrollPx=NaN
+         → 列表彻底失效（拖动导航条后什么都滚不动）。 */
+      return { r, mesh: hit.object, fx, fy };
   }
   return null;
 }
@@ -3074,7 +3108,9 @@ function onDown(x,y){
       const u = hit.object.userData;
       const { total, visible } = listRows(u);
       if(total > visible){                 /* 只有内容超出可视区才接管手势 */
-        listDrag = { mesh: hit.object, y0: y, px0: u.state.view.scrollPx };
+        listDrag = { mesh: hit.object, y0: y, px0: u.state.view.scrollPx,
+                     vY:0, lastY:y, lastT:Date.now() };   /* 惯性：追踪速度 */
+        u.state.view.vel = 0;
         return;
       }
     }
@@ -3103,7 +3139,21 @@ function onMove(x,y){
     /* 手指上移 dy<0 → 内容上移 → scrollPx 增大 */
     const dy = y - listDrag.y0;
     const target = listDrag.px0 - dy * LIST_PX_PER_SCREEN;
-    scrollList(listDrag.mesh, target - listDrag.mesh.userData.state.view.scrollPx);
+    const mesh = listDrag.mesh;
+    const before = mesh.userData.state.view.scrollPx;
+    scrollList(mesh, target - before);
+    /* ⚠️ 惯性（2026-09-22 用户要求「滑动惯性」）：
+       按时间戳算瞬时速度（px/ms），松手后由 animate 继续衰减推进。
+       用时间戳而非帧数，避免不同帧率下速度不一致。 */
+    const now = Date.now();
+    const dtm = Math.max(1, now - listDrag.lastT);
+    /* ⚠️ 速度单位 = px/ms（2026-09-22 修正：原先误把每帧位移当速度，量纲错）
+       ⚠️ 必须 clamp：若事件间隔极短（<1ms，或同步派发）dv 会爆成上百，
+          导致松手后疯狂滑动几百屏。上限 6 px/ms ≈ 6000px/s，已很快。 */
+    const dv = (mesh.userData.state.view.scrollPx - before) / dtm;
+    listDrag.vY = Math.max(-LIST_MAX_VEL, Math.min(LIST_MAX_VEL,
+                    listDrag.vY * 0.6 + dv * 0.4));   /* 平滑，避免抖动 */
+    listDrag.lastT = now;
     lastX=x; lastY=y;
     return;
   }
@@ -3134,11 +3184,18 @@ function onUp(x,y){
   if(listDrag){
     const m = listDrag.mesh, v = m.userData.state.view;
     if(m.userData.listMeta){
-      /* 吸附到最近的「条目行」像素位置 */
-      const mm = m.userData.listMeta;
-      const { labelPx, rowH } = listRows(m.userData);
-      const rel = Math.max(0, v.scrollPx - labelPx);
-      v.snapTo = labelPx + Math.round(rel / rowH) * rowH;
+      /* ⚠️ 惯性滑动（2026-09-22）：松手时把速度交给 animate 继续推进。
+         速度太小（<0.25 px/ms）就不惯性，直接吸附 —— 否则会「滑一下停不住」。 */
+      const vel = Math.max(-LIST_MAX_VEL, Math.min(LIST_MAX_VEL, listDrag.vY || 0));
+      if(Math.abs(vel) > 0.15){
+        v.vel = vel;
+        v.snapTo = undefined;              /* 惯性期间不吸附 */
+      } else {
+        v.vel = 0;
+        const { labelPx, rowH } = listRows(m.userData);
+        const rel = Math.max(0, v.scrollPx - labelPx);
+        v.snapTo = labelPx + Math.round(rel / rowH) * rowH;
+      }
     }
     listDrag=null;
   }
@@ -3591,7 +3648,7 @@ function animate(){
     }
 
     const dist = camera.position.distanceTo(m.position);
-    const dof = THREE.MathUtils.clamp(1 - (dist-7)/34, 0.5, 1);
+    const dof = THREE.MathUtils.clamp(1 - (dist-6)/40, 0.72, 1);   /* 2026-09-22 减轻景深变暗 */
     const isFly = (flyCard && flyCard.mesh === m);
     const targetOp = isFly ? 1 : (busy ? 0 : dof*ek);
     u.faceMat.opacity += (targetOp - u.faceMat.opacity) * Math.min(1, dt*9);
@@ -3617,7 +3674,8 @@ function animate(){
   /* 空间播放器：推进播放 / 歌词滚动 */
   nowTick(dt);
 
-  /* 列表吸附缓动（松手后对齐整行）*/
+  /* 列表惯性 + 吸附（松手后先惯性滑行，停下再对齐整行）*/
+  tickListInertia(dt);
   tickListSnap(dt);
 
   updateIndicators(list);
