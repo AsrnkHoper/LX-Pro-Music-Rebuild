@@ -33,7 +33,8 @@ code += `
   curLyricIndex, nowWidgets, TRACKS, DRAW, widgetHeight,
   get NP(){return NP;}, get mode(){return mode;}, set mode(v){mode=v;},
   get busy(){return busy;}, get curPageKey(){return curPageKey;},
-  set curPageKey(v){curPageKey=v;}, get flyCard(){return flyCard;} };`;
+  set curPageKey(v){curPageKey=v;}, get flyCard(){return flyCard;},
+  REAL: (typeof REAL !== 'undefined') ? REAL : null };`;
 
 try { eval(code); }
 catch(e){ console.error('❌ app.html 加载期异常:', e.message); process.exit(1); }
@@ -256,6 +257,51 @@ barsWs.forEach(m => {
   if(y + n*rowH > c.height + 1) barsOK = false;
 });
 ok(barsOK, `bars 行高自适应，${barsWs.length} 个排行内容均不超出面板`);
+
+/* ── 5c. 真实数据接入（REAL） ── */
+console.log('\n════ 5c. 真实数据接入 ════');
+const REAL = T.REAL;
+ok(typeof REAL === 'object' && REAL !== null, 'REAL 数据块存在');
+if(REAL && typeof REAL === 'object'){
+  ok(REAL.overview.songs === 3208, `全部歌曲 ${REAL.overview.songs} 首（应为真实值 3208）`);
+  ok(REAL.overview.playlists === 40, `自建歌单 ${REAL.overview.playlists} 个（应为 40）`);
+  ok(REAL.overview.plays === 649, `播放次数 ${REAL.overview.plays}（应为 649）`);
+  ok(REAL.overview.hours === 35.6, `累计时长 ${REAL.overview.hours} 小时（应为 35.6）`);
+  ok(REAL.hourly.bars.length === 24, '24 小时分布 24 个点');
+  ok(REAL.hourly.top === 23, `峰值小时 ${REAL.hourly.top}:00（应为 23）`);
+  ok(REAL.radar.length === 6, '六维画像 6 项');
+  ok(REAL.sources.length >= 4, `音源 ${REAL.sources.length} 种`);
+  ok(REAL.topSingers.length >= 4, `歌手排行 ${REAL.topSingers.length} 项`);
+  ok(REAL.topSongs.length >= 4, `歌曲排行 ${REAL.topSongs.length} 项`);
+  ok(REAL.playlists.length === 40, `歌单列表 ${REAL.playlists.length} 个`);
+  ok(REAL.allSongs.length >= 500, `全部歌曲样本 ${REAL.allSongs.length} 首`);
+  ok(REAL.recent.length > 0, `最近播放 ${REAL.recent.length} 条`);
+  /* 真实歌手名（不是编造的示例）*/
+  const s0 = REAL.topSingers[0].t;
+  ok(/DJ Okawari|姚睿霖|Otokaze|Nujabes/i.test(s0), `歌手排行首位是真实歌手（${s0}）`);
+  /* 真实音源（网易云等，不是"Bilibili/本地文件"占位）*/
+  const src0 = REAL.sources[0].label;
+  ok(/网易云|QQ音乐|酷我|酷狗/.test(src0), `音源首位是真实来源（${src0}）`);
+  /* 歌单名真实 */
+  ok(REAL.playlists.some(p => /Nujabes|Otokaze|iwamizu|蛋堡/.test(p.t)),
+     '歌单含真实名称（Nujabes/Otokaze 等）');
+}
+
+/* stats 空间用的是 REAL 数据（而非硬编码）*/
+const statW = T.pageByKey.stats.find(x=>x.userData.widget.type==='stat');
+ok(statW && statW.userData.widget.value === String(REAL.overview.hours),
+   `Hero 大数 = REAL.overview.hours（${statW?statW.userData.widget.value:'?'}）`);
+const bar24W = T.pageByKey.stats.find(x=>x.userData.widget.type==='chart_bar24');
+ok(bar24W && bar24W.userData.widget.bars === REAL.hourly.bars,
+   '24h 柱状图直接用 REAL.hourly.bars（同一引用）');
+
+/* playlist 空间用真实歌单 */
+const gridW = T.pageByKey.playlist.find(x=>x.userData.widget.type==='grid');
+ok(gridW && gridW.userData.widget.items.length === 40,
+   `歌单网格 ${gridW?gridW.userData.widget.items.length:0} 个（应为 40）`);
+const srW = T.pageByKey.playlist.find(x=>x.userData.widget.type==='songrow');
+ok(srW && srW.userData.widget.items.length >= 500,
+   `歌曲列表 ${srW?srW.userData.widget.items.length:0} 首`);
 
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');

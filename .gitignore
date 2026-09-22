@@ -23,3 +23,9 @@ __pycache__/
 .credentials*
 凭据*
 *secret*
+
+# ⚠️ 原始备份含个人信息（听歌记录），不提交到 public 仓库
+# 只提交衍生的 real_data.js（歌单名/歌手名/统计数字）
+data/*.lxmc
+data/lx_backup.json
+data/lx_stats.json
