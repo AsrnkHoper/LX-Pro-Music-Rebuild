@@ -354,6 +354,66 @@ const missing = scrollable.filter(t => allTypes.includes(t) && !(
     m.userData.widget.type === t && !!m.userData.listMeta)));
 ok(missing.length === 0, `4 种列表控件均支持滚动${missing.length?'（缺: '+missing.join(',')+'）':''}`);
 
+/* ── 5e. 折线图 / 热力图 / 时长排行（P0 剩余 3 项） ── */
+console.log('\n════ 5e. 折线 / 热力 / 时长排行 ════');
+enter('stats');
+const lineW = T.pageByKey.stats.find(x=>x.userData.widget.type==='chart_line');
+const heatW = T.pageByKey.stats.find(x=>x.userData.widget.type==='chart_heat');
+const durW  = T.pageByKey.stats.filter(x=>x.userData.widget.type==='bars')
+                            .find(x=>x.userData.widget.label==='累计时长排行');
+ok(!!lineW, 'stats 含 chart_line（折线图）');
+ok(!!heatW, 'stats 含 chart_heat（热力图）');
+ok(!!durW,  'stats 含 累计时长排行');
+
+/* 用计数桩验证真的绘制 */
+function probe(mesh){
+  const c = mesh.userData.canvas;
+  const cnt = { arc:0, lineTo:0, moveTo:0, fillText:0, stroke:0, fill:0, setLineDash:0 };
+  const ctx = new Proxy({
+    canvas:{width:c.width, height:c.height},
+    measureText: s => ({width:String(s).length*8}),
+    createLinearGradient: () => ({addColorStop(){}}),
+    createRadialGradient: () => ({addColorStop(){}}),
+    arc(){cnt.arc++;}, lineTo(){cnt.lineTo++;}, moveTo(){cnt.moveTo++;},
+    fillText(){cnt.fillText++;}, stroke(){cnt.stroke++;}, fill(){cnt.fill++;},
+    setLineDash(){cnt.setLineDash++;},
+    beginPath(){}, closePath(){}, clearRect(){}, save(){}, restore(){},
+    fillRect(){}, strokeRect(){}, clip(){}, translate(){}, scale(){},
+    quadraticCurveTo(){}, bezierCurveTo(){}, rect(){}
+  }, { get(o,k){ return (k in o) ? o[k] : ()=>{}; }, set(o,k,v){ o[k]=v; return true; } });
+  c.getContext = () => ctx;
+  T.DRAW[mesh.userData.widget.type](ctx, c.width, c.height,
+      mesh.userData.widget, mesh.userData.state, 0);
+  return cnt;
+}
+
+if(lineW){
+  const cnt = probe(lineW);
+  ok(cnt.lineTo >= 10, `折线图绘制折线（lineTo=${cnt.lineTo}）`);
+  ok(cnt.setLineDash > 0, `折线图有虚线对比（setLineDash=${cnt.setLineDash}）`);
+  ok(lineW.userData.widget.values.length === REAL.dailySeries.values.length,
+     `折线数据点 ${lineW.userData.widget.values.length} 个 = 真实天数`);
+}
+if(heatW){
+  const cnt = probe(heatW);
+  ok(cnt.fill >= REAL.dailySeries.labels.length,
+     `热力图格子数 ${cnt.fill} >= 天数 ${REAL.dailySeries.labels.length}`);
+  ok(heatW.userData.widget.days.length === REAL.dailySeries.labels.length,
+     '热力图按真实天数（非整年）');
+}
+if(durW){
+  const r = T.listRows(durW.userData);
+  ok(r.total === REAL.topByDuration.length,
+     `时长排行 ${r.total} 条 = 数据 ${REAL.topByDuration.length} 条`);
+  ok(r.maxScrollPx > 0, `时长排行可滚动（可滚 ${r.maxScrollPx.toFixed(0)}px）`);
+}
+
+/* 折线数据是真实值（不是占位）*/
+ok(REAL.dailySeries.values[0] > 0 && REAL.dailySeries.values.length === 11,
+   `每日时长序列 ${REAL.dailySeries.values.length} 天，首日 ${REAL.dailySeries.values[0]}h`);
+ok(REAL.topByDuration[0].t.indexOf('Luv') >= 0 || REAL.topByDuration[0].s.indexOf('小时') >= 0,
+   `时长排行首位是真实歌曲（${REAL.topByDuration[0].t}）`);
+
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');
 let noVis = [];

@@ -129,6 +129,31 @@ def main():
     A('];')
     A('')
 
+    # ── 累计时长排行（LX-Pro Stats/index.tsx:895-919）──
+    sd2 = defaultdict(float); sn2 = {}
+    for e in ev:
+        i = e['musicInfo']['id']
+        sd2[i] += e.get('playTime', 0) or 0
+        sn2[i] = e['musicInfo']['name']
+    A('/* 累计时长排行（按时长，非次数）*/')
+    A('REAL.topByDuration = [')
+    top_d = sorted(sd2.items(), key=lambda x: -x[1])[:12]
+    mx_d = top_d[0][1] if top_d else 1
+    for i, v in top_d:
+        mins = v/60
+        lab = f'{mins:.0f} 分钟' if mins < 60 else f'{mins/60:.1f} 小时'
+        A(f'  {{ t: {js(sn2[i])}, v: {v/mx_d:.2f}, s: {js(lab)} }},')
+    A('];')
+    A('')
+
+    # ── 每日时长（折线图，按真实天数）──
+    A('/* 每日时长序列（折线图）—— 只有实际天数，不做整年 */')
+    A('REAL.dailySeries = {')
+    A(f'  labels: {js([x["date"][5:] for x in daily])},')
+    A(f'  values: {js([round(x["duration"]/3600, 2) for x in daily])},')
+    A(f'  plays:  {js([x["plays"] for x in daily])} }};')
+    A('')
+
     # ── 歌单（40 个自建，按歌曲数排序）──
     ul = sorted(bk['lists']['userList'], key=lambda p: -len(p['list']))
     A('/* 自建歌单（按歌曲数降序）*/')

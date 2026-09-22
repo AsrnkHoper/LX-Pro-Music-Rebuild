@@ -376,6 +376,12 @@ const FONT = '-apple-system,"PingFang SC","HarmonyOS Sans",sans-serif';
      导出时间：2026-09-22 19:47
      规模：3208 首全部歌曲 / 40 个自建歌单 / 649 条播放事件
   ============================================================ */
+  /* ============================================================
+     真实数据（由 data/gen_real_data.py 自动生成，勿手改）
+     来源：LX-Pro 真实备份 lx_backup.lxmc + lx_stats.lxmc
+     导出时间：2026-09-22 20:01
+     规模：3208 首全部歌曲 / 40 个自建歌单 / 649 条播放事件
+  ============================================================ */
   const REAL = {};
 
   /* 概览 */
@@ -469,6 +475,28 @@ const FONT = '-apple-system,"PingFang SC","HarmonyOS Sans",sans-serif';
     { label: "酷狗", value: 106 },
     { label: "咪咕", value: 8 },
   ];
+
+  /* 累计时长排行（按时长，非次数）*/
+  REAL.topByDuration = [
+    { t: "Old Luv Letter（slow）", v: 1.00, s: "2.3 小时" },
+    { t: "Luv(sic.)pt3 (Demo)", v: 0.90, s: "2.1 小时" },
+    { t: "Moonlight", v: 0.82, s: "1.9 小时" },
+    { t: "Heart", v: 0.31, s: "43 分钟" },
+    { t: "Keep Falling", v: 0.27, s: "38 分钟" },
+    { t: "Be There", v: 0.27, s: "38 分钟" },
+    { t: "Lightning Moment (feat.fox capture plan)", v: 0.25, s: "35 分钟" },
+    { t: "Luv Letter", v: 0.25, s: "34 分钟" },
+    { t: "Lightning Moment feat.fox capture plan", v: 0.24, s: "34 分钟" },
+    { t: "Street Dreams", v: 0.23, s: "32 分钟" },
+    { t: "Luv Letter (Wisp X Remix)", v: 0.23, s: "32 分钟" },
+    { t: "[已售断]rainy night", v: 0.23, s: "31 分钟" },
+  ];
+
+  /* 每日时长序列（折线图）—— 只有实际天数，不做整年 */
+  REAL.dailySeries = {
+    labels: ["08-23","08-24","08-25","08-26","08-27","08-28","08-29","08-30","08-31","09-01","09-02"],
+    values: [2.23,2.52,0.41,4.51,3.89,3.81,1.92,3.03,5.75,4.72,2.84],
+    plays:  [41,36,11,113,84,57,22,60,106,73,46] };
 
   /* 自建歌单（按歌曲数降序）*/
   REAL.playlists = [
@@ -1437,7 +1465,29 @@ const PAGES = {
 
       { type:'list', label:'最近播放',
         az:-120, el:0, w:3.2, h:2.6, bare:true, float:0,
-        items: REAL.recent.slice(0, 6) }
+        items: REAL.recent.slice(0, 8) },
+
+      /* ═══ 背面 az 180：趋势与热力 ═══ */
+      /* LX-Pro「活跃时长对比」(index.tsx:742-755 / ActivityCompareChart.tsx)
+         实线 = 本期，虚线 = 对比期。此处对比期用「按均值平移」示意。 */
+      { type:'chart_line', label:'每日听歌时长', sub:'近 ' + REAL.dailySeries.labels.length + ' 天',
+        az:180, el:14, w:3.2, h:2.0, bare:true, float:0,
+        labels: REAL.dailySeries.labels,
+        values: REAL.dailySeries.values,
+        compare: REAL.dailySeries.values.map(v => Math.max(0, v * 0.72)),
+        fmt: v => v.toFixed(1) + 'h' },
+
+      /* LX-Pro「年度总览」(YearOverview.tsx / MonthHeatMap.tsx)
+         ⚠️ 真实数据仅 11 天，故按实际天数排布，不做整年（否则大片空白）*/
+      { type:'chart_heat', label:'每日热力', sub:'共 ' + REAL.dailySeries.labels.length + ' 天',
+        az:180, el:-16, w:3.2, h:1.9, bare:true, float:0,
+        days: REAL.dailySeries.labels.map((lb, i) => ({
+          label: lb, value: REAL.dailySeries.values[i] })) },
+
+      /* LX-Pro「累计时长排行」(index.tsx:895-919) —— 按时间而非次数 */
+      { type:'bars', label:'累计时长排行',
+        az:-120, el:-30, w:3.2, h:2.0, bare:true, float:0,
+        items: REAL.topByDuration }
     ]
   },
   now: {
@@ -2626,6 +2676,162 @@ const DRAW = {
         hairline(g, pad, ry + rowH - 0.02*P, W - pad, 0.05);
       }
     });
+    return [];
+  },
+
+  /* 折线图（2026-09-22 新增）
+     移植 LX-Pro ActivityCompareChart.tsx（本月实线 vs 上月虚线）
+     参数：w.values = [数值数组]、w.labels = [标签]、
+           w.compare = [对比数组]（可选，画成虚线） */
+  chart_line(g, W, H, w, st, idx){
+    const P = W/5;
+    const pad = 0.34*P;
+    let y = 0;
+    if(w.label){ label(g, w.label, pad, 0.48*P, P); y = 0.80*P; }
+    if(w.sub){
+      g.fillStyle = 'rgba(158,170,186,0.82)';
+      g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
+      g.textAlign = 'right'; g.textBaseline = 'alphabetic';
+      g.fillText(w.sub, W - pad, 0.46*P);
+      g.textAlign = 'left';
+    }
+
+    const vals = w.values || [];
+    const n = vals.length;
+    if(n < 2) return [];
+
+    const all = vals.concat(w.compare || []);
+    const maxV = Math.max.apply(null, all.concat([0.001]));
+    const baseY = H - 0.52*P;
+    const topY  = y + 0.16*P;
+    const hgt   = baseY - topY;
+    const x0 = pad, x1 = W - pad;
+    const dx = (x1 - x0) / (n - 1);
+
+    /* 横向网格线 */
+    g.strokeStyle = 'rgba(255,255,255,0.07)'; g.lineWidth = 1;
+    for(let i = 0; i <= 3; i++){
+      const gy = topY + hgt * i/3;
+      g.beginPath(); g.moveTo(x0, gy); g.lineTo(x1, gy); g.stroke();
+    }
+
+    /* 对比线（虚线，LX-Pro 的「上月」）*/
+    if(w.compare && w.compare.length === n){
+      g.strokeStyle = 'rgba(150,168,190,0.55)';
+      g.lineWidth = 1.6;
+      g.setLineDash([0.14*P, 0.12*P]);
+      g.beginPath();
+      w.compare.forEach((v, i) => {
+        const px = x0 + i*dx, py = baseY - (v/maxV)*hgt;
+        i ? g.lineTo(px, py) : g.moveTo(px, py);
+      });
+      g.stroke();
+      g.setLineDash([]);
+    }
+
+    /* 主折线 + 面积填充 */
+    g.beginPath();
+    vals.forEach((v, i) => {
+      const px = x0 + i*dx, py = baseY - (v/maxV)*hgt;
+      i ? g.lineTo(px, py) : g.moveTo(px, py);
+    });
+    g.strokeStyle = 'rgba(206,222,240,0.92)'; g.lineWidth = 2.2; g.stroke();
+
+    g.lineTo(x1, baseY); g.lineTo(x0, baseY); g.closePath();
+    const grd = g.createLinearGradient(0, topY, 0, baseY);
+    grd.addColorStop(0, 'rgba(150,180,215,0.28)');
+    grd.addColorStop(1, 'rgba(150,180,215,0.02)');
+    g.fillStyle = grd; g.fill();
+
+    /* 数据点 */
+    vals.forEach((v, i) => {
+      const px = x0 + i*dx, py = baseY - (v/maxV)*hgt;
+      g.beginPath(); g.arc(px, py, 0.05*P, 0, Math.PI*2);
+      g.fillStyle = 'rgba(232,242,252,0.95)'; g.fill();
+    });
+
+    /* 最高点标注 */
+    const mxI = vals.indexOf(Math.max.apply(null, vals));
+    g.fillStyle = 'rgba(226,238,250,0.92)';
+    g.font = '500 ' + Math.round(0.20*P) + 'px ' + FONT;
+    g.textAlign = 'center';
+    g.fillText(w.fmt ? w.fmt(vals[mxI]) : vals[mxI].toFixed(1),
+               x0 + mxI*dx, baseY - (vals[mxI]/maxV)*hgt - 0.22*P);
+
+    /* X 轴标签（稀疏显示，避免拥挤）*/
+    const step = Math.max(1, Math.ceil(n / 6));
+    g.fillStyle = 'rgba(158,170,186,0.80)';
+    g.font = '400 ' + Math.round(0.18*P) + 'px ' + FONT;
+    (w.labels || []).forEach((lb, i) => {
+      if(i % step !== 0 && i !== n-1) return;
+      g.fillText(lb, x0 + i*dx, baseY + 0.30*P);
+    });
+    g.textAlign = 'left';
+    return [];
+  },
+
+  /* 每日热力日历（2026-09-22 新增）
+     ⚠️ 移植 LX-Pro MonthHeatMap.tsx，但**不做整年**：
+        真实数据只有 11 天，整年热力图会大片空白。
+        改为按实际天数排布（自动决定列数）。 */
+  chart_heat(g, W, H, w, st, idx){
+    const P = W/5;
+    const pad = 0.32*P;
+    let y = 0;
+    if(w.label){ label(g, w.label, pad, 0.48*P, P); y = 0.82*P; }
+    if(w.sub){
+      g.fillStyle = 'rgba(158,170,186,0.82)';
+      g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
+      g.textAlign = 'right'; g.textBaseline = 'alphabetic';
+      g.fillText(w.sub, W - pad, 0.46*P);
+      g.textAlign = 'left';
+    }
+
+    const days = w.days || [];        /* [{label:'08-23', value:2.23}] */
+    const n = days.length;
+    if(!n) return [];
+
+    const maxV = Math.max.apply(null, days.map(d => d.value).concat([0.001]));
+    /* 自动列数：按可用宽度与格子大小 */
+    const cellGap = 0.10*P;
+    const cols = Math.min(n, Math.max(4, Math.floor((W - 2*pad) / (0.62*P + cellGap))));
+    const rows = Math.ceil(n / cols);
+    const availH = H - y - 0.42*P;
+    const cell = Math.min(0.62*P, (availH - (rows-1)*cellGap) / rows);
+
+    /* 色阶：0 → 最深（LX-Pro getHeatColor 思路，用本项目冷灰蓝）*/
+    const heat = t => {
+      if(t <= 0) return 'rgba(255,255,255,0.06)';
+      const a = 0.16 + 0.66*Math.min(1, t);
+      return 'rgba(150,180,215,' + a.toFixed(3) + ')';
+    };
+
+    days.forEach((d, i) => {
+      const c = i % cols, r = Math.floor(i / cols);
+      const cx = pad + c*(cell + cellGap);
+      const cy = y + r*(cell + cellGap);
+      g.fillStyle = heat(d.value / maxV);
+      roundRect(g, cx, cy, cell, cell, cell*0.22); g.fill();
+      /* 边框 */
+      g.strokeStyle = 'rgba(255,255,255,0.07)'; g.lineWidth = 1;
+      roundRect(g, cx, cy, cell, cell, cell*0.22); g.stroke();
+    });
+
+    /* 图例：少 → 多 */
+    const ly = y + rows*(cell + cellGap) + 0.20*P;
+    g.fillStyle = 'rgba(158,170,186,0.80)';
+    g.font = '400 ' + Math.round(0.18*P) + 'px ' + FONT;
+    g.textBaseline = 'middle';
+    g.textAlign = 'left';
+    g.fillText('少', pad, ly + cell*0.2);
+    const lx0 = pad + 0.34*P;
+    for(let i = 0; i < 5; i++){
+      g.fillStyle = heat(i/4);
+      roundRect(g, lx0 + i*(cell*0.44 + 0.06*P), ly, cell*0.44, cell*0.40, cell*0.10); g.fill();
+    }
+    g.textAlign = 'left';
+    g.fillText('多', lx0 + 5*(cell*0.44 + 0.06*P) + 0.08*P, ly + cell*0.2);
+    g.textBaseline = 'alphabetic';
     return [];
   },
 

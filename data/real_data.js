@@ -1,7 +1,7 @@
 /* ============================================================
    真实数据（由 data/gen_real_data.py 自动生成，勿手改）
    来源：LX-Pro 真实备份 lx_backup.lxmc + lx_stats.lxmc
-   导出时间：2026-09-22 19:47
+   导出时间：2026-09-22 20:01
    规模：3208 首全部歌曲 / 40 个自建歌单 / 649 条播放事件
 ============================================================ */
 const REAL = {};
@@ -97,6 +97,28 @@ REAL.sources = [
   { label: "酷狗", value: 106 },
   { label: "咪咕", value: 8 },
 ];
+
+/* 累计时长排行（按时长，非次数）*/
+REAL.topByDuration = [
+  { t: "Old Luv Letter（slow）", v: 1.00, s: "2.3 小时" },
+  { t: "Luv(sic.)pt3 (Demo)", v: 0.90, s: "2.1 小时" },
+  { t: "Moonlight", v: 0.82, s: "1.9 小时" },
+  { t: "Heart", v: 0.31, s: "43 分钟" },
+  { t: "Keep Falling", v: 0.27, s: "38 分钟" },
+  { t: "Be There", v: 0.27, s: "38 分钟" },
+  { t: "Lightning Moment (feat.fox capture plan)", v: 0.25, s: "35 分钟" },
+  { t: "Luv Letter", v: 0.25, s: "34 分钟" },
+  { t: "Lightning Moment feat.fox capture plan", v: 0.24, s: "34 分钟" },
+  { t: "Street Dreams", v: 0.23, s: "32 分钟" },
+  { t: "Luv Letter (Wisp X Remix)", v: 0.23, s: "32 分钟" },
+  { t: "[已售断]rainy night", v: 0.23, s: "31 分钟" },
+];
+
+/* 每日时长序列（折线图）—— 只有实际天数，不做整年 */
+REAL.dailySeries = {
+  labels: ["08-23","08-24","08-25","08-26","08-27","08-28","08-29","08-30","08-31","09-01","09-02"],
+  values: [2.23,2.52,0.41,4.51,3.89,3.81,1.92,3.03,5.75,4.72,2.84],
+  plays:  [41,36,11,113,84,57,22,60,106,73,46] };
 
 /* 自建歌单（按歌曲数降序）*/
 REAL.playlists = [
