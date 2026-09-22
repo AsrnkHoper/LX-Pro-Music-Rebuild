@@ -102,7 +102,7 @@ def main():
         sc[s] += 1; sd[s] += e.get('playTime') or 0
     A('/* 歌手排行（按次数）*/')
     A('REAL.topSingers = [')
-    for s, c in sc.most_common(6):
+    for s, c in sc.most_common(20):
         A(f'  {{ t: {js(s)}, v: {c/max(1,sc.most_common(1)[0][1]):.2f}, s: {js(f"{c} 次")} }},')
     A('];')
     A('')
@@ -115,7 +115,7 @@ def main():
     A('/* 歌曲排行（按次数）*/')
     A('REAL.topSongs = [')
     top1 = songc.most_common(1)[0][1] if songc else 1
-    for i, c in songc.most_common(5):
+    for i, c in songc.most_common(20):
         A(f'  {{ t: {js(songn[i])}, v: {c/top1:.2f}, s: {js(f"{c} 次")} }},')
     A('];')
     A('')

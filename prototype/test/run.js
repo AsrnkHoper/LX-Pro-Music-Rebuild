@@ -271,8 +271,8 @@ if(REAL && typeof REAL === 'object'){
   ok(REAL.hourly.top === 23, `峰值小时 ${REAL.hourly.top}:00（应为 23）`);
   ok(REAL.radar.length === 6, '六维画像 6 项');
   ok(REAL.sources.length >= 4, `音源 ${REAL.sources.length} 种`);
-  ok(REAL.topSingers.length >= 4, `歌手排行 ${REAL.topSingers.length} 项`);
-  ok(REAL.topSongs.length >= 4, `歌曲排行 ${REAL.topSongs.length} 项`);
+  ok(REAL.topSingers.length >= 20, `歌手排行 ${REAL.topSingers.length} 项（应 >=20）`);
+  ok(REAL.topSongs.length >= 20, `歌曲排行 ${REAL.topSongs.length} 项（应 >=20）`);
   ok(REAL.playlists.length === 40, `歌单列表 ${REAL.playlists.length} 个`);
   ok(REAL.allSongs.length >= 500, `全部歌曲样本 ${REAL.allSongs.length} 首`);
   ok(REAL.recent.length > 0, `最近播放 ${REAL.recent.length} 条`);
@@ -302,6 +302,57 @@ ok(gridW && gridW.userData.widget.items.length === 40,
 const srW = T.pageByKey.playlist.find(x=>x.userData.widget.type==='songrow');
 ok(srW && srW.userData.widget.items.length >= 500,
    `歌曲列表 ${srW?srW.userData.widget.items.length:0} 首`);
+
+/* ── 5d. 排行/列表可滚动（原 bug：bars 无滚动能力） ── */
+console.log('\n════ 5d. 排行可滚动 ════');
+enter('stats');
+const rankBars = T.pageByKey.stats.filter(x=>x.userData.widget.type==='bars');
+ok(rankBars.length >= 2, `stats 含 ${rankBars.length} 个排行`);
+rankBars.forEach(m => {
+  const u = m.userData;
+  ok(!!u.listMeta, `${u.widget.label} 有 listMeta（支持滚动）`);
+});
+const singerRank = rankBars.find(x=>x.userData.widget.label==='歌手排行');
+if(singerRank){
+  const u = singerRank.userData;
+  const r0 = T.listRows(u);
+  ok(r0.total === REAL.topSingers.length,
+     `歌手排行 total=${r0.total}（数据 ${REAL.topSingers.length} 条）`);
+  ok(r0.maxScrollPx > 0,
+     `歌手排行可滚动（内容 ${r0.contentPx.toFixed(0)}px > 可视 ${u.listMeta.winPx}px）`);
+
+  /* 真的滚一下 */
+  const before = u.state.view.scrollPx;
+  T.scrollList(singerRank, 300);
+  const after = u.state.view.scrollPx;
+  ok(after > before, `滚动生效（${before.toFixed(0)} → ${after.toFixed(0)}）`);
+
+  /* 滚到底 */
+  T.scrollListTo(singerRank, r0.total - 1);
+  ok(u.state.view.scrollPx > 0 && u.state.view.scrollPx <= r0.maxScrollPx,
+     `跳到最后一条（scrollPx=${u.state.view.scrollPx.toFixed(0)}）`);
+  /* offset 合法 */
+  const off = u.tex.offset.y;
+  ok(off >= 0 && off <= 1 - u.tex.repeat.y + 1e-6, '贴图 offset 合法');
+  /* 回顶 */
+  T.scrollListTop(singerRank);
+  ok(u.state.view.scrollPx === 0, '回到顶部');
+}
+/* 最近播放（list 控件）也应可滚动 */
+const recentW = T.pageByKey.stats.find(x=>x.userData.widget.type==='list');
+ok(!!recentW && !!recentW.userData.listMeta, '最近播放（list）支持滚动');
+
+/* 全部 4 种列表控件都支持滚动 */
+const scrollable = ['songrow','grid','list','bars'];
+enter('playlist');
+const plTypes = T.pageByKey.playlist.map(x=>x.userData.widget.type);
+enter('stats');
+const stTypes = T.pageByKey.stats.map(x=>x.userData.widget.type);
+const allTypes = [...new Set([...plTypes, ...stTypes])];
+const missing = scrollable.filter(t => allTypes.includes(t) && !(
+  [...T.pageByKey.playlist, ...T.pageByKey.stats].some(m =>
+    m.userData.widget.type === t && !!m.userData.listMeta)));
+ok(missing.length === 0, `4 种列表控件均支持滚动${missing.length?'（缺: '+missing.join(',')+'）':''}`);
 
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');

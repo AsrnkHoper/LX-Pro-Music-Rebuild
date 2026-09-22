@@ -1,7 +1,7 @@
 /* ============================================================
    真实数据（由 data/gen_real_data.py 自动生成，勿手改）
    来源：LX-Pro 真实备份 lx_backup.lxmc + lx_stats.lxmc
-   导出时间：2026-09-22 19:38
+   导出时间：2026-09-22 19:47
    规模：3208 首全部歌曲 / 40 个自建歌单 / 649 条播放事件
 ============================================================ */
 const REAL = {};
@@ -49,6 +49,20 @@ REAL.topSingers = [
   { t: "Nujabes", v: 0.70, s: "42 次" },
   { t: "Kali Uchis", v: 0.63, s: "38 次" },
   { t: "DJ OKAWARI", v: 0.53, s: "32 次" },
+  { t: "Lerge、DJ OKAWARI", v: 0.35, s: "21 次" },
+  { t: "Shing02", v: 0.33, s: "20 次" },
+  { t: "Eddie Chen", v: 0.27, s: "16 次" },
+  { t: "Nujabes、Shing02", v: 0.20, s: "12 次" },
+  { t: "DJ Okawari、Brittany Campbell", v: 0.17, s: "10 次" },
+  { t: "DJ光光", v: 0.15, s: "9 次" },
+  { t: "cm", v: 0.15, s: "9 次" },
+  { t: "DJ OKAWARI、fox capture plan", v: 0.15, s: "9 次" },
+  { t: "DJ Okawari、Giovanca", v: 0.15, s: "9 次" },
+  { t: "MRZ", v: 0.15, s: "9 次" },
+  { t: "Wisp X、DJ OKAWARI", v: 0.13, s: "8 次" },
+  { t: "karl19931029", v: 0.13, s: "8 次" },
+  { t: "Electronic Mortal、Electronic Blink", v: 0.13, s: "8 次" },
+  { t: "DJ Okawari、fox capture plan", v: 0.13, s: "8 次" },
 ];
 
 /* 歌曲排行（按次数）*/
@@ -58,6 +72,21 @@ REAL.topSongs = [
   { t: "Old Luv Letter（slow）", v: 0.35, s: "21 次" },
   { t: "夏恋 feat Rhyzz&Bell&Jas Mace(The 49ers)", v: 0.17, s: "10 次" },
   { t: "Heart", v: 0.17, s: "10 次" },
+  { t: "Be There", v: 0.17, s: "10 次" },
+  { t: "lovve (樱花流)", v: 0.15, s: "9 次" },
+  { t: "你死去的夏天", v: 0.15, s: "9 次" },
+  { t: "Luv Letter", v: 0.15, s: "9 次" },
+  { t: "Lightning Moment (feat.fox capture plan)", v: 0.15, s: "9 次" },
+  { t: "Keep Falling", v: 0.15, s: "9 次" },
+  { t: "[已售断]rainy night", v: 0.15, s: "9 次" },
+  { t: "Luv Letter (Wisp X Remix)", v: 0.13, s: "8 次" },
+  { t: "Street Dreams", v: 0.13, s: "8 次" },
+  { t: "Crossroad", v: 0.13, s: "8 次" },
+  { t: "Luv Letter", v: 0.13, s: "8 次" },
+  { t: "I always smile but my eyes are sad (Inst.)", v: 0.13, s: "8 次" },
+  { t: "Lightning Moment feat.fox capture plan", v: 0.13, s: "8 次" },
+  { t: "Haku", v: 0.13, s: "8 次" },
+  { t: "A Little More", v: 0.13, s: "8 次" },
 ];
 
 /* 音源占比（环形图）*/
