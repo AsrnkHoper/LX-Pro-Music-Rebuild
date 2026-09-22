@@ -133,29 +133,35 @@ ok(errN === 0, '超长歌词不抛异常');
 lyrics[3].s = orig;
 
 /* now 空间垂直布局无重叠（防回归）
-   ⚠️ 必须【按列分组】比较：lyric3d 在左列(sf≈0.29)，
-      cover/nowinfo/transport 在右列(sf≈0.76)。跨列比较无意义。*/
+   ⚠️ 按【列】分组比较：lyric3d 在左列(sf≈0.29)，
+      cover/nowinfo/transport 在右列(sf≈0.76)。跨列比较无意义。
+   ⚠️ 高度取法：fhSquare（按屏高定，恒定）> fh > square 推算 */
 const nowCfg = T.PAGES.now.widgets.filter(w => w.sf !== undefined);
 const byCol = {};
 nowCfg.forEach(w => {
-  const col = Math.round(w.sf * 10) / 10;      /* 0.3 / 0.8 两列 */
-  (byCol[col] = byCol[col] || []).push({
-    type: w.type, sv: w.sv,
-    h: w.fh || (w.square ? w.fw * (390/844) : 0.05)
-  });
+  const col = Math.round(w.sf * 10) / 10;
+  const h = w.fhSquare || w.fh || (w.square ? w.fw * (390/844) : 0.05);
+  (byCol[col] = byCol[col] || []).push({ type: w.type, sv: w.sv, h });
 });
-let overlap = 0, cols = 0;
+let overlap = 0, cols = 0, gapMin = 1;
 for(const col in byCol){
   const items = byCol[col].sort((a,b)=>a.sv-b.sv);
   cols++;
   for(let i=1;i<items.length;i++){
-    if(items[i].sv - items[i].h/2 < items[i-1].sv + items[i-1].h/2){
+    const gap = (items[i].sv - items[i].h/2) - (items[i-1].sv + items[i-1].h/2);
+    gapMin = Math.min(gapMin, gap);
+    if(gap < 0){
       overlap++;
-      console.log(`      ❌ ${col} 列: ${items[i-1].type} 与 ${items[i].type} 重叠`);
+      console.log(`      ❌ ${col} 列: ${items[i-1].type} 与 ${items[i].type} 重叠 ${gap.toFixed(4)}`);
     }
   }
 }
-ok(overlap === 0, `now 空间各列垂直布局无重叠（${cols} 列 ${nowCfg.length} 个控件）`);
+ok(overlap === 0, `now 空间各列无重叠（${cols} 列 ${nowCfg.length} 控件，最小间隙 ${gapMin.toFixed(4)}）`);
+
+/* 封面尺寸不随屏幕变化（fhSquare 的目的） */
+const coverCfg = T.PAGES.now.widgets.find(w => w.type === 'cover');
+ok(!!coverCfg && coverCfg.fhSquare !== undefined,
+   `封面用 fhSquare 定尺寸（不随宽高比变化）`);
 
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');

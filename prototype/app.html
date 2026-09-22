@@ -622,18 +622,21 @@ const PAGES = {
         pscale:1.7, tilt: 0.32, bare:true, float:0 },
 
       /* 封面：右半屏 + 斜置（与下方文字成组，不单独漂浮）
-         ⚠️ 2026-09-22：不加迷你歌词 —— 歌词已在左半屏常驻显示（lyric3d），
+         ⚠️ 不加迷你歌词（2026-09-22）：歌词已在左半屏常驻（lyric3d），
             封面下再放一行是重复信息。LX-Pro 需要它是因为它封面/歌词分两页，
-            本项目同屏，没有那个缺陷。*/
-      { type:'cover',     label:'封面', sf:0.76, sv:0.335, fw:0.24, square:true,
+            本项目同屏，没有那个缺陷。
+         ⚠️ 垂直位置（2026-09-22 调整）：撤销迷你歌词后中间留了大空隙，
+            把封面下移并收掉空行。右列组中心对齐歌词中心（sv 0.47），
+            三块间隙均匀 0.022，不再有"空行"。*/
+      { type:'cover',     label:'封面', sf:0.76, sv:0.371, fhSquare:0.115,
         tilt:-0.32, bare:true, float:0 },
 
       /* 作者 · 专辑：紧贴封面下方 */
-      { type:'nowinfo',   label:'信息', sf:0.76, sv:0.470, fw:0.36, fh:0.045,
+      { type:'nowinfo',   label:'信息', sf:0.76, sv:0.469, fw:0.36, fh:0.045,
         pscale:1.2, bare:true, float:0 },
 
       /* 进度条 + 控制：紧接信息行，正对镜头 */
-      { type:'transport', label:'控制', sf:0.76, sv:0.560, fw:0.36, fh:0.11,
+      { type:'transport', label:'控制', sf:0.76, sv:0.568, fw:0.36, fh:0.11,
         pscale:1.35, bare:true, float:0 },
 
       /* 向左转可见 */
@@ -2541,6 +2544,15 @@ function buildPage(key){
       if(w.fw){
         ww = w.fw * 2 * halfW;
         hh = w.square ? ww : (w.fh ? w.fh * 2 * halfH : hh);
+      }
+      /* ⚠️ fhSquare（2026-09-22）：正方形元素按【屏高】定边长，而非屏宽。
+         原因：封面若按屏宽定（fw+square），在宽屏上会明显变大
+         （aspect 0.45→0.60 时高占比 0.108→0.144，+33%），
+         挤压下方间隙。改按屏高定 → 各屏幕封面大小恒定、间隙恒定。
+         适合「竖排堆叠」的正方形元素（如播放页封面）。 */
+      if(w.fhSquare){
+        hh = w.fhSquare * 2 * halfH;
+        ww = hh;
       }
 
       const mesh = makeWidgetMesh(w, i, ww, hh);
