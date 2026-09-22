@@ -32,6 +32,7 @@ code += `
   playEnter, listRows, scrollList, scrollListTo, scrollListTop, listNavTarget,
   curLyricIndex, nowWidgets, TRACKS, DRAW, widgetHeight,
   handleRegion, settingSlide, redrawWidget, nowWidgets,
+  buildPage, activatePage, gotoSpace,
   get NP(){return NP;}, get mode(){return mode;}, set mode(v){mode=v;},
   get busy(){return busy;}, get curPageKey(){return curPageKey;},
   set curPageKey(v){curPageKey=v;}, get flyCard(){return flyCard;},
@@ -55,7 +56,13 @@ console.log('\n════ 1. 全部空间构建 ════');
 const keys = Object.keys(T.PAGES);
 /* 用真实卡片进入（enterSection 需要 mesh.position / userData.feature）*/
 const cardOf = key => T.mainPanels.find(x => x.userData.feature.key === key);
-const enter = key => { T.curPageKey = key; T.enterSection(cardOf(key)); drain(); };
+/* ⚠️ album/artist 没有主页卡片（从列表跳进去），故直接 buildPage + activatePage */
+const enter = key => {
+  T.curPageKey = key;
+  const c = cardOf(key);
+  if(c){ T.enterSection(c); drain(); }
+  else { T.buildPage(key); T.activatePage(key); }
+};
 for(const key of keys){
   try{
     enter(key);
@@ -619,6 +626,69 @@ const allItems = toggles.flatMap(x=>x.userData.widget.items.map(i=>i.t));
 ok(allItems.some(t=>/动态背景|字体阴影/.test(t)), '主题分区用 LX-Pro 真实文案');
 ok(allItems.some(t=>/歌词翻译|罗马音/.test(t)), '歌词分区用 LX-Pro 真实文案');
 ok(allItems.some(t=>/内嵌歌词|写入标签/.test(t)), '下载分区用 LX-Pro 真实文案');
+
+/* ── 5i. P2 专辑/歌手详情 ── */
+console.log('\n════ 5i. 专辑/歌手详情（P2） ════');
+ok(!!T.PAGES.album, 'PAGES 含 album 空间');
+ok(!!T.PAGES.artist, 'PAGES 含 artist 空间');
+ok(typeof REAL.albums === 'object' && REAL.albums.length >= 20,
+   `REAL.albums 聚合 ${REAL.albums?REAL.albums.length:0} 个专辑`);
+ok(typeof REAL.artists === 'object' && REAL.artists.length >= 20,
+   `REAL.artists 聚合 ${REAL.artists?REAL.artists.length:0} 位歌手`);
+/* 专辑/歌手数据是真实的（来自备份，非编造）*/
+ok(REAL.albums.some(a=>/Luv\(sic\)|君の名は|收敛水/.test(a.t)), '专辑含真实名称');
+ok(REAL.artists.some(a=>/Nujabes|Otokaze|罗恩Rune/.test(a.t)), '歌手含真实名称');
+ok(REAL.artists[0].n > 50, `歌手首位有真实歌曲数（${REAL.artists[0].t} ${REAL.artists[0].n} 首）`);
+
+/* 构建并验证 */
+enter('album');
+const albWs = T.pageByKey.album;
+ok(albWs.length === 2, `album 空间 2 个控件（头图卡 + 列表）`);
+const hc = albWs.find(x=>x.userData.widget.type==='headcard');
+ok(!!hc, 'album 含 headcard（头图卡）');
+ok(hc && hc.userData.widget.kind === 'album', '头图卡 kind=album');
+ok(hc && hc.userData.widget.actions.length === 3, '头图卡 3 个操作按钮');
+
+/* 绘制验证 */
+if(hc){
+  const c = hc.userData.canvas;
+  const cnt = { fillText:0, fill:0, stroke:0, arc:0 };
+  const ctx = new Proxy({
+    canvas:{width:c.width, height:c.height},
+    measureText: t => ({width:String(t).length*8}),
+    createLinearGradient: () => ({addColorStop(){}}),
+    createRadialGradient: () => ({addColorStop(){}}),
+    fillText(){cnt.fillText++;}, fill(){cnt.fill++;}, stroke(){cnt.stroke++;}, arc(){cnt.arc++;},
+    beginPath(){}, closePath(){}, clearRect(){}, save(){}, restore(){},
+    fillRect(){}, moveTo(){}, lineTo(){}, setLineDash(){}, quadraticCurveTo(){}, rect(){}
+  }, { get(o,k){ return (k in o) ? o[k] : ()=>{}; }, set(o,k,v){ o[k]=v; return true; } });
+  c.getContext = () => ctx;
+  T.DRAW.headcard(ctx, c.width, c.height, hc.userData.widget, hc.userData.state, 0);
+  ok(cnt.fillText >= 5, `头图卡绘制 ${cnt.fillText} 次文字（类型/标题/副标题/统计/按钮）`);
+  ok(cnt.arc >= 1, `头图卡绘制 ${cnt.arc} 个圆（唱片环/头像）`);
+}
+/* 布局：头图卡在上、列表在下，无重叠 */
+const albCfg = T.PAGES.album.widgets.filter(w=>w.sf!==undefined);
+const sorted = albCfg.slice().sort((a,b)=>a.sv-b.sv);
+let ov3 = 0;
+for(let i=1;i<sorted.length;i++){
+  const gap = (sorted[i].sv - sorted[i].fh/2) - (sorted[i-1].sv + sorted[i-1].fh/2);
+  if(gap < 0) ov3++;
+}
+ok(ov3 === 0, `album 空间头图卡与列表无重叠`);
+
+enter('artist');
+const artWs = T.pageByKey.artist;
+const hc2 = artWs.find(x=>x.userData.widget.type==='headcard');
+ok(!!hc2 && hc2.userData.widget.kind === 'artist', 'artist 头图卡 kind=artist');
+
+/* 跨空间跳转函数存在 */
+ok(typeof T.gotoSpace === 'function', 'gotoSpace 跨空间跳转存在');
+/* 跳转后能切换空间 */
+T.gotoSpace('album', { title:'测试专辑', sub:'测试歌手', stats:[{label:'首',value:'10'}] });
+drain();
+ok(T.curPageKey === 'album' && T.mode === 'sub',
+   `gotoSpace 生效（curPageKey=${T.curPageKey}, mode=${T.mode}）`);
 
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');

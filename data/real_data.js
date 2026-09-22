@@ -1,7 +1,7 @@
 /* ============================================================
    真实数据（由 data/gen_real_data.py 自动生成，勿手改）
    来源：LX-Pro 真实备份 lx_backup.lxmc + lx_stats.lxmc
-   导出时间：2026-09-22 22:00
+   导出时间：2026-09-22 23:01
    规模：3208 首全部歌曲 / 40 个自建歌单 / 649 条播放事件
 ============================================================ */
 const REAL = {};
@@ -119,6 +119,94 @@ REAL.dailySeries = {
   labels: ["08-23","08-24","08-25","08-26","08-27","08-28","08-29","08-30","08-31","09-01","09-02"],
   values: [2.23,2.52,0.41,4.51,3.89,3.81,1.92,3.03,5.75,4.72,2.84],
   plays:  [41,36,11,113,84,57,22,60,106,73,46] };
+
+/* 专辑聚合（本地，取歌曲数前 40）*/
+REAL.albums = [
+  { t: "单曲发行", n: 22, a: "江皓南 / 海雾回声 / 不吃瓜瓜" },
+  { t: "君の名は。", n: 20, a: "RADWIMPS" },
+  { t: "收敛水", n: 17, a: "蛋堡" },
+  { t: "Luv(sic) Hexalogy", n: 16, a: "Nujabes / Shing02" },
+  { t: "\"二十岁\" 精品伴奏集", n: 14, a: "罗恩Rune" },
+  { t: "最终幻想", n: 12, a: "罗恩Rune" },
+  { t: "还是会想你", n: 12, a: "徐且慢 / 花海 / 林达浪" },
+  { t: "彩る四季、風と音色", n: 11, a: "Otokaze" },
+  { t: "天気の子", n: 11, a: "三浦透子 / RADWIMPS" },
+  { t: "裂解信仰", n: 10, a: "罗恩Rune / lorr1ky / 多芬DolBeatz" },
+  { t: "\"失落城\"伴奏合辑", n: 10, a: "罗恩Rune" },
+  { t: "伤感电台FM 合辑", n: 10, a: "罗恩Rune" },
+  { t: "雪白色随身听", n: 10, a: "罗恩Rune" },
+  { t: "未知的痛 伴奏合辑", n: 10, a: "罗恩Rune" },
+  { t: "预制爱", n: 10, a: "ONEK / Abduxukurr-Obull / 爱吃香菜" },
+  { t: "Luvsic", n: 10, a: "DJ Nuvole / 双鱼座 / 7iuk" },
+  { t: "OTOKAZE", n: 10, a: "Otokaze" },
+  { t: "RADWIMPS 4 ～おかずのごはん～", n: 10, a: "RADWIMPS" },
+  { t: "罗恩伴奏精选集", n: 9, a: "罗恩Rune" },
+  { t: "你所不知道的杜振熙之内部整修", n: 9, a: "蛋堡 / 方大同 / 陈姿陵" },
+  { t: "World peace", n: 9, a: "Otokaze" },
+  { t: "无感", n: 9, a: "井川里予 / 王一博 / 张小宝" },
+  { t: "\"机械之声\"伴奏合辑", n: 8, a: "罗恩Rune" },
+  { t: "\"八岐大蛇\" 伴奏合辑", n: 8, a: "罗恩Rune" },
+  { t: "Luv (sic) Hexalogy", n: 8, a: "Nujabes / Shing02" },
+  { t: "Luv(Sic) Hexalogy (OMA and Shing02 Live at Liquidroom)", n: 8, a: "OMA / Shing02 / Uyama Hiroto" },
+  { t: "Phone Kisses", n: 8, a: "Easy7 / Chill5 / N2UtheHartLocker" },
+  { t: "I Love You So", n: 8, a: "Delorians / Maven / lewis" },
+  { t: "Luv (Sic) Hexalogy [OMA and Shing02 Live at Liquidroom]", n: 7, a: "OMA / Shing02 / SPIN MASTER A-1" },
+  { t: "Kei Nishikori meets Nujabes", n: 7, a: "Nujabes / Pase Rock / Substantial" },
+  { t: "\"无能\" 旋律孟菲斯专题", n: 7, a: "罗恩Rune" },
+  { t: "samurai champloo music record impression", n: 7, a: "Nujabes" },
+  { t: "Zone of Zen", n: 7, a: "Ayumi Kato / Shing02 / Cradle Orchestra" },
+  { t: "Rain", n: 7, a: "Unprocessed / Circadian Eyes / GAXILLIC" },
+  { t: "Nostalgia", n: 7, a: "Otokaze" },
+  { t: "RADWIMPS 3 ～無人島に持っていき忘れた一枚～", n: 7, a: "RADWIMPS" },
+  { t: "千禧年之恋 合辑", n: 6, a: "罗恩Rune" },
+  { t: "错落爱", n: 6, a: "罗恩Rune" },
+  { t: "西太后男孩", n: 6, a: "罗恩Rune" },
+  { t: "Luvsic remix", n: 6, a: "我无记忆" },
+];
+
+/* 歌手聚合（本地，取歌曲数前 40）*/
+REAL.artists = [
+  { t: "罗恩Rune", n: 227, alb: 42, a: "裂解信仰 / 最终幻想" },
+  { t: "Nujabes", n: 143, alb: 53, a: "Kei Nishikori meets Nujabes / Luv(sic.)" },
+  { t: "Otokaze", n: 120, alb: 38, a: "Save the flavor / INNOVATIVE MUSIC​.​-​Rap Side-" },
+  { t: "Shing02", n: 119, alb: 56, a: "Chill With You / Dulcet Series Winter Special Collection - Fantastic Winter Journey" },
+  { t: "Blood Night", n: 105, alb: 97, a: "Polo g & Juice WRLD Type Beat ‘‘Tired’’ / ’’他非要当我封面’’ SASIOVERLXRD & BOBBYNOPEACE Type Beat" },
+  { t: "RADWIMPS", n: 78, alb: 24, a: "君の名は。 / 天気の子" },
+  { t: "蛋堡", n: 60, alb: 20, a: "嘻哈世界 / 午夜列车上的告别/Farewell on A Midnight Train" },
+  { t: "青村秀和", n: 59, alb: 43, a: "爱止痛(Love Relieves Pain) / Love to compromise" },
+  { t: "七元", n: 56, alb: 43, a: "Why Would I Ever / Perfect" },
+  { t: "新街口组合", n: 38, alb: 10, a: "有你更有安全感 / 国王" },
+  { t: "July", n: 34, alb: 23, a: "July / Spring Again" },
+  { t: "蓝心羽", n: 31, alb: 22, a: "倒影 / 听说你" },
+  { t: "Vnriet", n: 29, alb: 17, a: "Tried Not Right （尽力不完美） / Walk Fade Talk  (Slap House)" },
+  { t: "悲伤情绪海", n: 25, alb: 23, a: "formalin / 我讨厌异地恋" },
+  { t: "404Hz", n: 21, alb: 20, a: "没有你谁在乎明天 / 铁骑烈焰" },
+  { t: "Mona Lavi", n: 21, alb: 6, a: "有你更有安全感 / 暗恋过,结局呢(Part 2)" },
+  { t: "THT", n: 20, alb: 12, a: "Falling Dream / Nominication (Explicit)" },
+  { t: "Fabrizio Paterlini", n: 20, alb: 9, a: "Now / The Art of the Piano" },
+  { t: "OMA", n: 19, alb: 4, a: "Luv (Sic) Hexalogy [OMA and Shing02 Live at Liquidroom] / Bread 'n' Butter" },
+  { t: "karl19931029", n: 18, alb: 12, a: "Luv (sic) Part 3 featuring Shing02 (Nighttime ver.) / LAST IMPRESSION（RADIO EDIT Guitar Vocal）" },
+  { t: "Eddie Chen", n: 18, alb: 12, a: "Only / winter love（冬日里的爱）" },
+  { t: "Ameriie", n: 17, alb: 14, a: "永远而已听听就好（感觉至上） / 预制爱 Type Beat(孟菲斯)" },
+  { t: "DJ Okawari", n: 16, alb: 8, a: "Kaleidoscope / Libyus Music Sound History 2004－2010" },
+  { t: "Uyama Hiroto", n: 15, alb: 7, a: "Luv (Sic) Hexalogy [OMA and Shing02 Live at Liquidroom] / Luv(Sic) Hexalogy (OMA and Shing02 Live at Liquidroom)" },
+  { t: "h3R3", n: 15, alb: 9, a: "还是会想你 / 还是会想你 2023" },
+  { t: "Grimmmz", n: 13, alb: 12, a: "安静的爱（鼓点版Type Beat） / UNICUBE SPED UP" },
+  { t: "mixed matches", n: 13, alb: 9, a: "in memory (Explicit) / darkage/innocence" },
+  { t: "SPIN MASTER A-1", n: 11, alb: 3, a: "Luv (Sic) Hexalogy [OMA and Shing02 Live at Liquidroom] / Luv (Sic) Hexalogy (OMA and Shing02 Live at Liquidroom)" },
+  { t: "Sixteen", n: 11, alb: 10, a: "安静的爱（鼓点版Type Beat） / 铁骑烈焰" },
+  { t: "DJ OKAWARI", n: 11, alb: 10, a: "Luv Letter（slow） / Luv Letter (Wisp X Remix)" },
+  { t: "李涛", n: 11, alb: 7, a: "她的呼唤 / 你身边的那位，代替了我得座位" },
+  { t: "DarK Haye", n: 10, alb: 4, a: "Tried Not Right （尽力不完美） / Walk Fade Talk  (Slap House)" },
+  { t: "鱿鱼babe", n: 10, alb: 9, a: "请你永远陪在我身边 / 我不想你和我说再见" },
+  { t: "zphatGhxst", n: 10, alb: 6, a: "EPIC SLAVA FUNK! / MONTAGEM CHESS" },
+  { t: "Seto", n: 10, alb: 6, a: "嗯 / ᐇ" },
+  { t: "Bruno Mars", n: 9, alb: 7, a: "24K Magic (explicit) [Karaoke] / Summer Gains (Explicit)" },
+  { t: "Re:Plus", n: 8, alb: 3, a: "Everlasting Truth / IN YA MELLOW TONE 3" },
+  { t: "Spin Master A-1", n: 8, alb: 1, a: "Luv(Sic) Hexalogy (OMA and Shing02 Live at Liquidroom)" },
+  { t: "唐伯虎Annie", n: 8, alb: 3, a: "游京 (国潮版) / 莫问归期" },
+  { t: "Cradle Orchestra", n: 8, alb: 2, a: "Zone of Zen / SOUND NOVEL" },
+];
 
 /* 自建歌单（按歌曲数降序）*/
 REAL.playlists = [

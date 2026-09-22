@@ -157,6 +157,48 @@ def main():
     A(f'  plays:  {js([x["plays"] for x in daily])} }};')
     A('')
 
+    allsongs_raw = bk['lists']['defaultList']
+    # ── 专辑 / 歌手聚合（本地，不依赖平台）──
+    # LX-Pro 的 AlbumDetail/ArtistDetail 调 wyApi（平台接口），
+    # 但真实备份里有专辑名与歌手，可本地聚合 → 无平台依赖。
+    alb = defaultdict(list)
+    for s in allsongs_raw:
+        a = (s.get('meta') or {}).get('albumName') or ''
+        if a and a.strip() and a.strip() != '-':
+            alb[a.strip()].append(s)
+    # 专辑：按歌曲数降序，取前 40
+    A('/* 专辑聚合（本地，取歌曲数前 40）*/')
+    A('REAL.albums = [')
+    for name, ss in sorted(alb.items(), key=lambda x: -len(x[1]))[:40]:
+        singers = []
+        for x in ss:
+            for a2 in (x.get('singer') or '').replace('、','/').split('/'):
+                a2 = a2.strip()
+                if a2 and a2 not in singers: singers.append(a2)
+        A(f'  {{ t: {js(name)}, n: {len(ss)}, '
+          f'a: {js(" / ".join(singers[:3]))} }},')
+    A('];')
+    A('')
+
+    # 歌手：按歌曲数降序，取前 40；并算其参与专辑
+    art = defaultdict(list)
+    for s in allsongs_raw:
+        for a2 in (s.get('singer') or '').replace('、','/').split('/'):
+            a2 = a2.strip()
+            if a2: art[a2].append(s)
+    A('/* 歌手聚合（本地，取歌曲数前 40）*/')
+    A('REAL.artists = [')
+    for name, ss in sorted(art.items(), key=lambda x: -len(x[1]))[:40]:
+        albs = []
+        for x in ss:
+            a2 = (x.get('meta') or {}).get('albumName') or ''
+            a2 = a2.strip()
+            if a2 and a2 != '-' and a2 not in albs: albs.append(a2)
+        A(f'  {{ t: {js(name)}, n: {len(ss)}, alb: {len(albs)}, '
+          f'a: {js(" / ".join(albs[:2]))} }},')
+    A('];')
+    A('')
+
     # ── 歌单（40 个自建，按歌曲数排序）──
     ul = sorted(bk['lists']['userList'], key=lambda p: -len(p['list']))
     A('/* 自建歌单（按歌曲数降序）*/')
