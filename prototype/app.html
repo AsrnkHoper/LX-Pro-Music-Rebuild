@@ -1041,6 +1041,10 @@ const DRAW = {
     const t = listNavTarget(w);
     const total = t.total || 0;
     const visible = t.visible || 1;
+    /* ⚠️ 像素模型（2026-09-22 修）：maxScroll 来自 listNavTarget 的 maxScroll 字段。
+       此前清理重复声明时误删，导致 listnav 一绘制就 ReferenceError
+       → buildPage 中断 → 主页已隐藏而子空间未显示 → 黑屏（只剩边缘箭头）。 */
+    const maxScroll = t.maxScroll || 0;
     const ratio = maxScroll > 0 ? (t.scroll / maxScroll) : 0;
     const visRatio = total > 0 ? Math.min(1, visible / total) : 1;
 
@@ -2167,7 +2171,17 @@ function redrawWidget(mesh){
   g.clearRect(0,0,c.width,c.height);
   if(!u.widget.bare) drawPanelBg(g, c.width, c.height, u.idx || 0);
   const fn = DRAW[u.widget.type];
-  u.regions = fn ? fn(g, c.width, c.height, u.widget, u.state, u.idx || 0) : [];
+  /* ⚠️ 单个控件绘制失败不能炸掉整页（2026-09-22）：
+     此前 buildPage 里任一控件抛异常 → 整个子空间构建中断
+     → 主页已隐藏、子空间未显示 → 黑屏（只剩边缘箭头）。
+     现在捕获异常：该控件留空，其余正常显示，并在控制台报出控件类型。 */
+  try {
+    u.regions = fn ? fn(g, c.width, c.height, u.widget, u.state, u.idx || 0) : [];
+  } catch(err){
+    u.regions = [];
+    console.error('[DRAW.' + u.widget.type + '] 绘制失败:', err);
+    if(typeof toast === 'function') toast('控件绘制失败：' + u.widget.type);
+  }
   u.tex.needsUpdate = true;
   /* 列表：重画后把窗口偏移对齐到当前滚动位置 */
   if(u.listMeta) syncListWindow(mesh);
@@ -3357,10 +3371,27 @@ function enterSection(mesh){
     mesh.scale.set(1,1,1);
     flyCard = null;
 
-    mainGroup.visible = false;
-    buildPage(key);
-    activatePage(key);
-    subGroup.visible = true;
+    /* ⚠️ 构建失败兜底（2026-09-22）：若 buildPage 抛异常，
+       不能停在「主页已隐藏、子空间为空」的黑屏状态 → 回退到主页并提示。 */
+    try {
+      buildPage(key);
+      activatePage(key);
+      mainGroup.visible = false;
+      subGroup.visible = true;
+    } catch(err){
+      console.error('[buildPage:' + key + '] 构建失败，回退主页:', err);
+      subGroup.visible = false;
+      mainGroup.visible = true;
+      mode = 'main';
+      curPageKey = null;
+      busy = false;
+      document.body.classList.remove('busy');
+      document.body.classList.remove('sub');
+      backBtn.classList.remove('on');
+      wipe(false);
+      toast('「' + key + '」空间构建失败，已返回主页');
+      return;
+    }
 
     mode = 'sub';
     curPageKey = key;
