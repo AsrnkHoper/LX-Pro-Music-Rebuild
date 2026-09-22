@@ -591,18 +591,63 @@ const PAGES = {
   },
   stats: {
     en:'STATS', cn:'听歌统计',
+    /* ⚠️ 环绕多焦点布局（2026-09-22 按 docs/13 P0 改造）
+       6 种图表不再堆成一列，而是分置不同方位，转视角查看：
+         · 正面（az 0）：Hero 统计大数 + 24h 柱状图
+         · 右转（az +58）：六维雷达图（画像）
+         · 左转（az -58）：平台占比环形图
+         · 下转（el -42）：排行列表（歌手/歌曲）
+       手机竖屏横向视野仅 ±17°，故环绕面放 ±58°，需转动才能看到 —— 这正是空间化的意义。
+       参考 LX-Pro src/screens/Home/Views/Stats/ */
+    cam: { yawMax: 1.10, pitchMax: 0.70, sensX: 0.0075, sensY: 0.007 },
+    radius: 6.2,
     widgets: [
+      /* ── 正面 ── */
       { type:'stat', value:'12.5', unit:'小时', label:'本周听歌时长',
-        bars:[0.42,0.68,0.31,0.92,0.57,0.48,0.79] },
-      { type:'bars', label:'歌手排行', items:[
+        az:0, el:20, w:3.2, h:1.5, bare:true, float:0 },
+
+      { type:'chart_bar24', label:'活跃时间分布', topLabel:'峰值 22:00',
+        az:0, el:4, w:3.2, h:1.9, bare:true, float:0,
+        bars:[0.05,0.03,0.02,0.02,0.03,0.06,0.12,0.20,0.26,0.30,0.28,0.32,
+              0.36,0.30,0.28,0.34,0.42,0.52,0.62,0.74,0.86,0.98,0.92,0.55],
+        top:21 },
+
+      /* ── 右转：六维雷达图（LX-Pro Stats/index.tsx:71-76 的六个维度）── */
+      { type:'chart_radar', label:'听歌画像',
+        az:58, el:6, w:2.9, h:2.6, bare:true, float:0,
+        items:[
+          { label:'多样性', value:0.72 },
+          { label:'深夜',   value:0.86 },
+          { label:'循环',   value:0.54 },
+          { label:'完听',   value:0.68 },
+          { label:'活跃',   value:0.78 },
+          { label:'探索',   value:0.41 }
+        ]},
+
+      /* ── 左转：平台占比环形图（色板沿用 LX-Pro DonutChart.tsx:15）── */
+      { type:'chart_donut', label:'音源占比', centerValue:'12.5', centerUnit:'小时',
+        az:-58, el:6, w:3.2, h:1.8, bare:true, float:0,
+        items:[
+          { label:'Bilibili', value:5.4 },
+          { label:'本地文件', value:4.1 },
+          { label:'导入音源', value:2.2 },
+          { label:'其他',     value:0.8 }
+        ]},
+
+      /* ── 下转：排行列表 ── */
+      { type:'bars', label:'歌手排行',
+        az:0, el:-24, w:3.2, h:2.0, bare:true, float:0, items:[
         { t:'梁博',      v:0.92, s:'38 次' },
         { t:'毛不易',    v:0.74, s:'31 次' },
         { t:'陈奕迅',    v:0.58, s:'24 次' },
         { t:'Radiohead', v:0.41, s:'17 次' }
       ]},
-      { type:'bars', label:'歌曲排行', items:[
+
+      { type:'bars', label:'歌曲排行',
+        az:0, el:-48, w:3.2, h:1.5, bare:true, float:0, items:[
         { t:'黑夜中', v:0.88, s:'21 次' },
-        { t:'消愁',   v:0.62, s:'15 次' }
+        { t:'消愁',   v:0.62, s:'15 次' },
+        { t:'后来',   v:0.44, s:'11 次' }
       ]}
     ]
   },
@@ -1490,6 +1535,219 @@ const DRAW = {
       g.textAlign='right'; g.fillText(it.s, W-pad, y); g.textAlign='left';
       y += rh;
     });
+    return [];
+  },
+
+  /* ============================================================
+     统计图表（2026-09-22 新增，移植 LX-Pro Stats 的图表体系）
+     参考：LX-Pro src/screens/Home/Views/Stats/
+       · RadarChart.tsx      六维雷达图
+       · DonutChart.tsx      平台占比环形图（色板在 :15）
+       · index.tsx:721-740   24 小时柱状图（最高峰高亮）
+     本项目用 Canvas 2D 手绘（LX-Pro 用 react-native-svg），
+     语义一致、实现路径不同。
+  ============================================================ */
+
+  /* 24 小时柱状图：柱高按最大值归一化，最高峰高亮
+     LX-Pro 原实现：柱高归一化到 64px，topHour 用主色高亮 */
+  chart_bar24(g, W, H, w, st, idx){
+    const P = W/5;
+    const pad = 0.30*P;
+    let y = 0;
+    if(w.label){ label(g, w.label, pad, 0.48*P, P); y = 0.72*P; }
+
+    const bars = w.bars || [];
+    const n = bars.length;
+    const maxV = Math.max.apply(null, bars.concat([0.001]));
+    const topIdx = w.top !== undefined ? w.top : bars.indexOf(maxV);
+
+    /* 基线 + 柱区 */
+    const baseY = H - 0.62*P;
+    const maxH  = (baseY - y) * 0.86;
+    const slot  = (W - 2*pad) / n;
+    const bw    = slot * 0.62;
+
+    bars.forEach((v, i) => {
+      const bh = Math.max(2, maxH * (v / maxV));
+      const bx = pad + i*slot + (slot - bw)/2;
+      const isTop = (i === topIdx);
+      g.fillStyle = isTop ? 'rgba(198,214,232,0.92)' : 'rgba(255,255,255,0.16)';
+      roundRect(g, bx, baseY - bh, bw, bh, Math.min(bw*0.32, 0.06*P)); g.fill();
+      /* 最高峰加发光描边 */
+      if(isTop){
+        g.strokeStyle = 'rgba(226,238,250,0.55)'; g.lineWidth = 1.5;
+        roundRect(g, bx, baseY - bh, bw, bh, Math.min(bw*0.32, 0.06*P)); g.stroke();
+      }
+    });
+
+    /* 小时刻度：0 / 6 / 12 / 18 / 23 */
+    g.fillStyle = 'rgba(158,170,186,0.80)';
+    g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    [0, 6, 12, 18, 23].forEach(h => {
+      if(h >= n) return;
+      g.fillText(String(h), pad + h*slot + slot/2, baseY + 0.34*P);
+    });
+    g.textAlign = 'left';
+
+    /* 最高峰标注 */
+    if(w.topLabel){
+      g.fillStyle = 'rgba(226,238,250,0.92)';
+      g.font = '500 ' + Math.round(0.21*P) + 'px ' + FONT;
+      g.textAlign = 'right';
+      g.fillText(w.topLabel, W - pad, y + 0.10*P);
+      g.textAlign = 'left';
+    }
+    return [];
+  },
+
+  /* 六维雷达图：多边形 + 网格 + 轴标签
+     LX-Pro 维度（Stats/index.tsx:71-76）：
+       多样性 / 深夜 / 循环 / 完听 / 活跃 / 探索 */
+  chart_radar(g, W, H, w, st, idx){
+    const P = W/5;
+    const items = w.items || [];
+    const n = items.length;
+    if(!n) return [];
+
+    const cx = W/2;
+    /* 留出上方标签空间 */
+    const labelH = 0.34*P;
+    const cy = labelH + (H - labelH - 0.18*P)/2;
+    const R  = Math.min(W*0.34, (H - labelH - 0.36*P)/2);
+
+    const ang = i => -Math.PI/2 + i * Math.PI*2/n;
+
+    /* 网格：3 层同心多边形 */
+    for(let layer = 1; layer <= 3; layer++){
+      const r = R * layer/3;
+      g.strokeStyle = 'rgba(255,255,255,' + (layer === 3 ? 0.16 : 0.08) + ')';
+      g.lineWidth = 1.2;
+      g.beginPath();
+      for(let i = 0; i < n; i++){
+        const a = ang(i);
+        const x = cx + Math.cos(a)*r, y = cy + Math.sin(a)*r;
+        i ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.closePath(); g.stroke();
+    }
+
+    /* 轴线 */
+    g.strokeStyle = 'rgba(255,255,255,0.10)'; g.lineWidth = 1;
+    for(let i = 0; i < n; i++){
+      const a = ang(i);
+      g.beginPath(); g.moveTo(cx, cy);
+      g.lineTo(cx + Math.cos(a)*R, cy + Math.sin(a)*R); g.stroke();
+    }
+
+    /* 数据多边形（填充 + 描边）*/
+    g.beginPath();
+    items.forEach((it, i) => {
+      const a = ang(i);
+      const r = R * Math.max(0, Math.min(1, it.value || 0));
+      const x = cx + Math.cos(a)*r, y = cy + Math.sin(a)*r;
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    });
+    g.closePath();
+    g.fillStyle = 'rgba(150,180,215,0.26)'; g.fill();
+    g.strokeStyle = 'rgba(206,222,240,0.85)'; g.lineWidth = 2; g.stroke();
+
+    /* 顶点小圆点 */
+    items.forEach((it, i) => {
+      const a = ang(i);
+      const r = R * Math.max(0, Math.min(1, it.value || 0));
+      g.beginPath();
+      g.arc(cx + Math.cos(a)*r, cy + Math.sin(a)*r, 0.045*P, 0, Math.PI*2);
+      g.fillStyle = 'rgba(232,242,252,0.95)'; g.fill();
+    });
+
+    /* 轴标签 */
+    g.fillStyle = 'rgba(178,188,204,0.92)';
+    g.font = '500 ' + Math.round(0.21*P) + 'px ' + FONT;
+    items.forEach((it, i) => {
+      const a = ang(i);
+      const lx = cx + Math.cos(a)*(R + 0.30*P);
+      const ly = cy + Math.sin(a)*(R + 0.30*P);
+      const cosv = Math.cos(a);
+      g.textAlign = Math.abs(cosv) < 0.3 ? 'center' : (cosv > 0 ? 'left' : 'right');
+      g.textBaseline = Math.sin(a) > 0.3 ? 'top' : (Math.sin(a) < -0.3 ? 'bottom' : 'middle');
+      g.fillText(it.label || '', lx, ly);
+    });
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+    return [];
+  },
+
+  /* 环形图：各平台占比（LX-Pro DonutChart.tsx）
+     strokeWidth = size*0.14；中心显示累计值；右侧图例带百分比
+     色板沿用 LX-Pro 的 DEFAULT_COLORS（DonutChart.tsx:15） */
+  chart_donut(g, W, H, w, st, idx){
+    const P = W/5;
+    const items = w.items || [];
+    const COLORS = ['#4daf7c','#f59e0b','#3b82f6','#8b5cf6','#ef4444','#14b8a6','#f97316','#64748b'];
+    const total = items.reduce((s, it) => s + (it.value || 0), 0) || 1;
+
+    /* 左侧圆环 + 右侧图例 */
+    const labelH = w.label ? 0.72*P : 0.10*P;
+    const availH = H - labelH - 0.16*P;
+    const R  = Math.min(W*0.19, availH*0.42);
+    const cx = 0.30*P + R;
+    const cy = labelH + availH/2;
+    const sw = R * 0.28;              /* 环宽 ≈ size*0.14 */
+
+    if(w.label) label(g, w.label, 0.30*P, 0.48*P, P);
+
+    /* 底色环 */
+    g.strokeStyle = 'rgba(255,255,255,0.08)';
+    g.lineWidth = sw;
+    g.beginPath(); g.arc(cx, cy, R, 0, Math.PI*2); g.stroke();
+
+    /* 数据弧（从 -90° 开始顺时针）*/
+    let a0 = -Math.PI/2;
+    items.forEach((it, i) => {
+      const frac = (it.value || 0) / total;
+      const a1 = a0 + frac * Math.PI*2;
+      if(frac > 0){
+        g.strokeStyle = it.color || COLORS[i % COLORS.length];
+        g.lineWidth = sw;
+        g.lineCap = 'butt';
+        g.beginPath(); g.arc(cx, cy, R, a0, a1); g.stroke();
+      }
+      a0 = a1;
+    });
+
+    /* 中心文字：累计值 + 单位 */
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = 'rgba(243,247,252,0.96)';
+    g.font = '600 ' + Math.round(0.34*P) + 'px ' + FONT;
+    g.fillText(w.centerValue || String(Math.round(total)), cx, cy - 0.06*P);
+    if(w.centerUnit){
+      g.fillStyle = 'rgba(168,178,192,0.85)';
+      g.font = '400 ' + Math.round(0.19*P) + 'px ' + FONT;
+      g.fillText(w.centerUnit, cx, cy + 0.28*P);
+    }
+
+    /* 右侧图例 */
+    const lx = cx + R + 0.34*P;
+    const rowH = Math.min(0.42*P, availH / Math.max(1, items.length));
+    let ly = cy - (items.length*rowH)/2 + rowH/2;
+    items.forEach((it, i) => {
+      const frac = (it.value || 0) / total;
+      /* 色点 */
+      g.beginPath(); g.arc(lx + 0.07*P, ly, 0.065*P, 0, Math.PI*2);
+      g.fillStyle = it.color || COLORS[i % COLORS.length]; g.fill();
+      /* 名称 */
+      g.textAlign = 'left'; g.textBaseline = 'middle';
+      g.fillStyle = 'rgba(228,234,242,0.92)';
+      g.font = '400 ' + Math.round(0.21*P) + 'px ' + FONT;
+      g.fillText(it.label || '', lx + 0.22*P, ly);
+      /* 百分比（右对齐）*/
+      g.textAlign = 'right';
+      g.fillStyle = 'rgba(158,170,186,0.85)';
+      g.font = '500 ' + Math.round(0.20*P) + 'px ' + FONT;
+      g.fillText(Math.round(frac*100) + '%', W - 0.24*P, ly);
+      ly += rowH;
+    });
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic';
     return [];
   },
 

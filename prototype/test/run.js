@@ -163,6 +163,62 @@ const coverCfg = T.PAGES.now.widgets.find(w => w.type === 'cover');
 ok(!!coverCfg && coverCfg.fhSquare !== undefined,
    `封面用 fhSquare 定尺寸（不随宽高比变化）`);
 
+/* ── 5b. 统计图表（P0 新增） ── */
+console.log('\n════ 5b. 统计图表绘制 ════');
+enter('stats');
+const statsWs = T.pageByKey.stats;
+const chartTypes = ['chart_bar24','chart_radar','chart_donut'];
+chartTypes.forEach(t => {
+  const m = statsWs.find(x => x.userData.widget.type === t);
+  ok(!!m, `stats 空间含 ${t}`);
+});
+
+/* 图表真的调用了绘制 API（而非空跑）——用计数桩验证 */
+const calls = { arc:0, lineTo:0, moveTo:0, fillText:0, stroke:0, fill:0 };
+const realCtxProto = (() => {
+  const probe = require('./harness.js');
+  return null;
+})();
+/* 直接给每个图表控件的 canvas 注入计数 ctx 再重画 */
+chartTypes.forEach(t => {
+  const m = statsWs.find(x => x.userData.widget.type === t);
+  if(!m) return;
+  const c = m.userData.canvas;
+  const cnt = { arc:0, lineTo:0, moveTo:0, fillText:0, stroke:0, fill:0 };
+  const ctx = new Proxy({
+    canvas:{width:c.width, height:c.height},
+    measureText: s => ({width:String(s).length*8}),
+    createLinearGradient: () => ({addColorStop(){}}),
+    createRadialGradient: () => ({addColorStop(){}}),
+    arc(){ cnt.arc++; }, lineTo(){ cnt.lineTo++; }, moveTo(){ cnt.moveTo++; },
+    fillText(){ cnt.fillText++; }, stroke(){ cnt.stroke++; }, fill(){ cnt.fill++; },
+    beginPath(){}, closePath(){}, clearRect(){}, save(){}, restore(){},
+    fillRect(){}, strokeRect(){}, clip(){}, translate(){}, scale(){},
+    setLineDash(){}, quadraticCurveTo(){}, bezierCurveTo(){}, rect(){}
+  }, { get(o,k){ if(k in o) return o[k]; return ()=>{}; }, set(o,k,v){ o[k]=v; return true; } });
+  /* 换掉 getContext 返回值 */
+  c.getContext = () => ctx;
+  try {
+    T.DRAW[t](ctx, c.width, c.height, m.userData.widget, m.userData.state, 0);
+    ok(cnt.stroke > 0 || cnt.fill > 0, `${t.padEnd(14)} 有绘制调用（stroke=${cnt.stroke} fill=${cnt.fill} arc=${cnt.arc} lineTo=${cnt.lineTo} text=${cnt.fillText}）`);
+  } catch(e){
+    ok(false, `${t} 绘制抛异常: ${e.message}`);
+  }
+});
+
+/* 图表数据完整性 */
+const bar24 = statsWs.find(x=>x.userData.widget.type==='chart_bar24');
+ok(bar24 && bar24.userData.widget.bars.length === 24, `24h 柱状图有 24 个数据点（实际 ${bar24?bar24.userData.widget.bars.length:0}）`);
+const radar = statsWs.find(x=>x.userData.widget.type==='chart_radar');
+ok(radar && radar.userData.widget.items.length === 6, `雷达图 6 个维度（实际 ${radar?radar.userData.widget.items.length:0}）`);
+const donut = statsWs.find(x=>x.userData.widget.type==='chart_donut');
+ok(donut && donut.userData.widget.items.length >= 2, `环形图有多个平台（实际 ${donut?donut.userData.widget.items.length:0}）`);
+
+/* 环绕布局：图表分布在不同方位（不是全堆在正面） */
+const azs = statsWs.map(x=>x.userData.widget.az).filter(a=>a!==undefined);
+const uniq = [...new Set(azs)];
+ok(uniq.length >= 3, `图表分布在不同方位（${uniq.length} 个方位: ${uniq.join(',')}）`);
+
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');
 let noVis = [];
