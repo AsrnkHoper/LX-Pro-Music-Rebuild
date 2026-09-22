@@ -4684,17 +4684,32 @@ function drawPanelBg(g, W, H, i){
   grd.addColorStop(1, hexA(b, 0.40 - d*0.14));
   g.fillStyle = grd; roundRect(g,0,0,W,H,r); g.fill();
 
-  /* 边缘溶解（比主页卡轻，保列表可读）*/
+  /* 边缘溶解（矩形匹配，比主页卡轻以保列表可读）
+     ⚠️ 同 drawCardBg：圆形蒙版对矩形擦不干净 → 改四边线性 */
   if(d > 0){
-    const cx = W/2, cy = H/2;
-    const rad = Math.max(W, H) * 0.66;
-    const mask = g.createRadialGradient(cx, cy, rad*(0.52 + d*0.08),
-                                        cx, cy, rad);
-    mask.addColorStop(0, 'rgba(0,0,0,0)');
-    mask.addColorStop(1, 'rgba(0,0,0,' + (d*0.80) + ')');
     g.save();
     g.globalCompositeOperation = 'destination-out';
-    g.fillStyle = mask; roundRect(g,0,0,W,H,r); g.fill();
+    const edgeX = W * (0.06 + d*0.05);
+    const edgeY = H * (0.10 + d*0.08);
+    const grad = (x0,y0,x1,y1) => {
+      const lg = g.createLinearGradient(x0,y0,x1,y1);
+      lg.addColorStop(0, 'rgba(0,0,0,' + d + ')');
+      lg.addColorStop(1, 'rgba(0,0,0,0)');
+      return lg;
+    };
+    g.fillStyle = grad(0,0,0,edgeY);      g.fillRect(0,0,W,edgeY);
+    g.fillStyle = grad(0,H,0,H-edgeY);    g.fillRect(0,H-edgeY,W,edgeY);
+    g.fillStyle = grad(0,0,edgeX,0);      g.fillRect(0,0,edgeX,H);
+    g.fillStyle = grad(W,0,W-edgeX,0);    g.fillRect(W-edgeX,0,edgeX,H);
+    /* 四角加强 */
+    const cornerR = Math.min(W,H) * (0.14 + d*0.08);
+    [[0,0],[W,0],[0,H],[W,H]].forEach(([cx,cy]) => {
+      const rg = g.createRadialGradient(cx,cy,0, cx,cy,cornerR);
+      rg.addColorStop(0, 'rgba(0,0,0,' + Math.min(1,d*1.1) + ')');
+      rg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = rg;
+      g.fillRect(Math.max(0,cx-cornerR), Math.max(0,cy-cornerR), cornerR*2, cornerR*2);
+    });
     g.restore();
   }
 
@@ -6356,58 +6371,74 @@ const CARD_PPM = 200;   // 每世界单位 200 像素
    可调：DISSOLVE 控制溶解强度（0=旧实心卡片，1=完全溶解）*/
 const DISSOLVE = 0.86;
 
+/* ⚠️ 关键修复（2026-09-23，用户反馈「卡片还是有边界」）：
+   此前用【圆形径向蒙版】擦除 —— 但卡片是【矩形】，
+   圆形在上下边缘（离中心近）只能擦掉 ~49% → 边界仍在。
+   现改为【沿四边的线性渐变擦除】，与卡片形状匹配：
+     每条边一个线性渐变（边=全擦，向内=不擦），四边叠加。
+   并把擦除起点提前、强度拉满。 */
 function drawCardBg(g, W, H, i){
   const [a,b] = PALETTES[i % PALETTES.length];
   const r = H*0.11;
   const d = DISSOLVE;
 
   g.save();
-  /* ① 底板：低透明度渐变（越靠边越淡，模拟玻璃厚度衰减）*/
+  /* ① 底板：低透明度渐变 */
   const grd = g.createLinearGradient(0,0,W*0.85,H);
   grd.addColorStop(0, hexA(a, 0.62 - d*0.22));
   grd.addColorStop(1, hexA(b, 0.42 - d*0.20));
   g.fillStyle = grd; roundRect(g,0,0,W,H,r); g.fill();
 
-  /* ② 溶解蒙版：用 destination-out 把边缘擦掉（真正「无边界」）*/
+  /* ② 四边线性擦除（矩形匹配，强度拉满）*/
   if(d > 0){
-    const cx = W/2, cy = H/2;
-    const rad = Math.max(W, H) * 0.62;
-    const mask = g.createRadialGradient(cx, cy, rad*(0.42 + d*0.10),
-                                        cx, cy, rad);
-    mask.addColorStop(0, 'rgba(0,0,0,0)');
-    mask.addColorStop(0.55, 'rgba(0,0,0,' + (d*0.30) + ')');
-    mask.addColorStop(1, 'rgba(0,0,0,' + (d*0.95) + ')');
     g.globalCompositeOperation = 'destination-out';
-    g.fillStyle = mask; roundRect(g,0,0,W,H,r); g.fill();
-    /* 四边线性擦除（补强，避免长条卡片两侧不溶解）*/
-    const edge = 0.16 + d*0.10;
-    const mkLine = (x0,y0,x1,y1) => {
+    const edgeX = W * (0.10 + d*0.06);   /* 左右擦除带宽度 */
+    const edgeY = H * (0.16 + d*0.10);   /* 上下擦除带宽度（更大，因上下边缘离中心近）*/
+
+    const grad = (x0,y0,x1,y1) => {
       const lg = g.createLinearGradient(x0,y0,x1,y1);
-      lg.addColorStop(0,'rgba(0,0,0,'+(d*0.92)+')');
-      lg.addColorStop(1,'rgba(0,0,0,0)');
+      lg.addColorStop(0, 'rgba(0,0,0,' + d + ')');       /* 边缘：全擦 */
+      lg.addColorStop(1, 'rgba(0,0,0,0)');               /* 向内：不擦 */
       return lg;
     };
-    g.fillStyle = mkLine(0,0,W*edge,0);            g.fillRect(0,0,W*edge,H);
-    g.fillStyle = mkLine(W,0,W-W*edge,0);          g.fillRect(W-W*edge,0,W*edge,H);
-    g.fillStyle = mkLine(0,0,0,H*edge);            g.fillRect(0,0,W,H*edge);
-    g.fillStyle = mkLine(0,H,0,H-H*edge);          g.fillRect(0,H-H*edge,W,H*edge);
+    /* 上 */
+    g.fillStyle = grad(0,0,0,edgeY);            g.fillRect(0,0,W,edgeY);
+    /* 下 */
+    g.fillStyle = grad(0,H,0,H-edgeY);          g.fillRect(0,H-edgeY,W,edgeY);
+    /* 左 */
+    g.fillStyle = grad(0,0,edgeX,0);            g.fillRect(0,0,edgeX,H);
+    /* 右 */
+    g.fillStyle = grad(W,0,W-edgeX,0);          g.fillRect(W-edgeX,0,edgeX,H);
+
+    /* 四角额外加强（角落最容易看出矩形）*/
+    const cornerR = Math.min(W,H) * (0.18 + d*0.10);
+    const corners = [[0,0],[W,0],[0,H],[W,H]];
+    corners.forEach(([cx,cy]) => {
+      const rg = g.createRadialGradient(cx,cy,0, cx,cy,cornerR);
+      rg.addColorStop(0, 'rgba(0,0,0,' + Math.min(1,d*1.15) + ')');
+      rg.addColorStop(0.6, 'rgba(0,0,0,' + (d*0.35) + ')');
+      rg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = rg;
+      g.fillRect(Math.max(0,cx-cornerR), Math.max(0,cy-cornerR),
+                 cornerR*2, cornerR*2);
+    });
     g.globalCompositeOperation = 'source-over';
   }
 
-  /* ③ 内侧发光边缘（替代硬边框）*/
-  g.strokeStyle = 'rgba(200,220,240,' + (0.10 + d*0.06) + ')';
+  /* ③ 内侧发光边缘（替代硬边框，极淡）*/
+  g.strokeStyle = 'rgba(200,220,240,' + (0.06 + d*0.04) + ')';
   g.lineWidth = 1.2;
-  roundRect(g, W*0.02, H*0.02, W*0.96, H*0.96, r*0.9); g.stroke();
+  roundRect(g, W*0.05, H*0.05, W*0.90, H*0.90, r*0.85); g.stroke();
 
   /* ④ 顶部高光条（玻璃反光暗示）*/
   const hg = g.createLinearGradient(0, 0, 0, H*0.22);
-  hg.addColorStop(0, 'rgba(226,238,252,0.16)');
+  hg.addColorStop(0, 'rgba(226,238,252,0.14)');
   hg.addColorStop(1, 'rgba(226,238,252,0)');
   g.fillStyle = hg; roundRect(g,0,0,W,H,r); g.fill();
 
   /* ⑤ 左上角极细高光线 */
-  g.fillStyle = 'rgba(230,240,252,0.22)';
-  g.fillRect(W*0.08, H*0.075, W*0.30, 1.2);
+  g.fillStyle = 'rgba(230,240,252,0.20)';
+  g.fillRect(W*0.10, H*0.10, W*0.26, 1.2);
 
   g.restore();
 }
@@ -6804,7 +6835,12 @@ FEATURES.forEach((f, i) => {
 
   /* 每张卡片尺寸可以不同（如"当前播放"是更大的重点卡）*/
   const cw = f.w || 3.4, ch = f.h || 2.2;
-  const geo = new THREE.BoxGeometry(cw, ch, 0.08);
+  /* ⚠️ 关键修复（2026-09-23，用户反馈「卡片还是有边界」）：
+     此前用 BoxGeometry(cw, ch, 0.08) —— 有 0.08 厚度，
+     斜看卡片时 4 个实色侧面会露出来，那就是硬边界。
+     改为 PlaneGeometry（纯平面，无侧边）→ 边界只由贴图 alpha 决定，
+     而贴图已做四边溶解 → 视觉上「没有边界」。 */
+  const geo = new THREE.PlaneGeometry(cw, ch);
 
   const tex = makeMainCardTexture(f, i);
   /* ⚡ 玻璃化（2026-09-23）：贴图面 = 半透明高反射 + clearcoat（不冲淡贴图）*/
@@ -6812,10 +6848,8 @@ FEATURES.forEach((f, i) => {
     ? makeGlassMaterial({ map:tex, opacity:0.94, roughness:0.10,
                           envMapIntensity:1.5, iridescence:0.18 })
     : new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:1, toneMapped:false, fog:false });
-  const sideMat = GLASS_ON
-    ? makeGlassSide(0x22262E)
-    : new THREE.MeshBasicMaterial({ color:0x22262E, transparent:true, opacity:1, fog:false });
-  const mesh = new THREE.Mesh(geo, [sideMat,sideMat,sideMat,sideMat,faceMat,sideMat]);
+  const sideMat = faceMat;   /* 平面无侧边，保留引用兼容旧代码 */
+  const mesh = new THREE.Mesh(geo, faceMat);
 
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({
     map:HALO_TEX, color:0xA8BACF, transparent:true, opacity:0.3,
@@ -6835,45 +6869,6 @@ FEATURES.forEach((f, i) => {
   mainGroup.add(mesh);
   mainPanels.push(mesh);
 });
-
-/* ============================================================
-   ⚡ 星座光弧（2026-09-23）—— 打破「孤立卡片」
-   思路：6 张卡片不该是 6 个孤立矩形，而应像「星座」——
-        卡片是星，之间用极细的光弧相连。
-        这样转动视角时，看到的是「一张星图」，不是「一排卡片」。
-   实现：沿球面在相邻卡片之间画弧线（QuadraticBezier），
-        用 AdditiveBlending 让光弧叠加发光，且随距离衰减。
-============================================================ */
-const constellationGroup = new THREE.Group();
-mainGroup.add(constellationGroup);
-
-(function buildConstellation(){
-  const n = mainPanels.length;
-  if(n < 2) return;
-  const pts = mainPanels.map(m => m.userData.home.clone());
-
-  for(let i = 0; i < n; i++){
-    const a = pts[i], b = pts[(i+1) % n];
-    /* 弧线中点：向球心外推一点，形成「拱起」的弧 */
-    const mid = a.clone().add(b).multiplyScalar(0.5);
-    const outward = mid.clone().normalize().multiplyScalar(R * 0.10);
-    mid.add(outward);
-
-    const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
-    const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(24));
-    const mat = new THREE.LineBasicMaterial({
-      color: 0x8FA8C8,
-      transparent: true,
-      opacity: 0.14,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      fog: false
-    });
-    const line = new THREE.Line(geo, mat);
-    constellationGroup.add(line);
-  }
-  console.log('[星座光弧] ' + n + ' 条弧线已生成');
-})();
 
 /* ============================================================
    环绕菜单墙（14 项）
@@ -7646,8 +7641,10 @@ function makeWidgetMesh(w, idx, wwOv, hhOv){
     /* 裸元素：纯平面，没有底板、没有厚度 */
     mesh = new THREE.Mesh(new THREE.PlaneGeometry(ww, hh), faceMat);
   } else {
-    const geo = new THREE.BoxGeometry(ww, hh, 0.06);
-    mesh = new THREE.Mesh(geo, [sideMat,sideMat,sideMat,sideMat,faceMat,sideMat]);
+    /* ⚠️ 同主页卡：BoxGeometry 的实色侧边就是硬边界 → 改 PlaneGeometry
+       （2026-09-23，用户反馈「卡片还是有边界」）*/
+    const geo = new THREE.PlaneGeometry(ww, hh);
+    mesh = new THREE.Mesh(geo, faceMat);
   }
 
   if(lyricMeta){
@@ -8227,18 +8224,7 @@ function applyAudioVisual(){
   const e = AUDIO.energy;
   if(e <= 0.001) return;
 
-  /* ① 光弧亮度随能量脉动 */
-  if(constellationGroup && constellationGroup.children){
-    const n = constellationGroup.children.length || 1;
-    constellationGroup.children.forEach((line, i) => {
-      if(line && line.material){
-        const phase = i / n;
-        line.material.opacity = 0.10 + e * (0.26 + 0.10*Math.sin(phase*6.28));
-      }
-    });
-  }
-
-  /* ② 尘埃粒子整体呼吸（缩放 + 亮度）*/
+  /* 尘埃粒子整体呼吸（缩放 + 亮度）—— 用户反馈「这个挺好」*/
   if(motes && motes.material){
     motes.material.opacity = 0.34 + e*0.34;
     const s = 1 + e*0.06;

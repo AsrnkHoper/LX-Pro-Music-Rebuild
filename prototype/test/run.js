@@ -33,7 +33,7 @@ code += `
   curLyricIndex, nowWidgets, TRACKS, DRAW, widgetHeight,
   handleRegion, settingSlide, redrawWidget, nowWidgets,
   buildPage, activatePage, gotoSpace, spaceStack, localSearch, applySearch,
-  constellationGroup, pulseFromAudio, updateAudio, applyAudioVisual, AUDIO,
+  pulseFromAudio, updateAudio, applyAudioVisual, AUDIO,
   get NP(){return NP;}, get mode(){return mode;}, set mode(v){mode=v;},
   get busy(){return busy;}, get curPageKey(){return curPageKey;},
   set curPageKey(v){curPageKey=v;}, get flyCard(){return flyCard;},
@@ -878,11 +878,9 @@ ok(src2.includes('function hexA'), '有 hexA（色值→带透明度 rgba）');
 ok(src2.includes('内侧发光边缘'), '硬边框改为内侧发光边缘');
 ok(src2.includes('顶部高光条') || src2.includes('顶部高光'), '有玻璃反光暗示（顶部高光）');
 /* ② 星座光弧 */
-ok(src2.includes('constellationGroup'), '有星座光弧组');
-ok(src2.includes('QuadraticBezierCurve3'), '用二次贝塞尔画弧');
-ok(src2.includes('buildConstellation'), 'buildConstellation 存在');
-ok(/constellationGroup[^]*?mainGroup\.add/.test(src2), '光弧挂在 mainGroup（随卡片组隐藏）');
-ok(src2.includes('AdditiveBlending'), '光弧用叠加混合（发光）');
+/* ⚠️ 星座光弧已删除（2026-09-23 用户反馈「像 bug 一样突兀，不要这个」）*/
+ok(!src2.includes('constellationGroup'), '星座光弧已删除（用户否决）');
+ok(!src2.includes('buildConstellation'), 'buildConstellation 已删除');
 /* ③ 音频响应 */
 ok(src2.includes('const AUDIO'), '有 AUDIO 状态');
 ok(src2.includes('function pulseFromAudio'), 'pulseFromAudio 存在');
@@ -893,8 +891,10 @@ ok(src2.includes('applyAudioVisual()'), 'animate 里调用了 applyAudioVisual')
 ok(src2.includes('getByteFrequencyData'), '预留了真实音频接口（getByteFrequencyData）');
 ok(src2.includes('bpm: 92'), 'BPM 参数（Jazzy Hip-Hop 常见区间）');
 /* ④ 光弧实际生成 */
-ok(T.constellationGroup && T.constellationGroup.children.length === 6,
-   `实际生成 ${T.constellationGroup?T.constellationGroup.children.length:0} 条光弧（6 张卡 → 6 条）`);
+/* 边界修复：不应再有 BoxGeometry（实色侧边 = 硬边界）*/
+ok(!/new THREE\.BoxGeometry\(cw, ch/.test(src2), '主页卡已改 PlaneGeometry（无侧边边界）');
+ok(!/new THREE\.BoxGeometry\(ww, hh/.test(src2), '子空间控件已改 PlaneGeometry');
+ok(src2.includes('edgeX') && src2.includes('edgeY'), '边缘擦除用四边线性（矩形匹配）');
 /* ⑤ 音频脉冲数值合理性 */
 if(typeof T.pulseFromAudio === 'function'){
   T.NP.cur = 0;   /* 拍点 */
