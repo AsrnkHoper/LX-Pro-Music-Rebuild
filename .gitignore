@@ -14,3 +14,12 @@ __pycache__/
 # 临时文件
 /tmp/
 *.tmp
+
+# ⚠️ 凭据防护（2026-09-22）：防止误提交任何密钥/token
+.env
+.env.*
+*.token
+.vercel/
+.credentials*
+凭据*
+*secret*
