@@ -3,7 +3,7 @@
 > **把「音乐 App 的界面」重做成一个可以转动的三维空间。**
 > 没有 Tab、没有页面栈、没有弹窗——转动视角就是浏览。
 
-在线预览：**https://lx-pro-music-rebuild.vercel.app**（或你的自定义域名）
+在线预览：**https://lx-pro.hoper.eu.org**
 
 ---
 
@@ -103,6 +103,33 @@ cd prototype && python3 -m http.server 8080
 > ⚠️ **已知限制**：主页球面的世界坐标（半径 `R=6.5` 等）是固定值，
 > 当初按手机竖屏调校，在桌面宽屏上观感会偏散（相机 FOV 是垂直的，
 > 横向视野随宽高比放大）。故验收请用响应式模式或真机。
+
+---
+
+## 部署（Vercel + 自定义域名）
+
+```
+GitHub: AsrnkHoper/LX-Pro-Music-Rebuild
+   ↓ 自动部署（Vercel 监听 main 分支）
+Vercel: lx-pro-music-rebuild.vercel.app
+   ↓ Cloudflare 反向代理（橙云）
+线上: https://lx-pro.hoper.eu.org
+```
+
+**为什么绕 Cloudflare**：`vercel.app` 在部分网络（含校园网 SNI 白名单）**不可直达**，
+直连会超时。走 Cloudflare 边缘可正常访问，且带缓存。
+
+**改动流程**：`git push origin main` → Vercel 自动重新部署 → 域名同步生效（约 1 分钟）。
+
+**配置位置**（万一要改）：
+| 项 | 在哪 |
+|---|---|
+| Vercel 项目 | vercel.com → LX-Pro-Music-Rebuild |
+| DNS 记录 | Cloudflare → `hoper.eu.org` → DNS → `lx-pro` 的 CNAME |
+| Host 头改写 | Cloudflare → Rules → Transform Rules（反代必需，否则 Vercel 返回 404） |
+| SSL 模式 | Cloudflare → SSL/TLS → `Full` |
+
+> 详细说明见 `docs/12_部署与域名.md`。
 
 ---
 
