@@ -621,22 +621,16 @@ const PAGES = {
       { type:'lyric3d',   label:'歌词', sf:0.29, sv:0.47, fw:0.52, fh:0.32,
         pscale:1.7, tilt: 0.32, bare:true, float:0 },
 
-      /* 封面：右半屏 + 斜置（与下方文字成组，不单独漂浮）
-         ⚠️ 2026-09-22：sv 0.39→0.335，为下方迷你歌词腾位（原布局封面与信息行有轻微重叠）*/
-      { type:'cover',     label:'封面', sf:0.76, sv:0.335, fw:0.24, square:true,
+      /* 封面：右半屏 + 斜置（与下方文字成组，不单独漂浮）*/
+      { type:'cover',     label:'封面', sf:0.76, sv:0.39, fw:0.24, square:true,
         tilt:-0.32, bare:true, float:0 },
 
-      /* 迷你歌词：封面正下方一行当前句（借鉴 LX-Pro MiniLyric）
-         ⚠️ 位置正对镜头（不加 tilt），与封面保持同一视觉组 */
-      { type:'minilyric', label:'迷你歌词', sf:0.76, sv:0.432, fw:0.36, fh:0.040,
-        pscale:1.15, bare:true, float:0 },
-
-      /* 作者 · 专辑：紧贴迷你歌词下方 */
-      { type:'nowinfo',   label:'信息', sf:0.76, sv:0.500, fw:0.36, fh:0.045,
+      /* 作者 · 专辑：紧贴封面下方 */
+      { type:'nowinfo',   label:'信息', sf:0.76, sv:0.485, fw:0.36, fh:0.045,
         pscale:1.2, bare:true, float:0 },
 
       /* 进度条 + 控制：紧接信息行，正对镜头 */
-      { type:'transport', label:'控制', sf:0.76, sv:0.585, fw:0.36, fh:0.11,
+      { type:'transport', label:'控制', sf:0.76, sv:0.57, fw:0.36, fh:0.11,
         pscale:1.35, bare:true, float:0 },
 
       /* 向左转可见 */
@@ -1385,49 +1379,6 @@ const DRAW = {
       g.fillStyle = 'rgba(240,246,254,' + alpha + ')';
       g.fillText(l.s, W/2, top + i*lh);
     });
-    return [];
-  },
-
-  /* 迷你歌词（裸）—— 借鉴 LX-Pro 的 MiniLyric（封面下悬浮当前句）
-     ⚠️ 与 lyric3d 的分工（2026-09-22）：
-       · lyric3d = 左半屏的「全屏滚动歌词」，四态衰减，是主角
-       · minilyric = 封面正下方「一行当前句」，让封面页也能看到歌词
-     两者读同一个 NP.lyricIdx，天然同步。
-     LX-Pro 原实现（PlayDetail/Vertical/index.tsx:88-96 + components/MiniLyric.tsx）：
-       位置 bottom:6%、左右 10%、字号 13、取当前行 text + 首条翻译。 */
-  minilyric(g,W,H,w,st,idx){
-    const P = wp(W,w);
-    const lines = track().lyrics;
-    const k = NP.lyricIdx || 0;
-    const cur = lines[k] && lines[k].s ? lines[k].s : '';
-    const next = lines[k+1] && lines[k+1].s ? lines[k+1].s : '';
-
-    g.textAlign = 'center'; g.textBaseline = 'middle';
-
-    /* 当前句：亮、稍大 */
-    g.fillStyle = 'rgba(236,242,250,0.94)';
-    g.font = '500 ' + Math.round(0.34*P) + 'px ' + FONT;
-    /* ⚠️ 超长自适应缩放（与 lyric3d 同一套防裁切策略）*/
-    const maxW = W - 0.16*P;
-    let tw = g.measureText(cur).width;
-    if(tw > maxW){
-      const scaled = 0.34*P * maxW / tw;
-      g.font = '500 ' + Math.round(scaled) + 'px ' + FONT;
-    }
-    g.fillText(cur, W/2, H*0.34);
-
-    /* 下一句：暗、更小（预告感，LX-Pro 用翻译行，这里用下一句更实用）*/
-    if(next){
-      g.fillStyle = 'rgba(148,158,174,0.55)';
-      g.font = '400 ' + Math.round(0.24*P) + 'px ' + FONT;
-      const maxW2 = W - 0.16*P;
-      let tw2 = g.measureText(next).width;
-      if(tw2 > maxW2){
-        const scaled2 = 0.24*P * maxW2 / tw2;
-        g.font = '400 ' + Math.round(scaled2) + 'px ' + FONT;
-      }
-      g.fillText(next, W/2, H*0.74);
-    }
     return [];
   },
 
@@ -2344,26 +2295,11 @@ function scrollList(mesh, deltaPx){
 
 /* 跳转到指定「条目」行（搜索直达 / 导航条用）
    注意：item 行号 ≠ 像素；标题占 labelPx */
-/* 跳到指定「条目」行（itemRow 从 0 开始，指第 1 首歌）
-   ⚠️ 语义说明（2026-09-22）：
-     · itemRow = 0 → 滚到「第 1 首歌」= 标题带之下（scrollPx = labelPx）
-     · 若要滚到「内容最顶部」（连标题一起看到）→ 用 scrollListTop()
-   此前两者混用，调用方以为 itemRow=0 就是"回到顶部"，实际不是。 */
 function scrollListTo(mesh, itemRow){
   const u = mesh.userData, v = u.state.view;
   if(!u.listMeta || !v) return;
   const { maxScrollPx, labelPx, rowH } = listRows(u);
-  if(!isFinite(v.scrollPx)) v.scrollPx = 0;
   v.scrollPx = Math.max(0, Math.min(maxScrollPx, labelPx + itemRow*rowH));
-  rebuildListWindow(mesh);
-}
-
-/* 滚到内容最顶部（含标题带）——与 scrollListTo(mesh,0) 的区别见上 */
-function scrollListTop(mesh){
-  const u = mesh.userData, v = u.state.view;
-  if(!u.listMeta || !v) return;
-  v.scrollPx = 0;
-  v.snapTo = undefined;
   rebuildListWindow(mesh);
 }
 
@@ -2960,12 +2896,11 @@ function nowTick(dt){
     if(NP.cur >= t.dur){ NP.cur = t.dur; setPlaying(false); }
   }
 
-  /* 当前歌词句变化 → 重画歌词（高亮）+ 迷你歌词（2026-09-22）*/
+  /* 当前歌词句变化 → 重画歌词（高亮）*/
   const k = curLyricIndex();
   if(k !== NP.lyricIdx){
     NP.lyricIdx = k;
     redrawNowType('lyric3d');
-    redrawNowType('minilyric');   /* 迷你歌词读同一个 lyricIdx，天然同步 */
   }
 
   /* 歌词平滑滚动 */
