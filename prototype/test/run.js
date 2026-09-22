@@ -550,6 +550,76 @@ for(const col in byCol2){
 }
 ok(ov2 === 0, `now 空间各列无重叠（新增 morebtn 后，最小间隙 ${gapMin2.toFixed(4)}）`);
 
+/* ── 5h. P1 设置页（7 分区环绕） ── */
+console.log('\n════ 5h. 设置页（P1） ════');
+enter('settings');
+const setWs = T.pageByKey.settings;
+const toggles = setWs.filter(x=>x.userData.widget.type==='toggle');
+ok(toggles.length >= 6, `设置页 ${toggles.length} 个 toggle 分区`);
+const labels = toggles.map(x=>x.userData.widget.label);
+['主题','播放','歌词','下载','列表'].forEach(k => {
+  ok(labels.includes(k), `含分区「${k}」`);
+});
+ok(labels.some(l=>/备份/.test(l)), '含「备份」分区');
+ok(labels.some(l=>/版本/.test(l)), '含「版本」分区');
+
+/* toggle 支持滚动（设置项多）*/
+const playToggle = toggles.find(x=>x.userData.widget.label==='播放');
+ok(!!playToggle && !!playToggle.userData.listMeta, '「播放」分区支持滚动');
+if(playToggle){
+  const r = T.listRows(playToggle.userData);
+  ok(r.total === playToggle.userData.widget.items.length,
+     `「播放」${r.total} 项（数据 ${playToggle.userData.widget.items.length}）`);
+  /* 真的滚一下 */
+  const b = playToggle.userData.state.view.scrollPx;
+  T.scrollList(playToggle, 100);
+  ok(playToggle.userData.state.view.scrollPx > b || r.maxScrollPx === 0,
+     `「播放」可滚动（${b.toFixed(0)} → ${playToggle.userData.state.view.scrollPx.toFixed(0)}）`);
+}
+
+/* 用计数桩验证 toggle 真的绘制（开关圆 + 文字）*/
+function probeT(mesh){
+  const c = mesh.userData.canvas;
+  const cnt = { arc:0, fillText:0, fill:0, stroke:0 };
+  const ctx = new Proxy({
+    canvas:{width:c.width, height:c.height},
+    measureText: t => ({width:String(t).length*8}),
+    createLinearGradient: () => ({addColorStop(){}}),
+    createRadialGradient: () => ({addColorStop(){}}),
+    arc(){cnt.arc++;}, fillText(){cnt.fillText++;}, fill(){cnt.fill++;}, stroke(){cnt.stroke++;},
+    beginPath(){}, closePath(){}, clearRect(){}, save(){}, restore(){},
+    fillRect(){}, moveTo(){}, lineTo(){}, setLineDash(){}, quadraticCurveTo(){}, rect(){}
+  }, { get(o,k){ return (k in o) ? o[k] : ()=>{}; }, set(o,k,v){ o[k]=v; return true; } });
+  c.getContext = () => ctx;
+  T.DRAW.toggle(ctx, c.width, c.height, mesh.userData.widget, mesh.userData.state, 0);
+  return cnt;
+}
+if(playToggle){
+  const c = probeT(playToggle);
+  ok(c.arc >= 3, `「播放」绘制 ${c.arc} 个开关圆`);
+  ok(c.fillText >= 3, `「播放」绘制 ${c.fillText} 次文字`);
+}
+
+/* 交互：点击开关改状态 */
+if(playToggle){
+  const idx = 0;
+  const before = playToggle.userData.state.items[idx].v;
+  T.handleRegion(playToggle, { kind:'toggle', index:idx });
+  ok(playToggle.userData.state.items[idx].v !== before,
+     `开关可切换（${before} → ${playToggle.userData.state.items[idx].v}）`);
+}
+
+/* 分区环绕分布 */
+const azs2 = setWs.map(x=>x.userData.widget.az).filter(a=>a!==undefined);
+const uniq2 = [...new Set(azs2)];
+ok(uniq2.length >= 4, `分区分布 ${uniq2.length} 个方位（${uniq2.join(',')}）`);
+
+/* 设置项文案来自 LX-Pro（真实中文名，非编造）*/
+const allItems = toggles.flatMap(x=>x.userData.widget.items.map(i=>i.t));
+ok(allItems.some(t=>/动态背景|字体阴影/.test(t)), '主题分区用 LX-Pro 真实文案');
+ok(allItems.some(t=>/歌词翻译|罗马音/.test(t)), '歌词分区用 LX-Pro 真实文案');
+ok(allItems.some(t=>/内嵌歌词|写入标签/.test(t)), '下载分区用 LX-Pro 真实文案');
+
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');
 let noVis = [];
