@@ -32,7 +32,7 @@ code += `
   playEnter, listRows, scrollList, scrollListTo, scrollListTop, listNavTarget,
   curLyricIndex, nowWidgets, TRACKS, DRAW, widgetHeight,
   handleRegion, settingSlide, redrawWidget, nowWidgets,
-  buildPage, activatePage, gotoSpace, spaceStack,
+  buildPage, activatePage, gotoSpace, spaceStack, localSearch, applySearch,
   get NP(){return NP;}, get mode(){return mode;}, set mode(v){mode=v;},
   get busy(){return busy;}, get curPageKey(){return curPageKey;},
   set curPageKey(v){curPageKey=v;}, get flyCard(){return flyCard;},
@@ -793,6 +793,56 @@ ok(T.spaceStack.length === 1 && T.spaceStack[0] === 'stats',
    `从主页进入重置栈（[${T.spaceStack.join(',')}]）`);
 T.exitSection(); drain();
 ok(T.mode === 'main', '直接返回主页');
+
+/* ── 5l. P3 搜索页（4 类型 + 本地搜索） ── */
+console.log('\n════ 5l. 搜索页（P3） ════');
+enter('search');
+const srchWs = T.pageByKey.search;
+ok(srchWs.some(x=>x.userData.widget.type==='search'), 'search 空间含搜索栏');
+const tabsW = srchWs.find(x=>x.userData.widget.type==='tabs');
+ok(!!tabsW, 'search 空间含类型 tabs');
+ok(tabsW && tabsW.userData.widget.items.length === 4,
+   `4 种类型（${tabsW?tabsW.userData.widget.items.join('/'):''}）`);
+ok(tabsW && tabsW.userData.widget.items.join('') === '音乐歌手专辑歌单',
+   '类型名对齐 LX-Pro（音乐/歌手/专辑/歌单）');
+
+/* 本地搜索引擎：4 种类型 */
+ok(typeof T.localSearch === 'function', 'localSearch 存在');
+const rMusic = T.localSearch('Nujabes', 'music');
+ok(rMusic.length > 0, `音乐搜索「Nujabes」→ ${rMusic.length} 条`);
+ok(rMusic[0].kind === 'music', '结果 kind=music');
+const rSinger = T.localSearch('Nujabes', 'singer');
+ok(rSinger.length > 0, `歌手搜索「Nujabes」→ ${rSinger.length} 条`);
+const rAlbum = T.localSearch('Luv', 'album');
+ok(rAlbum.length > 0, `专辑搜索「Luv」→ ${rAlbum.length} 条`);
+const rList = T.localSearch('蛋堡', 'songlist');
+ok(rList.length > 0, `歌单搜索「蛋堡」→ ${rList.length} 条`);
+ok(T.localSearch('', 'music').length === 0, '空关键词返回 0 条');
+ok(T.localSearch('zzzz不存在zzzz', 'music').length === 0, '无匹配返回 0 条');
+
+/* 搜索覆盖全量（3208 首，此前只有 600 首）*/
+ok(REAL.allSongs.length === 3208, `allSongs 全量 ${REAL.allSongs.length} 首`);
+const rCommon = T.localSearch('的', 'music');
+ok(rCommon.length >= 100, `常见字「的」搜到 ${rCommon.length} 条（全量覆盖）`);
+
+/* applySearch 填充列表 */
+const n1 = T.applySearch('Nujabes', 'music');
+const srchSr = T.pageByKey.search.find(x=>x.userData.widget.type==='songrow');
+ok(n1 > 0 && srchSr.userData.widget.items.length === n1,
+   `applySearch 填充 ${n1} 条到列表`);
+ok(/Nujabes/.test(srchSr.userData.widget.label), `列表标题含关键词（${srchSr.userData.widget.label}）`);
+
+/* 切类型重搜 */
+const tabsState = tabsW.userData.state;
+T.handleRegion(tabsW, { kind:'tab', index:1, value:'歌手' });
+drain();
+ok(srchSr.userData.widget.items[0] && srchSr.userData.widget.items[0].kind === 'singer',
+   `切到「歌手」后结果 kind=singer（${srchSr.userData.widget.items[0]?srchSr.userData.widget.items[0].t:'?'}）`);
+
+/* 点结果跳转（歌手 → artist 空间）*/
+T.handleRegion(srchSr, { kind:'song', index:0, title:'x', sub:'y' });
+drain();
+ok(T.curPageKey === 'artist', `点歌手结果跳转到 artist（${T.curPageKey}）`);
 
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');

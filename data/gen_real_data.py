@@ -169,7 +169,7 @@ def main():
     # 专辑：按歌曲数降序，取前 40
     A('/* 专辑聚合（本地，取歌曲数前 40）*/')
     A('REAL.albums = [')
-    for name, ss in sorted(alb.items(), key=lambda x: -len(x[1]))[:40]:
+    for name, ss in sorted(alb.items(), key=lambda x: -len(x[1]))[:60]:
         singers = []
         for x in ss:
             for a2 in (x.get('singer') or '').replace('、','/').split('/'):
@@ -188,7 +188,7 @@ def main():
             if a2: art[a2].append(s)
     A('/* 歌手聚合（本地，取歌曲数前 40）*/')
     A('REAL.artists = [')
-    for name, ss in sorted(art.items(), key=lambda x: -len(x[1]))[:40]:
+    for name, ss in sorted(art.items(), key=lambda x: -len(x[1]))[:60]:
         albs = []
         for x in ss:
             a2 = (x.get('meta') or {}).get('albumName') or ''
@@ -221,12 +221,15 @@ def main():
 
     # ── 全部歌曲（取前 600 首，避免文件过大；按歌手聚合更有代表性）──
     allsongs = bk['lists']['defaultList']
-    A(f'/* 全部歌曲样本（共 {len(allsongs)} 首，取前 600 首）*/')
+    # ⚠️ 全部内联（2026-09-22）：搜索需要全量覆盖，取前 600 会漏搜
+    A(f'/* 全部歌曲（共 {len(allsongs)} 首，全量内联以支持搜索）*/')
     A('REAL.allSongs = [')
-    for s in allsongs[:600]:
+    for s in allsongs:
         # src = 音源徽章文字（移植 LX-Pro ListItem.tsx:127 的 source 徽章）
         A(f'  {{ t: {js(s["name"])}, a: {js(s.get("singer",""))}, '
-          f'd: {js(s.get("interval",""))}, src: {js(SRC_SHORT.get(s.get("source"), ""))} }},')
+          f'd: {js(s.get("interval",""))}, '
+          f'alb: {js(((s.get("meta") or {}).get("albumName") or "").strip())}, '
+          f'src: {js(SRC_SHORT.get(s.get("source"), ""))} }},')
     A('];')
     A('')
 
