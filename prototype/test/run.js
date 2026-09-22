@@ -115,11 +115,12 @@ const r = T.listRows(sr.userData);
 T.scrollListTo(sr, r.total + 500);
 ok(sr.userData.state.view.scrollPx <= r.maxScrollPx, '超界跳转被夹住');
 
-/* ── 5. 播放页迷你歌词 ── */
-console.log('\n════ 5. 播放页迷你歌词（新增）════');
+/* ── 5. 播放页（歌词同步 + 布局无重叠） ── */
+console.log('\n════ 5. 播放页歌词同步 ════');
 enter('now');
 const nowWs = T.pageByKey.now;
-ok(nowWs.some(x=>x.userData.widget.type==='minilyric'), 'now 空间含 minilyric');
+ok(!nowWs.some(x=>x.userData.widget.type==='minilyric'),
+   '不含 minilyric（歌词已在左半屏常驻，不重复显示）');
 T.mode = 'sub'; T.curPageKey = 'now';
 const lyrics = T.TRACKS[T.NP.idx].lyrics;
 T.NP.cur = lyrics[5].t + 1; frames(2);
@@ -130,6 +131,31 @@ lyrics[3].s = '这是一句特别特别特别特别特别特别特别特别特�
 T.NP.cur = lyrics[3].t + 1; frames(2);
 ok(errN === 0, '超长歌词不抛异常');
 lyrics[3].s = orig;
+
+/* now 空间垂直布局无重叠（防回归）
+   ⚠️ 必须【按列分组】比较：lyric3d 在左列(sf≈0.29)，
+      cover/nowinfo/transport 在右列(sf≈0.76)。跨列比较无意义。*/
+const nowCfg = T.PAGES.now.widgets.filter(w => w.sf !== undefined);
+const byCol = {};
+nowCfg.forEach(w => {
+  const col = Math.round(w.sf * 10) / 10;      /* 0.3 / 0.8 两列 */
+  (byCol[col] = byCol[col] || []).push({
+    type: w.type, sv: w.sv,
+    h: w.fh || (w.square ? w.fw * (390/844) : 0.05)
+  });
+});
+let overlap = 0, cols = 0;
+for(const col in byCol){
+  const items = byCol[col].sort((a,b)=>a.sv-b.sv);
+  cols++;
+  for(let i=1;i<items.length;i++){
+    if(items[i].sv - items[i].h/2 < items[i-1].sv + items[i-1].h/2){
+      overlap++;
+      console.log(`      ❌ ${col} 列: ${items[i-1].type} 与 ${items[i].type} 重叠`);
+    }
+  }
+}
+ok(overlap === 0, `now 空间各列垂直布局无重叠（${cols} 列 ${nowCfg.length} 个控件）`);
 
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');
