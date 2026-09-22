@@ -31,6 +31,7 @@ code += `
   pageByKey, PAGES, FEATURES, SPOTS, mainPanels, mainGroup, subGroup,
   playEnter, listRows, scrollList, scrollListTo, scrollListTop, listNavTarget,
   curLyricIndex, nowWidgets, TRACKS, DRAW, widgetHeight,
+  handleRegion, settingSlide, redrawWidget, nowWidgets,
   get NP(){return NP;}, get mode(){return mode;}, set mode(v){mode=v;},
   get busy(){return busy;}, get curPageKey(){return curPageKey;},
   set curPageKey(v){curPageKey=v;}, get flyCard(){return flyCard;},
@@ -455,6 +456,99 @@ ok(!appCode.includes("'500 ' + Math.round(0.24*P) + 'px ' + FONT;\n      g.fillT
    'songrow 歌名已放大（非旧 0.24）');
 ok(appCode.includes("rgba(158,170,186,0.92)"), 'songrow 序号已提亮（非旧 0.70）');
 ok(appCode.includes("rgba(178,188,204,0.92)"), 'songrow 歌手/时长已提亮（非旧 0.72）');
+
+/* ── 5g. P3 播放页扩展（按钮行 / 更多菜单 / 播放设置） ── */
+console.log('\n════ 5g. P3 播放页扩展 ════');
+enter('now');
+const nowWs2 = T.pageByKey.now;
+const mbW = nowWs2.find(x=>x.userData.widget.type==='morebtn');
+const pmW = nowWs2.find(x=>x.userData.widget.type==='playmenu');
+const psW = nowWs2.find(x=>x.userData.widget.type==='playsetting');
+ok(!!mbW, 'now 空间含 morebtn（更多按钮行）');
+ok(!!pmW, 'now 空间含 playmenu（更多菜单）');
+ok(!!psW, 'now 空间含 playsetting（播放设置）');
+
+/* 按钮数量与内容（LX-Pro MoreBtn 是 5 个，本项目保留 3 个有数据支撑的）*/
+ok(mbW && mbW.userData.widget.items.length === 3,
+   `按钮行 3 个（实际 ${mbW?mbW.userData.widget.items.length:0}）`);
+/* 菜单项（LX-Pro PlayDetailMenu 保留 4 项非平台依赖）*/
+ok(pmW && pmW.userData.widget.items.length === 4,
+   `更多菜单 4 项（实际 ${pmW?pmW.userData.widget.items.length:0}）`);
+ok(pmW && !pmW.userData.widget.items.some(i=>/歌手|专辑|相似|MV/.test(i.t)),
+   '菜单已剔除平台依赖项（歌手/专辑/相似/MV）');
+
+/* 用计数桩验证真的绘制 */
+function probe3(mesh){
+  const c = mesh.userData.canvas;
+  const cnt = { arc:0, fillText:0, stroke:0, fill:0, lineTo:0 };
+  const ctx = new Proxy({
+    canvas:{width:c.width, height:c.height},
+    measureText: t => ({width:String(t).length*8}),
+    createLinearGradient: () => ({addColorStop(){}}),
+    createRadialGradient: () => ({addColorStop(){}}),
+    arc(){cnt.arc++;}, fillText(){cnt.fillText++;}, stroke(){cnt.stroke++;},
+    fill(){cnt.fill++;}, lineTo(){cnt.lineTo++;},
+    beginPath(){}, closePath(){}, clearRect(){}, save(){}, restore(){},
+    fillRect(){}, strokeRect(){}, clip(){}, translate(){}, scale(){},
+    moveTo(){}, setLineDash(){}, quadraticCurveTo(){}, rect(){}
+  }, { get(o,k){ return (k in o) ? o[k] : ()=>{}; }, set(o,k,v){ o[k]=v; return true; } });
+  c.getContext = () => ctx;
+  T.DRAW[mesh.userData.widget.type](ctx, c.width, c.height,
+      mesh.userData.widget, mesh.userData.state, 0);
+  return cnt;
+}
+if(mbW){ const c=probe3(mbW); ok(c.arc >= 3 && c.fillText === 0, `按钮行绘制 ${c.arc} 个圆（无文字，纯图标）`); }
+if(pmW){ const c=probe3(pmW); ok(c.fillText >= 5, `更多菜单绘制 ${c.fillText} 次文本（label + 4 项标题 + 2 副标题）`); }
+if(psW){ const c=probe3(psW); ok(c.fillText >= 6, `播放设置绘制 ${c.fillText} 次文本（字号/对齐/开关）`); }
+
+/* 交互：点击菜单项应改状态 */
+if(pmW){
+  const before = pmW.userData.state.sel;
+  T.handleRegion(pmW, { kind:'pmenu', index:0 });
+  ok(pmW.userData.state.sel === 0, `点击菜单项改变选中（${before} → ${pmW.userData.state.sel}）`);
+}
+/* 交互：开关切换 */
+if(psW){
+  const b0 = psW.userData.state.showCtrl !== undefined ? psW.userData.state.showCtrl : true;
+  T.handleRegion(psW, { kind:'pswitch' });
+  const a0 = psW.userData.state.showCtrl;
+  ok(a0 !== b0, `开关可切换（${b0} → ${a0}）`);
+}
+/* 交互：对齐三选 */
+if(psW){
+  T.handleRegion(psW, { kind:'palign', index:2, value:'右' });
+  ok(psW.userData.state.align === 2, `对齐可改（→ ${psW.userData.state.align}）`);
+}
+/* 交互：播放模式循环 */
+if(mbW){
+  const m0 = mbW.userData.state.mode || 0;
+  T.handleRegion(mbW, { kind:'pbtn', index:1 });
+  ok((mbW.userData.state.mode||0) !== m0, `播放模式可循环（${m0} → ${mbW.userData.state.mode}）`);
+}
+/* 交互：滑块拖动改歌词字号 */
+if(psW){
+  T.settingSlide(psW, 0.8, { x:0.2, w:0.6 });
+  ok(psW.userData.state.lrcSize > 0.9, `滑块可拖动（lrcSize=${psW.userData.state.lrcSize.toFixed(2)}）`);
+}
+
+/* now 空间垂直布局无重叠（新增 morebtn 后）*/
+const nowCfg2 = T.PAGES.now.widgets.filter(w => w.sf !== undefined);
+const byCol2 = {};
+nowCfg2.forEach(w => {
+  const col = Math.round(w.sf*10)/10;
+  const h = w.fhSquare || w.fh || (w.square ? w.fw*(390/844) : 0.05);
+  (byCol2[col] = byCol2[col] || []).push({ type:w.type, sv:w.sv, h });
+});
+let ov2 = 0, gapMin2 = 1;
+for(const col in byCol2){
+  const items = byCol2[col].sort((a,b)=>a.sv-b.sv);
+  for(let i=1;i<items.length;i++){
+    const gap = (items[i].sv - items[i].h/2) - (items[i-1].sv + items[i-1].h/2);
+    gapMin2 = Math.min(gapMin2, gap);
+    if(gap < 0){ ov2++; console.log(`      ❌ ${col} 列: ${items[i-1].type} 与 ${items[i].type} 重叠`); }
+  }
+}
+ok(ov2 === 0, `now 空间各列无重叠（新增 morebtn 后，最小间隙 ${gapMin2.toFixed(4)}）`);
 
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');
