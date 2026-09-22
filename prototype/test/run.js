@@ -414,6 +414,48 @@ ok(REAL.dailySeries.values[0] > 0 && REAL.dailySeries.values.length === 11,
 ok(REAL.topByDuration[0].t.indexOf('Luv') >= 0 || REAL.topByDuration[0].s.indexOf('小时') >= 0,
    `时长排行首位是真实歌曲（${REAL.topByDuration[0].t}）`);
 
+/* ── 5f. P2 我的列表细节（音源徽章 + 字号） ── */
+console.log('\n════ 5f. 我的列表细节（P2） ════');
+enter('playlist');
+const sr2 = T.pageByKey.playlist.find(x=>x.userData.widget.type==='songrow');
+ok(!!sr2, '找到 songrow');
+/* 真实歌曲带 src 字段（音源徽章数据）*/
+const withSrc = REAL.allSongs.filter(s => s.src).length;
+ok(withSrc > 500, `歌曲含音源字段 ${withSrc}/${REAL.allSongs.length} 首`);
+ok(sr2 && sr2.userData.widget.items[0].src !== undefined,
+   `列表首项有 src（${sr2?sr2.userData.widget.items[0].src:'?'}）`);
+
+/* 用计数桩验证徽章真的画了（roundRect → fill 次数）*/
+if(sr2){
+  const c = sr2.userData.canvas;
+  const cnt = { fillText:0, roundRect:0, fill:0 };
+  const ctx = new Proxy({
+    canvas:{width:c.width, height:c.height},
+    measureText: t => ({width:String(t).length*8}),
+    createLinearGradient: () => ({addColorStop(){}}),
+    createRadialGradient: () => ({addColorStop(){}}),
+    fillText(){cnt.fillText++;}, fill(){cnt.fill++;},
+    beginPath(){}, closePath(){}, clearRect(){}, save(){}, restore(){},
+    fillRect(){}, stroke(){}, moveTo(){}, lineTo(){}, arc(){}, clip(){},
+    quadraticCurveTo(){}, rect(){}, setLineDash(){}
+  }, { get(o,k){ return (k in o) ? o[k] : ()=>{}; }, set(o,k,v){ o[k]=v; return true; } });
+  c.getContext = () => ctx;
+  const before = cnt.fillText;
+  T.DRAW.songrow(ctx, c.width, c.height, sr2.userData.widget, sr2.userData.state, 0);
+  const drawn = cnt.fillText - before;
+  /* 每行至少 4 次文本：序号 + 歌名 + 歌手 + 时长（有徽章再加 1）*/
+  const rows = sr2.userData.widget.__winRows || 10;
+  ok(drawn >= rows*4, `songrow 绘制 ${drawn} 次文本（${rows} 行 × ≥4）`);
+  ok(drawn >= rows*5, `含音源徽章文本（${drawn} ≥ ${rows}×5）`);
+}
+
+/* 字号：确认不是旧的暗小值 */
+const appCode = fs.readFileSync(APP, 'utf8');
+ok(!appCode.includes("'500 ' + Math.round(0.24*P) + 'px ' + FONT;\n      g.fillText(it.t"),
+   'songrow 歌名已放大（非旧 0.24）');
+ok(appCode.includes("rgba(158,170,186,0.92)"), 'songrow 序号已提亮（非旧 0.70）');
+ok(appCode.includes("rgba(178,188,204,0.92)"), 'songrow 歌手/时长已提亮（非旧 0.72）');
+
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');
 let noVis = [];

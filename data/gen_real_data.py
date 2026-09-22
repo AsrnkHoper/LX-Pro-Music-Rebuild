@@ -11,6 +11,9 @@ from datetime import datetime
 HERE = os.path.dirname(os.path.abspath(__file__))
 SRC_NAMES = {'wy':'网易云','bi':'Bilibili','local':'本地文件','tx':'QQ音乐',
              'kg':'酷狗','mg':'咪咕','kw':'酷我','joox':'JOOX'}
+# 徽章用的短名（LX-Pro 用 source.toUpperCase()，这里用中文简称更易读）
+SRC_SHORT = {'wy':'网易云','bi':'B站','tx':'QQ','kg':'酷狗','mg':'咪咕',
+             'kw':'酷我','local':'本地','joox':'JOOX'}
 
 def load():
     st = json.load(open(os.path.join(HERE,'lx_stats.json'), encoding='utf-8'))
@@ -168,8 +171,9 @@ def main():
     A(f'/* 全部歌曲样本（共 {len(allsongs)} 首，取前 600 首）*/')
     A('REAL.allSongs = [')
     for s in allsongs[:600]:
+        # src = 音源徽章文字（移植 LX-Pro ListItem.tsx:127 的 source 徽章）
         A(f'  {{ t: {js(s["name"])}, a: {js(s.get("singer",""))}, '
-          f'd: {js(s.get("interval",""))} }},')
+          f'd: {js(s.get("interval",""))}, src: {js(SRC_SHORT.get(s.get("source"), ""))} }},')
     A('];')
     A('')
 
