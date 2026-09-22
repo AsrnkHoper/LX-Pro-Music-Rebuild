@@ -4671,42 +4671,23 @@ function roundRect(g,x,y,w,h,r){
   g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
   g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath();
 }
-/* ⚡ 溶解式面板（子空间控件，同主页卡，2026-09-23）
-   ⚠️ 与主页卡的区别：面板内是「列表/图表」等密集内容，
-      溶解强度略低（保可读性），且不做四边强擦除。 */
 function drawPanelBg(g, W, H, i){
   const [a,b] = PALETTES[i % PALETTES.length];
   const r = Math.min(H*0.10, 0.30*(W/5));
-  const d = DISSOLVE * 0.72;
-
   const grd = g.createLinearGradient(0,0,W*0.9,H);
-  grd.addColorStop(0, hexA(a, 0.58 - d*0.16));
-  grd.addColorStop(1, hexA(b, 0.40 - d*0.14));
+  grd.addColorStop(0,a); grd.addColorStop(1,b);
   g.fillStyle = grd; roundRect(g,0,0,W,H,r); g.fill();
 
-  /* 边缘溶解（比主页卡轻，保列表可读）*/
-  if(d > 0){
-    const cx = W/2, cy = H/2;
-    const rad = Math.max(W, H) * 0.66;
-    const mask = g.createRadialGradient(cx, cy, rad*(0.52 + d*0.08),
-                                        cx, cy, rad);
-    mask.addColorStop(0, 'rgba(0,0,0,0)');
-    mask.addColorStop(1, 'rgba(0,0,0,' + (d*0.80) + ')');
-    g.save();
-    g.globalCompositeOperation = 'destination-out';
-    g.fillStyle = mask; roundRect(g,0,0,W,H,r); g.fill();
-    g.restore();
-  }
+  const sg = g.createLinearGradient(0,H,0,H*0.35);
+  sg.addColorStop(0,'rgba(38,72,94,0.20)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = sg; roundRect(g,0,0,W,H,r); g.fill();
 
-  /* 内侧发光边缘（替代硬边框）*/
-  g.strokeStyle = 'rgba(200,220,240,0.12)'; g.lineWidth = 1.2;
-  roundRect(g, W*0.012, H*0.012, W*0.976, H*0.976, r*0.92); g.stroke();
-
-  /* 顶部高光 */
-  const hg = g.createLinearGradient(0, 0, 0, H*0.16);
-  hg.addColorStop(0, 'rgba(226,238,252,0.12)');
-  hg.addColorStop(1, 'rgba(226,238,252,0)');
+  const hg = g.createRadialGradient(W*0.88,H*0.10,4,W*0.88,H*0.10,W*0.75);
+  hg.addColorStop(0,'rgba(198,204,212,0.09)'); hg.addColorStop(1,'rgba(0,0,0,0)');
   g.fillStyle = hg; roundRect(g,0,0,W,H,r); g.fill();
+
+  g.strokeStyle = 'rgba(255,255,255,0.13)'; g.lineWidth = 2;
+  roundRect(g,1,1,W-2,H-2,r); g.stroke();
 }
 function hairline(g, x1,y,x2, alpha){
   g.strokeStyle = 'rgba(255,255,255,' + (alpha||0.06) + ')';
@@ -6343,82 +6324,31 @@ function widgetHeight(w){
 const CARD_PPM = 200;   // 每世界单位 200 像素
 
 /* 卡片底板：圆角裁切（真圆角）+ 冷暖分级 */
-/* ⚡ 溶解式底板（2026-09-23）—— 打破「卡片」形态
-   诊断：此前是「实色渐变 + 硬边框」→ 一眼就是「卡片」，老套。
-   调研结论（Codrops / awwwards 案例）：
-     · 去掉矩形硬边界，用 SDF smoothstep 让内容「从边缘溶解进背景」
-     · 底板透明度降低，让 3D 玻璃与空间透出来
-   实现：
-     ① 底板不再是实色，改用低透明度冷调渐变
-     ② 四边 + 圆角处用 alpha 渐隐（视觉上「没有边界」）
-     ③ 去掉硬边框 stroke，改为「内侧发光边缘」
-     ④ 左上角一条极细高光线（玻璃反光暗示）
-   可调：DISSOLVE 控制溶解强度（0=旧实心卡片，1=完全溶解）*/
-const DISSOLVE = 0.86;
-
 function drawCardBg(g, W, H, i){
   const [a,b] = PALETTES[i % PALETTES.length];
   const r = H*0.11;
-  const d = DISSOLVE;
-
   g.save();
-  /* ① 底板：低透明度渐变（越靠边越淡，模拟玻璃厚度衰减）*/
+  roundRect(g,0,0,W,H,r); g.clip();
+
   const grd = g.createLinearGradient(0,0,W*0.85,H);
-  grd.addColorStop(0, hexA(a, 0.62 - d*0.22));
-  grd.addColorStop(1, hexA(b, 0.42 - d*0.20));
-  g.fillStyle = grd; roundRect(g,0,0,W,H,r); g.fill();
+  grd.addColorStop(0,a); grd.addColorStop(1,b);
+  g.fillStyle = grd; g.fillRect(0,0,W,H);
 
-  /* ② 溶解蒙版：用 destination-out 把边缘擦掉（真正「无边界」）*/
-  if(d > 0){
-    const cx = W/2, cy = H/2;
-    const rad = Math.max(W, H) * 0.62;
-    const mask = g.createRadialGradient(cx, cy, rad*(0.42 + d*0.10),
-                                        cx, cy, rad);
-    mask.addColorStop(0, 'rgba(0,0,0,0)');
-    mask.addColorStop(0.55, 'rgba(0,0,0,' + (d*0.30) + ')');
-    mask.addColorStop(1, 'rgba(0,0,0,' + (d*0.95) + ')');
-    g.globalCompositeOperation = 'destination-out';
-    g.fillStyle = mask; roundRect(g,0,0,W,H,r); g.fill();
-    /* 四边线性擦除（补强，避免长条卡片两侧不溶解）*/
-    const edge = 0.16 + d*0.10;
-    const mkLine = (x0,y0,x1,y1) => {
-      const lg = g.createLinearGradient(x0,y0,x1,y1);
-      lg.addColorStop(0,'rgba(0,0,0,'+(d*0.92)+')');
-      lg.addColorStop(1,'rgba(0,0,0,0)');
-      return lg;
-    };
-    g.fillStyle = mkLine(0,0,W*edge,0);            g.fillRect(0,0,W*edge,H);
-    g.fillStyle = mkLine(W,0,W-W*edge,0);          g.fillRect(W-W*edge,0,W*edge,H);
-    g.fillStyle = mkLine(0,0,0,H*edge);            g.fillRect(0,0,W,H*edge);
-    g.fillStyle = mkLine(0,H,0,H-H*edge);          g.fillRect(0,H-H*edge,W,H*edge);
-    g.globalCompositeOperation = 'source-over';
-  }
+  const sg = g.createLinearGradient(0,H,0,H*0.35);
+  sg.addColorStop(0,'rgba(38,72,94,0.20)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = sg; g.fillRect(0,0,W,H);
 
-  /* ③ 内侧发光边缘（替代硬边框）*/
-  g.strokeStyle = 'rgba(200,220,240,' + (0.10 + d*0.06) + ')';
-  g.lineWidth = 1.2;
-  roundRect(g, W*0.02, H*0.02, W*0.96, H*0.96, r*0.9); g.stroke();
+  const hg = g.createRadialGradient(W*0.88,H*0.10,4,W*0.88,H*0.10,W*0.75);
+  hg.addColorStop(0,'rgba(198,204,212,0.10)'); hg.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle = hg; g.fillRect(0,0,W,H);
 
-  /* ④ 顶部高光条（玻璃反光暗示）*/
-  const hg = g.createLinearGradient(0, 0, 0, H*0.22);
-  hg.addColorStop(0, 'rgba(226,238,252,0.16)');
-  hg.addColorStop(1, 'rgba(226,238,252,0)');
-  g.fillStyle = hg; roundRect(g,0,0,W,H,r); g.fill();
-
-  /* ⑤ 左上角极细高光线 */
-  g.fillStyle = 'rgba(230,240,252,0.22)';
-  g.fillRect(W*0.08, H*0.075, W*0.30, 1.2);
-
+  g.fillStyle = 'rgba(208,213,220,0.30)';
+  g.fillRect(W*0.07, H*0.075, W*0.86, 1.4);
   g.restore();
-}
 
-/* #RRGGBB → rgba(...)（带透明度）*/
-function hexA(hex, alpha){
-  const h = String(hex || '#000000').replace('#','');
-  const n = parseInt(h.length === 3
-    ? h.split('').map(c=>c+c).join('') : h, 16);
-  const r = (n >> 16) & 255, gg = (n >> 8) & 255, b = n & 255;
-  return 'rgba(' + r + ',' + gg + ',' + b + ',' + alpha.toFixed(3) + ')';
+  g.strokeStyle = 'rgba(255,255,255,0.14)';
+  g.lineWidth = 2;
+  roundRect(g,1,1,W-2,H-2,r-1); g.stroke();
 }
 
 /* 小工具 */
@@ -6835,45 +6765,6 @@ FEATURES.forEach((f, i) => {
   mainGroup.add(mesh);
   mainPanels.push(mesh);
 });
-
-/* ============================================================
-   ⚡ 星座光弧（2026-09-23）—— 打破「孤立卡片」
-   思路：6 张卡片不该是 6 个孤立矩形，而应像「星座」——
-        卡片是星，之间用极细的光弧相连。
-        这样转动视角时，看到的是「一张星图」，不是「一排卡片」。
-   实现：沿球面在相邻卡片之间画弧线（QuadraticBezier），
-        用 AdditiveBlending 让光弧叠加发光，且随距离衰减。
-============================================================ */
-const constellationGroup = new THREE.Group();
-mainGroup.add(constellationGroup);
-
-(function buildConstellation(){
-  const n = mainPanels.length;
-  if(n < 2) return;
-  const pts = mainPanels.map(m => m.userData.home.clone());
-
-  for(let i = 0; i < n; i++){
-    const a = pts[i], b = pts[(i+1) % n];
-    /* 弧线中点：向球心外推一点，形成「拱起」的弧 */
-    const mid = a.clone().add(b).multiplyScalar(0.5);
-    const outward = mid.clone().normalize().multiplyScalar(R * 0.10);
-    mid.add(outward);
-
-    const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
-    const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(24));
-    const mat = new THREE.LineBasicMaterial({
-      color: 0x8FA8C8,
-      transparent: true,
-      opacity: 0.14,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      fog: false
-    });
-    const line = new THREE.Line(geo, mat);
-    constellationGroup.add(line);
-  }
-  console.log('[星座光弧] ' + n + ' 条弧线已生成');
-})();
 
 /* ============================================================
    环绕菜单墙（14 项）
@@ -8180,73 +8071,6 @@ const motes = new THREE.Points(moteGeo, new THREE.PointsMaterial({
 scene.add(motes);
 
 /* ============================================================
-   ⚡ 音频响应系统（2026-09-23）—— 最「不像 App」的部分
-   调研结论：音乐 App 唯一「必须」用音频数据的地方，
-            也是最容易做出「不像 App」感的部分。
-   本原型没有真实音频（只做 UI），故用「音乐时间轴 + 伪节拍」驱动：
-     · 播放中：按 BPM 生成脉冲（模拟节拍）
-     · 脉冲驱动：粒子呼吸 / 光弧亮度 / 卡片微缩放
-   ⚠️ 真机接入真实音频时，把 pulseFromAudio() 换成
-      AudioAnalyser.getByteFrequencyData() 即可（接口已留）。
-============================================================ */
-const AUDIO = {
-  bpm: 92,              /* 默认节拍（Jazzy Hip-Hop 常见 85~95）*/
-  energy: 0,            /* 0~1 当前能量（平滑后）*/
-  energyRaw: 0,         /* 原始脉冲 */
-  beat: 0,              /* 本帧节拍相位 0~1 */
-  enabled: true
-};
-
-/* 伪节拍：按 BPM 与播放进度生成脉冲
-   ⚠️ 接入真实音频时改为读频谱（保留函数签名）*/
-function pulseFromAudio(t){
-  if(!AUDIO.enabled) return 0;
-  /* 节拍周期（秒）*/
-  const period = 60 / AUDIO.bpm;
-  /* 用播放进度（NP.cur）而非全局时间，暂停时脉冲也停 */
-  const ph = (NP.cur % period) / period;
-  /* 衰减包络：拍点瞬间 1 → 周期末 0 */
-  const env = Math.pow(1 - ph, 2.6);
-  /* 每 4 拍一个重音（小节头）*/
-  const bar = Math.floor(NP.cur / period) % 4;
-  const accent = bar === 0 ? 1.35 : (bar === 2 ? 1.12 : 1.0);
-  return Math.min(1.6, env * accent);
-}
-
-/* 每帧更新（在 animate 里调用）*/
-function updateAudio(dt){
-  AUDIO.energyRaw = NP.playing ? pulseFromAudio(0) : 0;
-  /* 平滑：上升快、下降慢（更自然）*/
-  const k = AUDIO.energyRaw > AUDIO.energy ? 12 : 3.2;
-  AUDIO.energy += (AUDIO.energyRaw - AUDIO.energy) * Math.min(1, dt*k);
-  AUDIO.beat = AUDIO.energy;
-}
-
-/* ── 音频响应的视觉输出 ── */
-function applyAudioVisual(){
-  const e = AUDIO.energy;
-  if(e <= 0.001) return;
-
-  /* ① 光弧亮度随能量脉动 */
-  if(constellationGroup && constellationGroup.children){
-    const n = constellationGroup.children.length || 1;
-    constellationGroup.children.forEach((line, i) => {
-      if(line && line.material){
-        const phase = i / n;
-        line.material.opacity = 0.10 + e * (0.26 + 0.10*Math.sin(phase*6.28));
-      }
-    });
-  }
-
-  /* ② 尘埃粒子整体呼吸（缩放 + 亮度）*/
-  if(motes && motes.material){
-    motes.material.opacity = 0.34 + e*0.34;
-    const s = 1 + e*0.06;
-    if(motes.scale && motes.scale.set) motes.scale.set(s, s, s);
-  }
-}
-
-/* ============================================================
    状态 / 相机
 ============================================================ */
 let mode = 'main';
@@ -9153,10 +8977,6 @@ function animate(){
   /* 列表惯性 + 吸附（松手后先惯性滑行，停下再对齐整行）*/
   tickListInertia(dt);
   tickListSnap(dt);
-
-  /* ⚡ 音频响应（2026-09-23）：节拍驱动光弧/粒子呼吸 */
-  updateAudio(dt);
-  applyAudioVisual();
 
   updateIndicators(list);
   renderer.render(scene, camera);

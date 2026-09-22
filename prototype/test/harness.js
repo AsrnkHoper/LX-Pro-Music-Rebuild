@@ -10,6 +10,8 @@ class V3{constructor(x=0,y=0,z=0){this.x=x;this.y=y;this.z=z;}
  copy(v){this.x=v.x;this.y=v.y;this.z=v.z;return this;}
  clone(){return new V3(this.x,this.y,this.z);}
  normalize(){const l=Math.hypot(this.x,this.y,this.z)||1;this.x/=l;this.y/=l;this.z/=l;return this;}
+ add(v){this.x+=v.x;this.y+=v.y;this.z+=v.z;return this;}
+ addScalar(s){this.x+=s;this.y+=s;this.z+=s;return this;}
  multiplyScalar(s){this.x*=s;this.y*=s;this.z*=s;return this;}
  addScaledVector(v,s){this.x+=v.x*s;this.y+=v.y*s;this.z+=v.z*s;return this;}
  sub(v){this.x-=v.x;this.y-=v.y;this.z-=v.z;return this;}
@@ -47,7 +49,12 @@ global.THREE={
  MeshBasicMaterial:class{constructor(o){Object.assign(this,Mat(o));}},
  SpriteMaterial:class{constructor(o){Object.assign(this,Mat(o));}},
  PointsMaterial:class{constructor(o){Object.assign(this,Mat(o));}},
- BufferGeometry:Geo, BufferAttribute:BAttr, Points:class extends Obj{},
+ BufferGeometry:class extends Geo{ setFromPoints(){ return this; } },
+ BufferAttribute:BAttr, Points:class extends Obj{},
+ Line:class extends Obj{constructor(g,m){super();this.geometry=g;this.material=m;}},
+ QuadraticBezierCurve3:class{constructor(a,b,c){this.a=a;this.b=b;this.c=c;}
+   getPoints(){ return [this.a,this.b,this.c]; }},
+ LineBasicMaterial:class{constructor(o){Object.assign(this,Mat(o));}},
  Mesh, Group, Sprite, Vector3:V3,
  /* 玻璃化相关（2026-09-23）：光照 + 物理材质 + PMREM */
  AmbientLight:class extends Obj{constructor(c,i){super();this.color=c;this.intensity=i;}},

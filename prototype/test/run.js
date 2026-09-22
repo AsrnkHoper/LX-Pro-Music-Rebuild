@@ -33,6 +33,7 @@ code += `
   curLyricIndex, nowWidgets, TRACKS, DRAW, widgetHeight,
   handleRegion, settingSlide, redrawWidget, nowWidgets,
   buildPage, activatePage, gotoSpace, spaceStack, localSearch, applySearch,
+  constellationGroup, pulseFromAudio, updateAudio, applyAudioVisual, AUDIO,
   get NP(){return NP;}, get mode(){return mode;}, set mode(v){mode=v;},
   get busy(){return busy;}, get curPageKey(){return curPageKey;},
   set curPageKey(v){curPageKey=v;}, get flyCard(){return flyCard;},
@@ -863,6 +864,48 @@ ok(/makeGlassMaterial\(\{ map:tex/.test(appSrc), '贴图面用「半透明+高�
 /* 空间仍全部可构建（材质换了不影响结构）*/
 enter('now');
 ok(T.pageByKey.now.length === 9, `换材质后 now 空间仍 9 控件`);
+
+/* ── 5n. 打破卡片形态（溶解底板 / 星座光弧 / 音频响应） ── */
+console.log('\n════ 5n. 打破卡片形态 ════');
+const src2 = fs.readFileSync(APP, 'utf8');
+/* ① 溶解式底板 */
+ok(src2.includes('const DISSOLVE'), '有 DISSOLVE 溶解强度参数');
+ok(src2.includes("globalCompositeOperation = 'destination-out'"),
+   '用 destination-out 做边缘溶解（真「无边界」）');
+ok(!/function drawCardBg[^]*?roundRect\(g,1,1,W-2,H-2,r-1\); g\.stroke\(\);[^]*?\n\}/.test(src2),
+   'drawCardBg 已移除硬边框 stroke');
+ok(src2.includes('function hexA'), '有 hexA（色值→带透明度 rgba）');
+ok(src2.includes('内侧发光边缘'), '硬边框改为内侧发光边缘');
+ok(src2.includes('顶部高光条') || src2.includes('顶部高光'), '有玻璃反光暗示（顶部高光）');
+/* ② 星座光弧 */
+ok(src2.includes('constellationGroup'), '有星座光弧组');
+ok(src2.includes('QuadraticBezierCurve3'), '用二次贝塞尔画弧');
+ok(src2.includes('buildConstellation'), 'buildConstellation 存在');
+ok(/constellationGroup[^]*?mainGroup\.add/.test(src2), '光弧挂在 mainGroup（随卡片组隐藏）');
+ok(src2.includes('AdditiveBlending'), '光弧用叠加混合（发光）');
+/* ③ 音频响应 */
+ok(src2.includes('const AUDIO'), '有 AUDIO 状态');
+ok(src2.includes('function pulseFromAudio'), 'pulseFromAudio 存在');
+ok(src2.includes('function updateAudio'), 'updateAudio 存在');
+ok(src2.includes('function applyAudioVisual'), 'applyAudioVisual 存在');
+ok(src2.includes('updateAudio(dt)'), 'animate 里调用了 updateAudio');
+ok(src2.includes('applyAudioVisual()'), 'animate 里调用了 applyAudioVisual');
+ok(src2.includes('getByteFrequencyData'), '预留了真实音频接口（getByteFrequencyData）');
+ok(src2.includes('bpm: 92'), 'BPM 参数（Jazzy Hip-Hop 常见区间）');
+/* ④ 光弧实际生成 */
+ok(T.constellationGroup && T.constellationGroup.children.length === 6,
+   `实际生成 ${T.constellationGroup?T.constellationGroup.children.length:0} 条光弧（6 张卡 → 6 条）`);
+/* ⑤ 音频脉冲数值合理性 */
+if(typeof T.pulseFromAudio === 'function'){
+  T.NP.cur = 0;   /* 拍点 */
+  const p0 = T.pulseFromAudio(0);
+  T.NP.cur = 60/92 * 0.9;   /* 周期末 */
+  const p1 = T.pulseFromAudio(0);
+  ok(p0 > p1, `节拍包络正确（拍点 ${p0.toFixed(2)} > 周期末 ${p1.toFixed(2)}）`);
+  ok(p0 > 0 && p0 <= 1.6, `脉冲范围合理（${p0.toFixed(2)} ∈ (0,1.6]）`);
+} else {
+  ok(false, 'pulseFromAudio 未导出到测试');
+}
 
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');
