@@ -844,6 +844,26 @@ T.handleRegion(srchSr, { kind:'song', index:0, title:'x', sub:'y' });
 drain();
 ok(T.curPageKey === 'artist', `点歌手结果跳转到 artist（${T.curPageKey}）`);
 
+/* ── 5m. 玻璃化地基（2026-09-23） ── */
+console.log('\n════ 5m. 玻璃化地基 ════');
+const appSrc = fs.readFileSync(APP, 'utf8');
+ok(appSrc.includes('new THREE.PMREMGenerator'), 'PMREM 环境贴图已烘焙');
+ok(appSrc.includes('scene.environment'), 'scene.environment 已设置（玻璃反射源）');
+ok(/PMREM[^]*?catch/.test(appSrc), 'PMREM 有 try/catch 降级（旧浏览器不崩）');
+ok(appSrc.includes('new THREE.AmbientLight'), '环境光已加');
+ok(appSrc.includes('new THREE.DirectionalLight'), '主光已加');
+ok((appSrc.match(/new THREE\.PointLight/g)||[]).length >= 2, '品牌色补光 >= 2 盏');
+ok(appSrc.includes('function makeGlassMaterial'), '玻璃材质工厂存在');
+ok(appSrc.includes('MeshPhysicalMaterial'), '用 MeshPhysicalMaterial（真物理材质）');
+ok(appSrc.includes('clearcoat'), '玻璃有 clearcoat 湿亮层');
+ok(appSrc.includes('iridescence'), '玻璃有 iridescence 薄膜虹彩');
+ok(appSrc.includes('let GLASS_ON'), '有玻璃化总开关（可退回哑光对比）');
+/* 贴图面不用 transmission（否则贴图被折射冲淡）*/
+ok(/makeGlassMaterial\(\{ map:tex/.test(appSrc), '贴图面用「半透明+高反射」而非 transmission');
+/* 空间仍全部可构建（材质换了不影响结构）*/
+enter('now');
+ok(T.pageByKey.now.length === 9, `换材质后 now 空间仍 9 控件`);
+
 /* ── 6. 全部空间切换不黑屏 ── */
 console.log('\n════ 6. 空间切换回归 ════');
 let noVis = [];

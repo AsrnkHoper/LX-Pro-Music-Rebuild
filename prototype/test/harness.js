@@ -49,6 +49,18 @@ global.THREE={
  PointsMaterial:class{constructor(o){Object.assign(this,Mat(o));}},
  BufferGeometry:Geo, BufferAttribute:BAttr, Points:class extends Obj{},
  Mesh, Group, Sprite, Vector3:V3,
+ /* 玻璃化相关（2026-09-23）：光照 + 物理材质 + PMREM */
+ AmbientLight:class extends Obj{constructor(c,i){super();this.color=c;this.intensity=i;}},
+ DirectionalLight:class extends Obj{constructor(c,i){super();this.color=c;this.intensity=i;}},
+ PointLight:class extends Obj{constructor(c,i,d){super();this.color=c;this.intensity=i;this.distance=d;}},
+ HemisphereLight:class extends Obj{constructor(){super();}},
+ MeshPhysicalMaterial:class{constructor(o){Object.assign(this,Mat(o));}},
+ PMREMGenerator:class{constructor(){} compileEquirectangularShader(){}
+   fromScene(){ return { texture:{ isTexture:true } }; } dispose(){}},
+ WebGLCubeRenderTarget:class{constructor(){this.texture={};}},
+ CubeCamera:class extends Obj{constructor(){super();}},
+ BackSide:1, DoubleSide:2, FrontSide:0,
+ RepeatWrapping:1000,
  Vector2:class{constructor(x=0,y=0){this.x=x;this.y=y;}},
  Quaternion:class{constructor(){this.x=0;this.y=0;this.z=0;this.w=1;} copy(){return this;} invert(){return this;}},
  Raycaster:class{constructor(){this.ray={};} setFromCamera(){}

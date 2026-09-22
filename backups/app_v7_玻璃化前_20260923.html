@@ -3959,144 +3959,8 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.setClearColor(0x08090C, 1);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x08090C, 0.014);   /* 玻璃化后调淡，让反射可见 */
+scene.fog = new THREE.FogExp2(0x08090C, 0.018);   /* 2026-09-22 减弱：原 0.03 让远处卡片过暗 */
 const camera = new THREE.PerspectiveCamera(68, innerWidth/innerHeight, 0.1, 500);
-
-/* ============================================================
-   ⚡ 玻璃化地基（2026-09-23）
-   诊断：此前所有元素用 MeshBasicMaterial（无光照/无反射），
-        视觉上只是「2D 界面贴在 3D 平面上」，不够惊艳。
-   本段做三件事：
-     ① 程序化环境贴图（PMREM）—— 玻璃必须有 envMap 才能反射
-     ② 光照系统（环境光 + 主光 + 两盏品牌色补光）
-     ③ 品牌色环境球 —— 让反射出来的是「我们的光」而非摄影棚灰
-   ⚠️ 参考：three.js 官方 RoomEnvironment 的结构（发光盒子围一圈），
-      但换成本项目配色（冷钢蓝 + 雾紫），不照搬灰白。
-============================================================ */
-
-/* ── ③ 品牌色环境球（供 ① 烘焙）── */
-function buildBrandEnvScene(){
-  const s = new THREE.Scene();
-  /* 深空底色球（BackSide）*/
-  const domeGeo = new THREE.SphereGeometry(50, 24, 16);
-  const domeMat = new THREE.MeshBasicMaterial({
-    color: 0x0A0C12, side: THREE.BackSide
-  });
-  s.add(new THREE.Mesh(domeGeo, domeMat));
-
-  /* 发光片：品红/青/琥珀/冷白，围一圈 → 玻璃会反射出这些颜色 */
-  const LIGHTS = [
-    { c: 0x7FA8D8, i: 3.2, w: 22, h: 22, pos: [-18, 10, -16] },  /* 冷钢蓝 */
-    { c: 0x9B7FD8, i: 2.4, w: 16, h: 26, pos: [ 20,  -6, -12] },  /* 雾紫 */
-    { c: 0xD8B07F, i: 1.8, w: 14, h: 14, pos: [  6,  18,  10] },  /* 琥珀 */
-    { c: 0xE8F2FF, i: 2.6, w: 30, h: 8,  pos: [ -8, -16,  -8] },  /* 冷白条 */
-    { c: 0x6E8FAD, i: 2.0, w: 18, h: 18, pos: [ 14,  12,  16] }
-  ];
-  LIGHTS.forEach(L => {
-    const m = new THREE.Mesh(
-      new THREE.PlaneGeometry(L.w, L.h),
-      new THREE.MeshBasicMaterial({ color: L.c, side: THREE.DoubleSide })
-    );
-    m.position.set(L.pos[0], L.pos[1], L.pos[2]);
-    m.lookAt(0, 0, 0);
-    /* 用材质颜色模拟强度（MeshBasicMaterial 无 intensity，用叠加多片代替）*/
-    s.add(m);
-  });
-  return s;
-}
-
-/* ── ① 烘焙成 PMREM 环境贴图 ── */
-let ENV_TEX = null;
-(function bakeEnv(){
-  try {
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    pmrem.compileEquirectangularShader();
-    const envScene = buildBrandEnvScene();
-    /* 第二参 sigma = 模糊强度（越大越柔，玻璃反射越「化」）*/
-    const rt = pmrem.fromScene(envScene, 0.10);
-    ENV_TEX = rt.texture;
-    scene.environment = ENV_TEX;
-    pmrem.dispose();
-    console.log('[玻璃化] 环境贴图烘焙完成');
-  } catch(e){
-    console.warn('[玻璃化] PMREM 烘焙失败，降级为无反射:', e && e.message);
-    ENV_TEX = null;
-  }
-})();
-
-/* ── ② 光照系统 ── */
-const ambient = new THREE.AmbientLight(0x8891A0, 0.55);
-scene.add(ambient);
-
-const keyLight = new THREE.DirectionalLight(0xAEB8C8, 0.90);
-keyLight.position.set(4, 6, 8);
-scene.add(keyLight);
-
-/* 品牌色补光：让玻璃边缘有冷暖对比 */
-const rimCool = new THREE.PointLight(0x5B7FA8, 1.20, 60);
-rimCool.position.set(-8, 4, -6);
-scene.add(rimCool);
-
-const rimWarm = new THREE.PointLight(0x8B6FA8, 0.90, 60);
-rimWarm.position.set(8, -3, 6);
-scene.add(rimWarm);
-
-/* 玻璃化总开关（可全局调；false = 退回旧哑光观感，便于对比）*/
-let GLASS_ON = true;
-
-/* ── 玻璃材质工厂（2026-09-23）──
-   参数依据 three.js MeshPhysicalMaterial 官方语义：
-     transmission 真折射 / thickness 体积感 / ior 折射率 /
-     clearcoat 湿亮层 / iridescence 薄膜虹彩 / envMapIntensity 反射强度
-   ⚠️ 性能取舍：transmission 会触发独立 buffer 渲染。
-      本项目卡片数量 ~10-30，且用户选「效果优先」，故开启。
-      若卡顿，把 GLASS_TRANSMISSION 调 0 即退回普通透明材质。 */
-const GLASS_TRANSMISSION = 0.92;   /* 0 = 关闭真折射（省性能）*/
-
-function makeGlassMaterial(opts){
-  opts = opts || {};
-  const o = {
-    color: opts.color !== undefined ? opts.color : 0xFFFFFF,
-    /* ⚠️ 贴图 + 玻璃的取舍：
-       transmission 会让贴图变「透过玻璃看纸」——颜色会被折射冲淡。
-       故：有贴图的面用「半透明 + 高反射 + clearcoat」，不用 transmission；
-           纯色块（如侧边）才用真 transmission。*/
-    map: opts.map || null,
-    transparent: true,
-    opacity: opts.opacity !== undefined ? opts.opacity : 1,
-    roughness: opts.roughness !== undefined ? opts.roughness : 0.10,
-    metalness: 0.0,
-    envMapIntensity: opts.envMapIntensity !== undefined ? opts.envMapIntensity : 1.6,
-    /* 湿亮层：几乎零成本，出「玻璃被水打湿」的高光 */
-    clearcoat: 0.85,
-    clearcoatRoughness: 0.08,
-    /* 薄膜虹彩：给边缘一点彩虹，很「贵」的细节 */
-    iridescence: opts.iridescence !== undefined ? opts.iridescence : 0.22,
-    iridescenceIOR: 1.3,
-    side: opts.side !== undefined ? opts.side : THREE.FrontSide
-  };
-  const mat = new THREE.MeshPhysicalMaterial(o);
-  if(opts.transmission){
-    mat.transmission = opts.transmission;
-    mat.thickness = opts.thickness !== undefined ? opts.thickness : 0.9;
-    mat.ior = opts.ior !== undefined ? opts.ior : 1.48;
-    mat.attenuationDistance = 3.0;
-    mat.attenuationColor = new THREE.Color(opts.attenuation || 0x8FA8C8);
-  }
-  return mat;
-}
-
-/* 侧边（卡片厚度）——纯色，可用真玻璃 */
-function makeGlassSide(colorHex){
-  return makeGlassMaterial({
-    color: colorHex !== undefined ? colorHex : 0x2A3040,
-    transmission: GLASS_TRANSMISSION,
-    thickness: 1.4,
-    ior: 1.5,
-    roughness: 0.16,
-    envMapIntensity: 1.2
-  });
-}
 
 /* ---------------- 主页 6 卡 ---------------- */
 /* ⚠️ 6 张卡（2026-09-22 按用户要求删除「播放历史」）：
@@ -6737,14 +6601,8 @@ FEATURES.forEach((f, i) => {
   const geo = new THREE.BoxGeometry(cw, ch, 0.08);
 
   const tex = makeMainCardTexture(f, i);
-  /* ⚡ 玻璃化（2026-09-23）：贴图面 = 半透明高反射 + clearcoat（不冲淡贴图）*/
-  const faceMat = GLASS_ON
-    ? makeGlassMaterial({ map:tex, opacity:0.94, roughness:0.10,
-                          envMapIntensity:1.5, iridescence:0.18 })
-    : new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:1, toneMapped:false, fog:false });
-  const sideMat = GLASS_ON
-    ? makeGlassSide(0x22262E)
-    : new THREE.MeshBasicMaterial({ color:0x22262E, transparent:true, opacity:1, fog:false });
+  const faceMat = new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:1, toneMapped:false, fog:false });
+  const sideMat = new THREE.MeshBasicMaterial({ color:0x22262E, transparent:true, opacity:1, fog:false });
   const mesh = new THREE.Mesh(geo, [sideMat,sideMat,sideMat,sideMat,faceMat,sideMat]);
 
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -7523,14 +7381,8 @@ function makeWidgetMesh(w, idx, wwOv, hhOv){
 
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  /* ⚡ 玻璃化（子空间控件，同主页卡）*/
-  const faceMat = GLASS_ON
-    ? makeGlassMaterial({ map:tex, opacity:0.94, roughness:0.10,
-                          envMapIntensity:1.5, iridescence:0.18 })
-    : new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:1, toneMapped:false, fog:false });
-  const sideMat = GLASS_ON
-    ? makeGlassSide(0x1C2026)
-    : new THREE.MeshBasicMaterial({ color:0x1C2026, transparent:true, opacity:1, fog:false });
+  const faceMat = new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:1, toneMapped:false, fog:false });
+  const sideMat = new THREE.MeshBasicMaterial({ color:0x1C2026, transparent:true, opacity:1, fog:false });
 
   let mesh;
   if(w.bare){
